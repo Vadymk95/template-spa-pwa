@@ -4,16 +4,29 @@ import { useLocation } from 'react-router-dom';
 /**
  * Moves focus to the main landmark on client-side navigations (WCAG 2.4.1).
  * Skips the initial mount so hydration / first paint is unchanged.
+ *
+ * Implementation note: tracks the previous pathname in a ref instead of an
+ * "isInitialMount" flag so React 19 StrictMode's double-invoke (mount → cleanup
+ * → mount) cannot flip the flag mid-render and trigger an unintended initial
+ * focus. The ref persists across the StrictMode cycle; the equality check
+ * naturally no-ops when pathname doesn't change.
  */
 export const useRouteFocus = (mainRef: RefObject<HTMLElement | null>) => {
     const location = useLocation();
-    const isInitialMount = useRef(true);
+    const prevPath = useRef<string | null>(null);
 
     useLayoutEffect(() => {
-        if (isInitialMount.current) {
-            isInitialMount.current = false;
+        const path = location.pathname;
+        if (prevPath.current === null) {
+            // First effect run — record baseline, do not move focus.
+            prevPath.current = path;
             return;
         }
+        if (prevPath.current === path) {
+            // StrictMode re-run with no actual navigation — skip.
+            return;
+        }
+        prevPath.current = path;
 
         const el = mainRef.current;
         if (!el) return;

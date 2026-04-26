@@ -4,7 +4,19 @@ const config = {
         'type-enum': [
             2,
             'always',
-            ['feat', 'fix', 'chore', 'docs', 'style', 'refactor', 'perf', 'test', 'revert']
+            [
+                'feat',
+                'fix',
+                'chore',
+                'docs',
+                'style',
+                'refactor',
+                'perf',
+                'test',
+                'revert',
+                'build',
+                'ci'
+            ]
         ],
         'header-max-length': [2, 'always', 96]
     }

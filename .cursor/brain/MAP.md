@@ -4,10 +4,11 @@
 
 | File                   | Role                                                |
 | ---------------------- | --------------------------------------------------- |
-| `index.html`           | HTML shell — `i18n-loading` FOUC guard + `#i18n-boot` decorative spinner until i18n ready |
-| `src/main.tsx`         | Async bootstrap: optional DEV MSW worker (`src/mocks/browser.ts`, opt-out `VITE_ENABLE_MSW=false`) → root: i18n ready gate (or `I18nInitErrorFallback` on init failure) → `I18nextProvider` → QueryClient → Router; `reportWebVitals()` after mount |
-| `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer    |
+| `index.html`           | HTML shell — `i18n-loading` FOUC guard + `#i18n-boot` decorative spinner until i18n ready; PWA meta tags (theme-color × 2, mobile-web-app-capable, apple-mobile-web-app-* set, apple-touch-icon link) |
+| `src/main.tsx`         | Async bootstrap: eager `installPromptCapture` import → optional DEV MSW worker → root: i18n ready gate (or `I18nInitErrorFallback`) → `I18nextProvider` → QueryClient → Router; `reportWebVitals()` after mount |
+| `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer + auto-mounted `PwaUpdateToast` |
 | `src/router/index.tsx` | Router assembly, merge route modules here           |
+| `vite.config.ts`       | Build config + `VitePWA({...})` + local plugins in `vite-plugins/` (dev-banner, i18n-hmr, html-optimize) — manifest, Workbox precache, `registerType: 'prompt'`, `devOptions.enabled: false`, `globIgnores` for MSW worker |
 
 ## Adding a New Page
 
@@ -64,6 +65,32 @@ app start → i18next init → loads common + errors + <current page ns>
 
 `src/lib/vitals.ts` schedules reporting after paint; dynamic imports pick `subscribeStandard` vs `subscribeAttribution` from `src/lib/webVitals/`. CI runs `scripts/check-web-vitals-chunks.mjs` on `dist/` after build to guard chunk split (see `DECISIONS.md`).
 
+## PWA (Service Worker + Manifest)
+
+```
+vite-plugin-pwa (vite.config.ts) → generateSW → dist/sw.js + dist/workbox-*.js + dist/manifest.webmanifest
+                                              ↓
+main.tsx → side-effect import @/lib/pwa/installPromptCapture (eager beforeinstallprompt listener)
+        → vite-plugin-pwa auto-injected registerSW.js loads in document
+        → SW registers, precaches `globPatterns` assets
+        → on new deploy: SW transitions to waiting → useRegisterSW hook fires needRefresh
+        → PwaUpdateToast (mounted in App.tsx) renders → user clicks → updateServiceWorker(true) → reload
+```
+
+Full reference: `.cursor/brain/PWA.md`. Source-of-truth files map below.
+
+| Concern                  | File                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| Plugin config + manifest | `vite.config.ts → VitePWA({...})`                     |
+| Update UI                | `src/components/common/PwaUpdateToast/`               |
+| Install hook             | `src/hooks/pwa/usePwaInstall.ts`                      |
+| `beforeinstallprompt` capture | `src/lib/pwa/installPromptCapture.ts` (eager)    |
+| Icons                    | `public/icons/{192x192,512x512,apple-touch-icon}.png` |
+| iOS / theme meta         | `index.html`                                          |
+| Type surface             | `src/vite-env.d.ts`                                   |
+| Build verification       | `scripts/check-pwa.mjs` → wired into `ci:local`       |
+| Placeholder icon generator | `scripts/generate-placeholder-icons.mjs`            |
+
 ## CSS / Theming
 
 ```
@@ -100,6 +127,8 @@ To update after MSW upgrade: `npx msw init public/`.
 
 | Artifact                   | Role                                                                 |
 | -------------------------- | -------------------------------------------------------------------- |
-| `.github/workflows/ci.yml` | PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → web-vitals chunk check |
-| `.cursor/brain/VERIFICATION.md` | **When to run which checks** (agents: avoid full pipeline for tiny edits); local mirror: `npm run ci:local` |
+| `.github/workflows/ci.yml` | PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` (default single-build assert on `dist/`) → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step |
+| `.github/workflows/security.yml` | PR + push `master` + weekly schedule: **gitleaks** (full history); **CodeQL** JS/TS with `security-extended` query pack — orthogonal to `ci.yml`; not part of `npm run ci:local` |
+| `npm run ci:local` | Superset vs `ci.yml`: after build adds **`verify:pwa`**, **`perf:ci`** (Lighthouse-CI / `lighthouserc.json`), then `ensure-playwright`, E2E with **`PLAYWRIGHT_USE_PREVIEW=1`** (exact order: `package.json` → `ci:local`) |
+| `.cursor/brain/VERIFICATION.md` | **When to run which checks** (agents: avoid full pipeline for tiny edits); pre-push: `ci:local` |
 | `.github/dependabot.yml`   | Weekly npm version PRs (limit 8 open)                                |

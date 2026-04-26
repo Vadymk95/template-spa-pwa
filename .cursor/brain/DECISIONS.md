@@ -1,5 +1,21 @@
 # Architectural Decisions
 
+## [2026-04] `ci:local` stricter than GitHub Actions
+
+**Decision**: `npm run ci:local` runs **`verify:pwa`**, **`perf:ci`** (Lighthouse-CI against the production preview build), **`scripts/ensure-playwright.mjs`**, and sets **`PLAYWRIGHT_USE_PREVIEW=1`** for E2E, on top of the same audit → typecheck → lint → coverage → build → **`verify:web-vitals-chunks`** → E2E path as `.github/workflows/ci.yml`. The workflow file does **not** invoke `verify:pwa` or Lighthouse (PWA + perf budgets are validated locally and in `ci:local` until/unless matching workflow steps are added).
+
+**Why**: Keeps default GitHub CI lean (minutes, browser install) while one pre-push command still catches PWA `dist/` regressions, Web Vitals bundle split, Lighthouse assertions, and preview-mode E2E. `ensure-playwright` skips install when Chromium is already cached.
+
+---
+
+## [2026-04] Security workflow separate from build CI
+
+**Decision**: `.github/workflows/security.yml` runs **gitleaks** and **CodeQL** (JavaScript/TypeScript, `security-extended`) on PR/push to `master` plus a weekly schedule. It does not duplicate or replace `ci.yml` validation.
+
+**Why**: Supply-chain and secret scanning are policy-heavy; keeping them in a dedicated workflow avoids coupling slow security jobs to every `ci.yml` run while still gating merges and catching drift on a schedule.
+
+---
+
 ## [2026-04] MSW browser worker — `src/mocks/browser.ts` + dev opt-out
 
 **Decision**: DEV-only MSW uses `setupWorker` in `src/mocks/browser.ts` (handlers shared with Vitest via `test/handlers`). `main.tsx` starts the worker when `import.meta.env.DEV` and `import.meta.env.VITE_ENABLE_MSW !== 'false'` (opt-out; default-on in dev).
@@ -10,7 +26,7 @@
 
 ## [2026-04] Verification guide (`.cursor/brain/VERIFICATION.md`) + `ci:local`
 
-**Decision**: `.cursor/brain/VERIFICATION.md` defines minimal checks per task type; `npm run ci:local` mirrors CI. Agents should read it and avoid running audit/build/vitals-analyze for every trivial edit.
+**Decision**: `.cursor/brain/VERIFICATION.md` defines minimal checks per task type; `npm run ci:local` extends `.github/workflows/ci.yml` with extra gates (see `ci:local` ADR above). Agents should read it and avoid running audit/build/vitals-analyze for every trivial edit.
 
 **Why**: Reduces noise, latency, and false “full audit” habits while keeping a single command for pre-push confidence.
 
@@ -110,9 +126,9 @@
 
 ## [2026-03] CI: production build + audit + Dependabot
 
-**Decision**: GitHub Actions runs `npm ci` → audit → `typecheck` → `lint:oxlint` → `lint` (ESLint) → `format:check` → `test:coverage` → **`npm run build`** → **Web Vitals chunk verification** (`node scripts/check-web-vitals-chunks.mjs` on `dist/`). Triggers on PR and push to `master`. Dependabot opens weekly npm update PRs (capped at 8 open).
+**Decision**: GitHub Actions runs `npm ci` → audit → `typecheck` → `lint:oxlint` → `lint` (ESLint) → `format:check` → `test:coverage` → **`npm run build`** → **`npm run verify:web-vitals-chunks`** → **Playwright E2E** (Chromium; preview on 4173). Triggers on PR and push to `master`. Dependabot opens weekly npm update PRs (capped at 8 open). **`verify:pwa`** and **`perf:ci`** are not in `ci.yml`; use **`npm run ci:local`** for those gates (see [2026-04] `ci:local` stricter than GitHub Actions). Security scanning: **`security.yml`** (gitleaks, CodeQL).
 
-**Why**: Typecheck and dual lint stages catch errors early; coverage in CI enforces thresholds from Vitest config. Production build gates bundler regressions; post-build chunk check catches accidental web-vitals graph coupling. Audit at moderate+ fails on registry-reported issues. Dependabot reduces manual drift for security patches.
+**Why**: Typecheck and dual lint stages catch errors early; coverage in CI enforces thresholds from Vitest config. Production build gates bundler regressions; post-build chunk check catches accidental web-vitals graph coupling. E2E covers critical navigation. Audit at moderate+ fails on registry-reported issues. Dependabot reduces manual drift for security patches.
 
 **Trade-offs**: `audit-level=moderate` may fail on moderate+ advisories that have no fix yet — then pin, ignore with documented exception, or wait for upstream (team choice).
 

@@ -1,6 +1,6 @@
 {
     "skipToMain": "Skip to main content",
-    "appName": "React Enterprise Foundation",
+    "appName": "React SPA + PWA Foundation",
     "button": {
         "submit": "Submit",
         "cancel": "Cancel",
@@ -42,5 +42,12 @@
     },
     "notFound": {
         "goHome": "Go to home"
+    },
+    "pwa": {
+        "updateAvailable": "A new version is available.",
+        "refresh": "Refresh",
+        "dismiss": "Dismiss",
+        "installPrompt": "Install this app on your device.",
+        "install": "Install"
     }
 }

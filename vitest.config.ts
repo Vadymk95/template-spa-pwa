@@ -31,16 +31,29 @@ export default mergeConfig(
                     'src/components/ui/**',
                     // Lazy-only barrels — real pages are covered via `*.tsx` modules and route tests.
                     'src/pages/**/index.ts',
+                    // DEV-only, tree-shaken in prod. Deleting it should not move coverage.
+                    'src/pages/DevPlayground/**',
+                    // Template seeds — graduate to real domain modules per .cursor/brain/EXTENSIONS.md Phase 1; untested by design.
+                    'src/lib/api/_example*',
+                    // Side-effect singleton tested indirectly via the mocked hook in usePwaInstall.test.ts.
+                    'src/lib/pwa/installPromptCapture.ts',
+                    // DEV-only MSW worker setup; never reaches prod.
+                    'src/mocks/**',
+                    // 5-line cross-fetch shim, no branching logic.
+                    'src/lib/cross-fetch-native.ts',
                     '**/*.d.ts',
                     '**/*.config.{ts,js}'
                 ],
                 reportsDirectory: './coverage',
-                // Raise thresholds incrementally — each new feature should add tests.
+                // Ratchet floor — locks current state, prevents regression.
+                // Roadmap: bump to 70 / 60 / 70 / 55 once `isSafeForAuth` and
+                // `_hasHydrated` branches are covered (EXTENSIONS Phase 4); then
+                // 80 / 70 / 80 / 70 once observability transport lands.
                 // CI fails if coverage drops below these numbers.
                 thresholds: {
-                    statements: 57,
-                    lines: 57,
-                    functions: 48,
+                    statements: 65,
+                    lines: 65,
+                    functions: 60,
                     branches: 48
                 }
             },

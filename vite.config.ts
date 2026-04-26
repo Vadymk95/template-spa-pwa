@@ -6,9 +6,11 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig, type Plugin, type PluginOption } from 'vite';
 import compression from 'vite-plugin-compression';
+import { VitePWA } from 'vite-plugin-pwa';
 import { webfontDownload } from 'vite-plugin-webfont-dl';
 
 import pkg from './package.json' with { type: 'json' };
+import { devBanner } from './vite-plugins/dev-banner';
 import { htmlOptimize } from './vite-plugins/html-optimize';
 import { i18nHmr } from './vite-plugins/i18n-hmr';
 
@@ -41,11 +43,61 @@ export default defineConfig(({ command }) => ({
         react({
             jsxRuntime: 'automatic'
         }),
+        // Single-print dev-server banner (project + version + node + vite + mode + flags).
+        // Disabled in CI / non-TTY by default; flip with VITE_DEV_BANNER=false locally.
+        devBanner(),
         // Prevents FOUC by ensuring CSS loads before JavaScript
         htmlOptimize(),
         // Hot reload for i18n translation files in development
         i18nHmr(),
+        // MUST run before VitePWA so its closeBundle deletes dist/mockServiceWorker.js
+        // before VitePWA's precache scan finalizes — see .cursor/brain/SKELETONS.md.
         removeMswPlugin(),
+        // PWA: generateSW (Workbox) + prompt-mode update flow.
+        // Manifest, update flow, caching strategy: .cursor/brain/PWA.md.
+        VitePWA({
+            registerType: 'prompt',
+            injectRegister: 'auto',
+            // Dev SW disabled by design: PWA SW is PROD-only, MSW SW is DEV-only —
+            // they never coexist on `/`. Flipping this flag breaks MSW.
+            devOptions: { enabled: false },
+            manifest: {
+                id: '/',
+                scope: '/',
+                start_url: '/',
+                name: 'React SPA + PWA Foundation',
+                short_name: 'React PWA',
+                description:
+                    'Production-ready React 19 + Vite 8 + TypeScript SPA + PWA template. Replace this description before shipping.',
+                lang: 'en',
+                display: 'standalone',
+                display_override: ['standalone', 'minimal-ui'],
+                orientation: 'any',
+                theme_color: '#0a0a0a',
+                background_color: '#ffffff',
+                icons: [
+                    { src: '/icons/192x192.png', sizes: '192x192', type: 'image/png' },
+                    { src: '/icons/512x512.png', sizes: '512x512', type: 'image/png' },
+                    { src: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+                ],
+                // Chromium-only fields, ignored elsewhere — safe defaults.
+                // handle_links: 'auto' (not 'preferred') so forks that ship auth flows
+                // don't accidentally hijack deep links. See .cursor/brain/PWA.md.
+                handle_links: 'auto',
+                launch_handler: { client_mode: 'navigate-existing' }
+            },
+            workbox: {
+                // Precache build artefacts + locales (content-hashed, no TTL needed).
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest,json}'],
+                // Defence-in-depth: even if removeMswPlugin's closeBundle order regresses,
+                // the MSW worker never enters precache and never 404s post-deploy.
+                globIgnores: ['**/mockServiceWorker.js', '**/mockServiceWorker.js.br'],
+                // Prompt mode requires these stay off — UpdateToast drives skipWaiting
+                // via updateServiceWorker(true).
+                skipWaiting: false,
+                clientsClaim: false
+            }
+        }),
         compression({
             algorithm: 'brotliCompress',
             ext: '.br',

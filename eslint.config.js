@@ -137,6 +137,9 @@ export default defineConfig([
                 }
             ],
             'import-x/no-cycle': 'error',
+            // Vite virtual modules (e.g. virtual:pwa-register/react) have no filesystem path.
+            // Their types are surfaced via /// reference in src/vite-env.d.ts.
+            'import-x/no-unresolved': ['error', { ignore: ['^virtual:'] }],
             // ─── Enforce arrow functions (no function declarations) ───────────
             // Components: const X: FunctionComponent = () => {}
             // Hooks/utils: const useX = () => {}

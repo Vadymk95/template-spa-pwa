@@ -16,6 +16,8 @@ coverage
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+# Lighthouse-CI artefacts
+/.lighthouseci/
 *.local
 .eslintcache
 

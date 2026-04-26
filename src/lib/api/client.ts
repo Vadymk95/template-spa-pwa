@@ -1,12 +1,14 @@
 /**
- * Base API Client
+ * Base API Client — 🌱 SHOWCASE.
  *
- * NOTE: This API client structure is optional.
- * - If you're using Supabase/Firebase SDK or other BaaS solutions,
- *   you can remove this folder and use their SDKs directly with TanStack Query.
- * - If you're building a custom REST API, this structure provides a good starting point.
+ * Demonstrates `Authorization: Bearer ${token}` wiring with TanStack Query.
+ * Real production apps should keep auth on the backend (httpOnly cookies),
+ * making this client redundant — see `.cursor/brain/EXTENSIONS.md` Phase 1
+ * (Backend) and Phase 2 (Auth) for replacement strategies.
  *
- * Replace this file or extend it based on your backend needs.
+ * - Using Supabase / Firebase / tRPC: remove this folder; their SDKs plug into
+ *   TanStack Query directly.
+ * - Building a custom REST backend: extend this client with your contracts.
  */
 
 import { env } from '@/env';
@@ -14,6 +16,30 @@ import { getAuthToken } from '@/store/user/userStore';
 
 // Backend API URL — configure VITE_API_URL in .env (validated by src/env.ts via t3-env + zod)
 const API_BASE_URL = env.VITE_API_URL ?? 'http://localhost:3001/api';
+
+/**
+ * Cross-origin token-leak guard. Bearer tokens must NEVER ride to:
+ *   - cross-origin destinations over plain http (network sniffing)
+ *   - opaque schemes (data:, blob:) — meaningless for an HTTP API
+ *
+ * Same-origin requests are always safe. https:// is always safe. http:// is
+ * only allowed for loopback (localhost / 127.0.0.1) so dev backends work.
+ *
+ * Returning `false` means the request still fires, but without `Authorization`.
+ */
+const isSafeForAuth = (resolvedUrl: URL): boolean => {
+    if (typeof window !== 'undefined' && resolvedUrl.origin === window.location.origin) {
+        return true;
+    }
+    if (resolvedUrl.protocol === 'https:') return true;
+    if (
+        resolvedUrl.protocol === 'http:' &&
+        (resolvedUrl.hostname === 'localhost' || resolvedUrl.hostname === '127.0.0.1')
+    ) {
+        return true;
+    }
+    return false;
+};
 
 // Proper Error subclass so instanceof checks and only-throw-error rule work correctly
 export class ApiError extends Error {
@@ -41,11 +67,17 @@ const extractErrorMessage = (data: unknown): string | null => {
 
 export const apiClient = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {
     const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const resolvedUrl = new URL(
+        url,
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
+    );
+    const attachAuth = token !== null && isSafeForAuth(resolvedUrl);
+    const response = await fetch(url, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(attachAuth ? { Authorization: `Bearer ${token}` } : {}),
             // Cast: HeadersInit can be string[][] but our callers pass Record<string, string>
             ...(options?.headers as Record<string, string> | undefined)
         }

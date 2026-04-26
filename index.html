@@ -4,12 +4,28 @@
     <!-- i18n-loading: hides content until translations are ready (removed in src/lib/i18n/index.ts) -->
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>React Enterprise Foundation</title>
-        <!-- Add meta tags for your project when needed: -->
-        <!-- <meta name="description" content="Your app description" /> -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <title>React SPA + PWA Foundation</title>
+        <meta
+            name="description"
+            content="Production-ready React 19 + Vite 8 + TypeScript SPA + PWA template."
+        />
         <!-- <meta name="robots" content="index, follow" /> -->
+
+        <link rel="icon" type="image/png" sizes="192x192" href="/icons/192x192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+
+        <!-- Theme tint for browser chrome. Two queries cover .dark/.light explicitly;
+             keep both — single tag without media is overwritten by either side. -->
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+
+        <!-- iOS PWA: BOTH tags required. apple-* is "deprecated" per MDN but iOS
+             splash silently breaks without it (next.js#74524). See SKELETONS.md. -->
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="React PWA" />
 
         <!-- Inter Font is downloaded and bundled by vite-plugin-webfont-dl -->
     </head>

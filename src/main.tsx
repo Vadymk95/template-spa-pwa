@@ -7,10 +7,26 @@ import { RouterProvider } from 'react-router-dom';
 import { I18nInitErrorFallback } from '@/components/common/I18nInitErrorFallback';
 import i18n, { i18nInitPromise } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
+// Side-effect import: registers `beforeinstallprompt` handler at module load,
+// before Chrome dispatches the event (~30s after first paint). Lazy registration
+// loses the event — see src/lib/pwa/installPromptCapture.ts.
+import '@/lib/pwa/installPromptCapture';
 import { queryClient } from '@/lib/queryClient';
 import { reportWebVitals } from '@/lib/vitals';
 import { router } from '@/router';
 import './index.css';
+
+// After a deploy with new chunk hashes, an open tab that lazy-imports a stale
+// chunk fails with `vite:preloadError`. Without a handler the error bubbles to
+// RouteErrorBoundary (English-only "Something went wrong"), not to the SW update
+// toast. Reload picks up the new manifest + hashed chunks. The default Vite
+// behaviour throws; calling preventDefault swaps it for a controlled reload.
+if (typeof window !== 'undefined') {
+    window.addEventListener('vite:preloadError', (event) => {
+        event.preventDefault();
+        window.location.reload();
+    });
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -19,6 +19,14 @@ to look". They are the reference the rest of `.cursor/brain/*.md` points to.
     2. remove the seed's row from the table below;
     3. bump the README "graduated from template" note.
 
+For the full graduation flow (which seed graduates at which phase, what to add
+alongside, trade-offs per choice), see [`EXTENSIONS.md`](./EXTENSIONS.md):
+
+- `_example.queries.ts` + `_example.ts` → graduate in **Phase 1 — Real backend**.
+- `LanguageSwitcher` → graduates in **Phase 3 — Multi-locale i18n**.
+- `ThemeToggle` / `Header` / `Footer` demo wiring → graduate gradually in **Phase 0 — Cosmetics & identity** as the product's real UI lands.
+- `DevPlayground` (`/dev/ui` route) → graduates only once enough real pages cover shadcn variants visually (often **Phase 9 — Optional capabilities** when introducing Storybook).
+
 ## Registry
 
 | Seed                                              | Kind                     | Demonstrates                                                                 | Delete when…                                                    |

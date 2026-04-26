@@ -5,6 +5,7 @@ coverage
 .claude
 .cursor
 .husky/_
+.lighthouseci
 public/mockServiceWorker.js
 test-results
 playwright-report

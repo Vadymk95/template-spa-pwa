@@ -1,11 +1,12 @@
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use --silent 2>/dev/null || true
 
-echo "→ format:check"
-npm run format:check || { echo "❌ Formatting check failed. Run 'npm run format' and re-commit."; exit 1; }
+# Pre-commit (lint-staged) already enforces format + lint on staged files.
+# Pre-push is the last gate before remote sees broken code — keep it minimal:
+# only what cannot be staged-scoped. `tsc -b` is incremental (cache in
+# node_modules/.tmp/) so the second push of the day is ~1s.
+#
+# To gate format/lint cross-file too, run `npm run ci:local` manually before push.
 
-echo "→ lint"
-npm run lint || { echo "❌ Lint failed. Fix errors before push."; exit 1; }
-
-echo "→ type-check"
+echo "→ type-check (tsc -b)"
 npx tsc -b --noEmit || { echo "❌ TypeScript type-check failed. Fix errors before push."; exit 1; }

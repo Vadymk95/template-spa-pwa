@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.describe('Smoke', () => {
     test('home loads with app title', async ({ page }) => {
         await page.goto('/');
-        await expect(page).toHaveTitle(/React Enterprise Foundation/);
+        await expect(page).toHaveTitle(/React SPA \+ PWA Foundation/);
     });
 
     test('home exposes main landmark and welcome heading', async ({ page }) => {

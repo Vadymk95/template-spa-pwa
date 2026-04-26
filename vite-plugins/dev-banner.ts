@@ -51,7 +51,7 @@ export const devBanner = (options: BannerOptions = {}): Plugin => {
             if (options.disabled || process.env.VITE_DEV_BANNER === 'false') return;
 
             const printOnce = () => {
-                const env = server.config.env as Record<string, string | undefined>;
+                const env: Record<string, string | undefined> = server.config.env;
                 const mswFlag = flagState(env.VITE_ENABLE_MSW, 'off');
                 const wvFlag = flagState(env.VITE_WEB_VITALS_ATTRIBUTION, 'off');
 

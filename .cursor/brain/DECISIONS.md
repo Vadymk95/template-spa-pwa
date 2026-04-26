@@ -1,5 +1,27 @@
 # Architectural Decisions
 
+## [2026-04] ESLint 9 hold (NOT bumping to 10)
+
+**Decision**: stay on `eslint@^9.x` + `@eslint/js@^9.x` until plugin peer ranges catch up to ESLint 10.
+
+**Why**: at template publish time, two plugins still cap their `eslint` peer below `^10`:
+
+- `eslint-plugin-jsx-a11y@6.10.2` — peer `^3 || ... || ^9` (no `^10`)
+- `eslint-plugin-react@7.37.5` — peer `^3 || ... || ^9.7` (no `^10`)
+
+`typescript-eslint@8.59`, `eslint-plugin-import-x@4.16`, `eslint-plugin-react-hooks@7.1`, `eslint-plugin-react-refresh@0.5`, `eslint-plugin-prettier@5.5`, `eslint-plugin-oxlint@1.61` — all already declare ESLint 10 support. Holding back on the two laggers prevents `--legacy-peer-deps` lying to npm about resolution.
+
+**Revisit when**: `eslint-plugin-react` ships a release widening peer to include `^10`, OR an alternative React lint plugin emerges and we migrate. Quick check: `npm view eslint-plugin-react peerDependencies | grep eslint`.
+
+**Roll-forward recipe** when peers update:
+
+```bash
+npm install --save-dev eslint@^10 @eslint/js@^10
+npm run lint && npm run lint:oxlint  # both must pass
+```
+
+---
+
 ## [2026-04] `ci:local` stricter than GitHub Actions
 
 **Decision**: `npm run ci:local` runs **`verify:pwa`**, **`perf:ci`** (Lighthouse-CI against the production preview build), **`scripts/ensure-playwright.mjs`**, and sets **`PLAYWRIGHT_USE_PREVIEW=1`** for E2E, on top of the same audit → typecheck → lint → coverage → build → **`verify:web-vitals-chunks`** → E2E path as `.github/workflows/ci.yml`. The workflow file does **not** invoke `verify:pwa` or Lighthouse (PWA + perf budgets are validated locally and in `ci:local` until/unless matching workflow steps are added).

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="i18n-loading">
+    <!-- lang attribute will be updated dynamically by i18next -->
+    <!-- i18n-loading: hides content until translations are ready (removed in src/lib/i18n/index.ts) -->
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>React Enterprise Foundation</title>
+        <!-- Add meta tags for your project when needed: -->
+        <!-- <meta name="description" content="Your app description" /> -->
+        <!-- <meta name="robots" content="index, follow" /> -->
+
+        <!-- Inter Font is downloaded and bundled by vite-plugin-webfont-dl -->
+    </head>
+    <body>
+        <!-- Pre-i18n shell: visible while html.i18n-loading (see src/index.css). No copy here — i18n not ready yet. -->
+        <div
+            id="i18n-boot"
+            class="i18n-boot"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+        ></div>
+        <div id="root" class="root-container"></div>
+
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>

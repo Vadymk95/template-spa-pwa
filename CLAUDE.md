@@ -30,7 +30,7 @@ Dark mode via `.dark` class. Animations via `tw-animate-css`.
 
 **Imports** — `@/` alias only, no relative `../../`. Order enforced by eslint-plugin-import.
 
-**PWA** — manifest + Workbox config in `vite.config.ts`; update toast in `src/components/common/PwaUpdateToast/`; install hook in `src/hooks/pwa/usePwaInstall.ts`. **Do not** flip `registerType` post-deploy. **Do not** drop the `apple-mobile-web-app-capable` meta tag. **Do not** remove the `vite-plugin-pwa` Vite-8 peer override. Full reference and threat model: `.cursor/brain/PWA.md`.
+**PWA** — manifest + Workbox config in `vite.config.ts`; update toast in `src/components/common/PwaUpdateToast/`; install hook in `src/hooks/pwa/usePwaInstall.ts`. **Do not** flip `registerType` post-deploy. **Do not** drop the `apple-mobile-web-app-capable` meta tag. Full reference and threat model: `.cursor/brain/PWA.md`.
 
 ## Post-Edit Commands
 

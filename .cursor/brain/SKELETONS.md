@@ -89,13 +89,11 @@ CI and lint-staged also run **Oxlint** (`.oxlintrc.json`) before ESLint — fast
 - If you add a new domain store with `persist`, do the same: call the reset action in `beforeEach`, or mock `localStorage` in `setup.ts`
 - Do not call `persist.clearStorage()` in tests — it leaves the store in an uninitialized state and breaks subsequent tests in the same file
 
-## PWA — `vite-plugin-pwa` Vite 8 peer dep override
+## PWA — `vite-plugin-pwa` Vite 8 peer (resolved 2026-05-09)
 
-`vite-plugin-pwa@1.2.0` caps its Vite peer at `^7.0.0`; `package.json` ships `overrides.vite-plugin-pwa.vite: $vite` to force-resolve against Vite 8.
+`vite-plugin-pwa@1.3.0` (May 2026) lifted its Vite peer to `^3.1.0 || ^4 || ^5 || ^6 || ^7 || ^8.0.0` — Vite 8 is now first-class, no override needed. The previous `overrides.vite-plugin-pwa.vite: $vite` shim has been removed from `package.json`.
 
-Removing the override re-introduces a peer-dep conflict and `npm install` fails with `ERESOLVE`.
-
-Drop-when, tracking link, full rationale: see [`PWA.md` → "Known TODO / future work"](./PWA.md#known-todo--future-work). Single source of truth — do not duplicate the issue/PR number across brain files.
+If you ever pin `vite-plugin-pwa` back below `1.3.0`, the `^7.0.0` peer cap returns and `npm install` will fail with `ERESOLVE` against `vite@^8` — re-add the override or upgrade the plugin.
 
 ## PWA — MSW × Workbox precache trap
 

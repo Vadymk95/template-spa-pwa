@@ -55,7 +55,12 @@ if (precacheEntries < PRECACHE_MIN) {
 if (sw.includes('mockServiceWorker.js')) {
     fail('sw.js precache contains mockServiceWorker.js — globIgnores or plugin order regressed');
 }
-ok(`sw.js has ${String(precacheEntries)} precache entries, no MSW leakage`);
+if (sw.includes('bundle-analysis.html')) {
+    fail(
+        'sw.js precache contains bundle-analysis.html — globIgnores regressed (700KB dev artefact would ship to all PWA users)'
+    );
+}
+ok(`sw.js has ${String(precacheEntries)} precache entries, no MSW or analyzer leakage`);
 
 // 3. index.html retains the iOS/PWA meta tags after Oxc minification.
 const htmlPath = resolve(DIST, 'index.html');

@@ -126,7 +126,7 @@ Before shipping a fork, replace these placeholders:
 - Don't switch `registerType: 'prompt'` to `'autoUpdate'` post-deploy — destructive (vite-plugin-pwa #228).
 - Don't drop `apple-mobile-web-app-capable` because MDN says deprecated — iOS splash silently breaks.
 - Don't ship `purpose: 'any maskable'` on a single icon — anti-pattern (web.dev/maskable-icon).
-- Don't remove the `vite-plugin-pwa` Vite-8 peer override in `package.json` `overrides` until v1.3+ ships.
+- Don't change `injectRegister: 'inline'` to `'auto'` — the app imports `virtual:pwa-register/react` for the update toast, so `'auto'` skips injection and SW registration becomes gated on the React tree mounting (i18n init can race).
 - Don't enable `devOptions.enabled: true` — breaks MSW.
 
 ## 🛠 Project Structure
@@ -431,11 +431,11 @@ npm run build
 
 The PWA SW + manifest depend on cache headers being right. Configure your host:
 
-| File pattern                                                       | `Cache-Control`                      | Reason                                                                               |
-| ------------------------------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------ |
-| `**/*.@(js\|css)` (content-hashed by Vite)                         | `max-age=31536000, immutable`        | Hashed assets are safe forever                                                       |
-| `/*.png`, `/*.woff2` (also content-hashed)                         | `max-age=31536000, immutable`        | Same                                                                                 |
-| `/index.html`, `/sw.js`, `/registerSW.js`, `/manifest.webmanifest` | `public, max-age=0, must-revalidate` | Must reach clients on every deploy — without this the SW update toast goes invisible |
+| File pattern                                     | `Cache-Control`                      | Reason                                                                                                                                                                                         |
+| ------------------------------------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `**/*.@(js\|css)` (content-hashed by Vite)       | `max-age=31536000, immutable`        | Hashed assets are safe forever                                                                                                                                                                 |
+| `/*.png`, `/*.woff2` (also content-hashed)       | `max-age=31536000, immutable`        | Same                                                                                                                                                                                           |
+| `/index.html`, `/sw.js`, `/manifest.webmanifest` | `public, max-age=0, must-revalidate` | Must reach clients on every deploy — without this the SW update toast goes invisible. (No separate `/registerSW.js` — registration is inlined in `index.html` via `injectRegister: 'inline'`.) |
 
 Verify post-deploy with DevTools → Network → `sw.js` request: `Cache-Control` MUST NOT be a long max-age.
 
@@ -445,7 +445,7 @@ Verify post-deploy with DevTools → Network → `sw.js` request: `Cache-Control
 {
     "headers": [
         {
-            "source": "/(sw.js|registerSW.js|manifest.webmanifest|index.html)",
+            "source": "/(sw.js|manifest.webmanifest|index.html)",
             "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
         },
         {

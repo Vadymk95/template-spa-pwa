@@ -4,16 +4,30 @@
 
 **Decision**: stay on `eslint@^9.x` + `@eslint/js@^9.x` until plugin peer ranges catch up to ESLint 10.
 
-**Why**: at template publish time, two plugins still cap their `eslint` peer below `^10`:
+**Snapshot (2026-05-22)**: ESLint 10.0.0 shipped 2026-02-09; latest 10.4.0 shipped 2026-05-15. ESLint 9.x EOL is 2026-08-06 (`maintenance` dist-tag currently `9.39.4`). Two plugins still cap their `eslint` peer below `^10`:
 
-- `eslint-plugin-jsx-a11y@6.10.2` — peer `^3 || ... || ^9` (no `^10`)
-- `eslint-plugin-react@7.37.5` — peer `^3 || ... || ^9.7` (no `^10`)
+- `eslint-plugin-jsx-a11y@6.10.2` — peer `^3 || ... || ^9` (no `^10`). Last published 2024-10-26. PR #1081 awaiting `ljharb` review since Mar 2026.
+- `eslint-plugin-react@7.37.5` — peer `^3 || ... || ^9.7` (no `^10`). Last published 2025-04-03. PR #3979 blocked transitively by `import-js/eslint-plugin-import#3230`. Note: ESLint 10 removed `context.getFilename()` + `sourceCode.isSpaceBetweenTokens` + `sourceCode.getAllComments` + RuleTester `type` field — `eslint-plugin-react@7.x` calls these at runtime (crash, not warning).
 
-`typescript-eslint@8.59`, `eslint-plugin-import-x@4.16`, `eslint-plugin-react-hooks@7.1`, `eslint-plugin-react-refresh@0.5`, `eslint-plugin-prettier@5.5`, `eslint-plugin-oxlint@1.61` — all already declare ESLint 10 support. Holding back on the two laggers prevents `--legacy-peer-deps` lying to npm about resolution.
+`typescript-eslint@8.59`, `eslint-plugin-import-x@4.16`, `eslint-plugin-react-hooks@7.1`, `eslint-plugin-react-refresh@0.5`, `eslint-plugin-prettier@5.5`, `eslint-plugin-oxlint@1.63+` — all declare ESLint 10 support already. Holding back on the two laggers prevents `--legacy-peer-deps` lying to npm about resolution AND prevents runtime crashes from removed-API calls.
 
-**Revisit when**: `eslint-plugin-react` ships a release widening peer to include `^10`, OR an alternative React lint plugin emerges and we migrate. Quick check: `npm view eslint-plugin-react peerDependencies | grep eslint`.
+**Revisit when**: monthly review starting 2026-07-01 (1-month buffer pre-9.x-EOL 2026-08-06). Either (a) `eslint-plugin-react` ships a release widening peer to include `^10`, OR (b) `eslint-plugin-jsx-a11y@7.x` ships, OR (c) we adopt community forks (see Plan B below).
 
-**Roll-forward recipe** when peers update:
+**Plan B — community forks** (if upstream still blocked by 2026-07-01):
+
+- Replace `eslint-plugin-react` → `@eslint-react/eslint-plugin@5.8.4+` — peer `eslint: ^10.3.0`, requires Node ≥22, NOT drop-in (rule names differ — config rewrite ~3-5h).
+- Replace `eslint-plugin-jsx-a11y` → `eslint-plugin-jsx-a11y-x@0.2.0+` (es-tooling org) — peer `^9 || ^10`, drop-in (same rule names).
+
+**Quick checks** before flipping:
+
+```bash
+npm view eslint-plugin-react peerDependencies | grep eslint
+npm view eslint-plugin-jsx-a11y peerDependencies | grep eslint
+npm view @eslint-react/eslint-plugin dist-tags
+npm view eslint-plugin-jsx-a11y-x dist-tags
+```
+
+**Roll-forward recipe** when official peers update:
 
 ```bash
 npm install --save-dev eslint@^10 @eslint/js@^10

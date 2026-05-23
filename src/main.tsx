@@ -5,6 +5,7 @@ import { I18nextProvider } from 'react-i18next';
 import { RouterProvider } from 'react-router-dom';
 
 import { I18nInitErrorFallback } from '@/components/common/I18nInitErrorFallback';
+import { installDevGuards } from '@/lib/devGuards';
 import i18n, { i18nInitPromise } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
 // Side-effect import: registers `beforeinstallprompt` handler at module load,
@@ -15,6 +16,8 @@ import { queryClient } from '@/lib/queryClient';
 import { reportWebVitals } from '@/lib/vitals';
 import { router } from '@/router';
 import './index.css';
+
+installDevGuards();
 
 // After a deploy with new chunk hashes, an open tab that lazy-imports a stale
 // chunk fails with `vite:preloadError`. Without a handler the error bubbles to

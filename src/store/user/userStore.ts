@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
+import { DEVTOOLS_NAMES, STORAGE_KEYS, USER_ACTIONS } from '@/store/keys';
 import { createSelectors } from '@/store/utils/createSelectors';
 
 /**
@@ -58,22 +59,22 @@ const useUserStoreBase = create<UserState>()(
                 _hasHydrated: false,
                 setUser: (username: string, token: string) => {
                     set({ isLoggedIn: true, username, token }, false, {
-                        type: 'user-store/user/setUser'
+                        type: USER_ACTIONS.SET_USER
                     });
                 },
                 logout: () => {
                     set({ isLoggedIn: false, username: null, token: null }, false, {
-                        type: 'user-store/user/logout'
+                        type: USER_ACTIONS.LOGOUT
                     });
                 },
                 _setHasHydrated: (value: boolean) => {
                     set({ _hasHydrated: value }, false, {
-                        type: 'user-store/user/setHasHydrated'
+                        type: USER_ACTIONS.SET_HAS_HYDRATED
                     });
                 }
             }),
             {
-                name: 'user-store',
+                name: STORAGE_KEYS.USER,
                 // Persist UI state only. Token stays in memory — see header comment.
                 partialize: (state) => ({
                     isLoggedIn: state.isLoggedIn,
@@ -89,7 +90,7 @@ const useUserStoreBase = create<UserState>()(
                 }
             }
         ),
-        { name: 'user-store' }
+        { name: DEVTOOLS_NAMES.USER }
     )
 );
 

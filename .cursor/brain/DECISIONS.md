@@ -1,5 +1,22 @@
 # Architectural Decisions
 
+## [2026-05] Magic strings → constants (Zustand keys + TanStack Query factory + PWA session keys)
+
+**Decision**: extract magic strings used in 2+ places OR carrying external contract to named constants. Apply selectively. NOT blanket extraction.
+
+**Extraction sites added this commit**:
+- `src/store/keys.ts` — STORAGE_KEYS (Zustand persist localStorage), DEVTOOLS_NAMES + per-store ACTION constants
+- `src/lib/queryKeys.ts` — TanStack Query key factory (Dorfmeister pattern)
+- `src/lib/pwa/keys.ts` — PWA_SESSION_KEYS (e.g. SW update toast dismiss key) — PWA cache survives deploys, renaming session key without migration = silent UX regression for existing users
+
+**Pattern**: `as const` objects, NOT `enum`. Type via `typeof OBJ[keyof typeof OBJ]`.
+
+**PWA-specific rationale**: SW + cache survival across deploys means localStorage/sessionStorage rename = silent breakage. Constants enforce single-source rename across all reads/writes.
+
+**When NOT to extract**: single-use logger tags, test selectors, self-documenting at use site, i18n keys, prototype scope.
+
+**Revisit trigger**: if consumer fork adds >3 stores or >5 query keys without factories, drop seed pattern.
+
 ## [2026-05] Boundary validation via Zod safeFetch wrapper (PWA-aware)
 
 **Decision**: validate ALL API responses at boundary using Zod schemas via `src/lib/api/safeFetch.ts`. Reference example: `src/lib/api/greeting.queries.ts`. Pattern adopted as template seed because PWA cache survival creates structural drift risk (see Why below).

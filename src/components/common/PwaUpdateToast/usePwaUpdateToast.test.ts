@@ -1,6 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PWA_SESSION_KEYS } from '@/lib/pwa/keys';
+
 import { usePwaUpdateToast } from './usePwaUpdateToast';
 
 const mockUpdateServiceWorker = vi.fn();
@@ -62,7 +64,7 @@ describe('usePwaUpdateToast', () => {
         });
 
         expect(result.current.isVisible).toBe(false);
-        expect(sessionStorage.getItem('pwa-update-dismissed-v1')).toBe('1');
+        expect(sessionStorage.getItem(PWA_SESSION_KEYS.UPDATE_DISMISSED_V1)).toBe('1');
     });
 
     it('handleUpdate calls updateServiceWorker(true)', () => {
@@ -82,7 +84,7 @@ describe('usePwaUpdateToast', () => {
     });
 
     it('isVisible is false when sessionStorage flag is pre-set', () => {
-        sessionStorage.setItem('pwa-update-dismissed-v1', '1');
+        sessionStorage.setItem(PWA_SESSION_KEYS.UPDATE_DISMISSED_V1, '1');
         vi.mocked(useRegisterSW).mockReturnValue({
             needRefresh: [true, mockSetter],
             offlineReady: [false, mockSetter],

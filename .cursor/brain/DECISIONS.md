@@ -1,5 +1,78 @@
 # Architectural Decisions
 
+## [2026-05] `size-limit` per-chunk brotli budget — `ci:local` gate
+
+**Decision**: add `size-limit@^12.1.0` + `@size-limit/preset-app@^12.1.0` devDeps + `npm run size:check` script + `.size-limit.json` config with per-chunk brotli budgets. Wired into `ci:local` AFTER `verify:web-vitals-chunks` and BEFORE `perf:ci` (LHCI) — size-limit asserts byte budgets first, LHCI asserts runtime perf. Per /consilium 2026-05-23 APPLY Item 6 (5/6 YES, 1 COND satisfied via pre-flight overlap check).
+
+**Why**: `scripts/check-web-vitals-chunks.mjs` asserts chunk *composition* (subscribeStandard vs subscribeAttribution), NOT chunk *size*. `lighthouserc.json` `total-byte-weight` is total page weight (warn-only ≤800 KB), NOT per-chunk. `chunkSizeWarningLimit: 600` (KB raw) in `vite.config.ts` is Vite *warning*, not CI fail. No per-vendor-chunk byte-budget gate currently exists. `size-limit` 868K weekly DLs ~10× over `bundlesize` (May 2026 npm registry direct).
+
+**Initial budgets (brotli)** — matched to template-1 for symmetry; recalibrate per fork. PWA-specific: SW (`dist/sw.js`) and workbox runtime (`dist/workbox-*.js`) NOT budgeted — vite-plugin-pwa owns their size; budget would brittlely chase workbox patch bumps.
+
+- `react-vendor`: 90 KB
+- `i18n-vendor`: 22 KB
+- `state-vendor`: 15 KB
+- `ui-vendor`: 12 KB
+- `index` entry: 25 KB
+
+**Conditions** (Pragma + Mini /consilium): budgets in standalone `.size-limit.json` (not `package.json` `"size-limit"` key) for diff isolation. Pre-flight verified zero overlap with `verify:web-vitals-chunks.mjs` (different verification axis).
+
+**Revisit trigger (60-day, 2026-07-23)**: if a fork hits ≥3 false-positive budget bumps from legitimate feature work in 60 days, recalibrate to p75 of fork distribution OR move size-limit to PR-comment-only.
+
+## [2026-05] Playwright SW lifecycle E2E (minimal subset)
+
+**Decision**: add `e2e/sw-lifecycle.spec.ts` with 3 assertions — (a) SW registers and reaches `activated` state, (b) `/manifest.webmanifest` returns 200 with `application/manifest+json` or `application/json` MIME + valid shape, (c) icons (`192x192`, `512x512`, `apple-touch-icon`) return 200 + `image/png`. Per /consilium 2026-05-23 APPLY Item 9 (5/6 YES, 1 COND mitigated via minimal subset). **Skipped in dev mode** (`PLAYWRIGHT_USE_PREVIEW=1` required — vite-plugin-pwa `devOptions.enabled: false`).
+
+**Why**: PWA template's load-bearing primitive is the SW. Zero SW-aware E2E assertions currently exist in `e2e/{a11y,routes,smoke}.spec.ts`. SW registration failure is the #1 PWA support cost class; manifest MIME drift and icon 404 are recurring deploy-host bugs.
+
+**Deferred until observed regression** (Adversarial 6-month bet on Playwright SW flakiness, [microsoft/playwright#32230](https://github.com/microsoft/playwright/issues/32230)):
+
+- `vite:preloadError` recovery flow simulated via stale-chunk SW mock.
+- Update-toast `'prompt'` mode flow (deploy new SW → `needRefresh` fires → toast → user click → `updateServiceWorker(true)` → reload).
+
+**Revisit trigger (60-day, 2026-07-23)**: if a fork experiences SW lifecycle regression that the minimal-subset would have missed (preloadError class, update-toast class), promote deferred tests with explicit flakiness mitigation (`expect.poll` + extended timeout + retry quirk).
+
+## [2026-05] REJECT list — explicit non-adoption (2026-05-23 /consilium)
+
+**Decision**: explicit DO-NOT-ADOPT register so future agents + forks don't re-litigate. Per /consilium 2026-05-23 APPLY Item 14 (6/6 voters YES). Sibling templates carry equivalent sections.
+
+### React Compiler enable in template-spa-pwa (VETOED)
+
+**Status**: skip. **Why**: /consilium 2026-05-23 Item 4 (`babel-plugin-react-compiler@1.0.0` + `@rolldown/plugin-babel`) — 1 YES / 3 NO / 1 COND / 1 NO + **Adversarial killer Q VETO** ("Name one Compiler-enabled production app at >100K MAU where #35105 or #35644 reproducers have been ruled out as of 2026-05-23" — unanswerable) + Ergo "wrong tool for the observed surface" (PWA bottleneck is SW + 3-layer MSW×Workbox, NOT render thrash) + Vite team Mar 2026 blog warning Babel-in-Vite eliminates Oxc gains. Open silent-bailout bugs: [facebook/react#35105](https://github.com/facebook/react/issues/35105), [#35644](https://github.com/facebook/react/issues/35644).
+**Revisit (quarterly, 2026-08-23)**: same trigger as sibling template-1 — both bugs closed + named >100K-MAU Compiler-enabled Vite app ruling-out retro + Vite team blesses Babel-Compiler-Vite path. `eslint-plugin-react-hooks@7.1.1` already loaded in `eslint.config.js` — Compiler correctness rules already fire as lint-only signal.
+
+### LHCI bump `numberOfRuns: 1 → 3` + multi-route + mobile preset (REJECTED on cost cascade)
+
+**Status**: skip. **Why**: /consilium 2026-05-23 Item 8 — 3 YES / 3 NO (Mini+Ergo+Econ trifecta). Econ math: 4 URLs × 3 runs × 2 form factors = 24 Lighthouse runs × ~30-60s = 12-24 min per `ci:local` (vs current 30-60s). Ergo: "tripling Lighthouse time in already-long `ci:local` makes the gate skip-tempt, which destroys all gate value." Note: web.dev officially says single-run assertions are flaky AND default `numberOfRuns: 3` median is correct — but nodejs.org production also uses `numberOfRuns: 1` (outlier). Cost cascade wins over theoretical correctness for solo-author forkable template context.
+**Revisit (60-day, 2026-07-23)**: if `ci:local` becomes mandatory pre-push gate AND consumer fork observes perf regression that 1-run missed in 30 days, re-evaluate scoped to 3 runs × 1 URL × desktop only (no mobile, no multi-route).
+
+### React Doctor `lint-staged --staged --fail-on warning` PR-gate (REJECTED)
+
+**Status**: skip. **Why**: /consilium 2026-05-23 Item 1 — 0 YES / 4 NO / 2 COND. Pragma+Mini gang-of-two NO + Ergo category error + Adversarial flagged [typicode/husky#1462](https://github.com/typicode/husky/issues/1462) Windows-path issues.
+**Revisit (60-day, 2026-07-23)**: same as sibling templates — React Doctor 1.0 ship + dated bug Doctor would have caught.
+
+### memlab (Meta heap-snapshot leak detector)
+
+**Status**: skip by default. **Why**: 158K weekly DLs (May 2026), ZERO published GitHub releases, 0 of 8 React Doctor leaderboard flagship repos use in CI.
+**Revisit (90-day, 2026-08-23)**: memlab v2.0+ formal releases + ≥1 named React app at >10K MAU memlab-CI case study.
+
+### why-did-you-render (WDYR)
+
+**Status**: skip as template default; consumer choice. **Why**: WDYR README declares "completely incompatible with React Compiler" — template-spa-pwa doesn't ship Compiler, so WDYR is technically usable. Template stays minimal; consumer adds for re-render audit if needed.
+**Revisit (no trigger needed)**: consumer-choice category.
+
+### `react-native-flipper`
+
+**Status**: not applicable (template-spa-pwa is web SPA, not RN). Sunset since RN 0.74.
+
+### Zstd compression plugin
+
+**Status**: skip. **Why**: Safari Zstd landed 26.3 Feb 11, 2026 ([WebKit blog](https://webkit.org/blog/17798/webkit-features-for-safari-26-3/)), caniuse global compat 45/100 — pre-26.3 long-tail huge. Existing `vite-plugin-compression@brotliCompress` covers requirement. PWA precache already brotli-compressed; service worker fetches benefit from Brotli too.
+**Revisit (no trigger needed)**: revisit only when caniuse Zstd global crosses 80/100 AND PWA spec gains Zstd-encoding hint.
+
+### `vite-plugin-bundlesize`
+
+**Status**: skip (use `size-limit` instead per Item 6). **Why**: `size-limit@^12.1.0` adopted with broader ecosystem adoption.
+
 ## [2026-04] ESLint 9 hold (NOT bumping to 10)
 
 **Decision**: stay on `eslint@^9.x` + `@eslint/js@^9.x` until plugin peer ranges catch up to ESLint 10.

@@ -380,7 +380,7 @@ Add new domains as new route modules (`user.routes.tsx`, `billing.routes.tsx`) a
 - **Framework:** Vitest + Testing Library
 - **Utilities:** `renderWithProviders` from `src/test/test-utils.tsx`
 - **Coverage:** `npm run test:coverage`
-- **MSW:** node adapter (`src/test/server.ts`) for unit/integration; browser worker (`public/mockServiceWorker.js`) starts in dev only when `VITE_ENABLE_MSW=true`
+- **MSW:** node adapter (`src/test/server.ts`) for unit/integration; browser worker (`public/mockServiceWorker.js`) starts in dev **by default**; set `VITE_ENABLE_MSW=false` to opt out (default-on, opt-out semantics in `src/main.tsx:105`)
 
 ### Writing Tests
 

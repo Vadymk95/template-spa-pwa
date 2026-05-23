@@ -22,12 +22,14 @@ Full reference: `.github/workflows/ci.yml`. Stricter one-command pre-push: `npm 
 | **MSW** (`src/mocks/**`, `test/handlers.ts`, MSW wiring in `main.tsx`) | `npm run lint && npm run typecheck && npm test` (smoke dev manually if handlers changed) |
 | **Suspected bundle size / duplicate deps** | `npm run build:analyze` → open `dist/bundle-analysis.html` (do not commit HTML) |
 | **Regressions in standard vs attribution web-vitals chunks** | `npm run verify:web-vitals-chunks` (two full builds — use sparingly) |
+| **Vendor chunk byte budget** (touched `vite.config.ts` `codeSplitting.groups`, added a vendor dep, or `npm run build` output looks heavier) | `npm run build && npm run size:check` (reads `.size-limit.json` per-chunk brotli budgets) |
+| **PWA Service Worker lifecycle** (`vite.config.ts → VitePWA`, `removeMswPlugin`, `workbox` config, `injectRegister`, manifest icons in `public/icons/`) | `npm run build && PLAYWRIGHT_USE_PREVIEW=1 npm run test:e2e -- sw-lifecycle.spec.ts` (verifies SW reg + manifest MIME + icons resolve; preview-mode only — dev disables PWA SW) |
 
 ---
 
 ## Full local CI (`ci:local` vs GitHub)
 
-Run **`npm run ci:local`** for the full pre-push gate. It **aligns** with `.github/workflows/ci.yml` (audit at moderate+ → typecheck through E2E) but is **stricter**: after `build` it runs **`npm run verify:pwa`**, **`npm run perf:ci`** (Lighthouse-CI), then **`node scripts/ensure-playwright.mjs`**, then E2E with **`PLAYWRIGHT_USE_PREVIEW=1`**. **GitHub Actions** (`ci.yml`) skip `verify:pwa` and Lighthouse — use `ci:local` or add workflow steps when those gates matter. **`.github/workflows/security.yml`** (gitleaks, CodeQL) is separate and not invoked by `ci:local`. Exact order: `package.json` → `scripts.ci:local`. **Do not** run the full chain for one-line fixes or copy-only brain edits.
+Run **`npm run ci:local`** for the full pre-push gate. It **aligns** with `.github/workflows/ci.yml` (audit at moderate+ → typecheck through E2E) but is **stricter**: after `build` it runs **`npm run verify:pwa`**, **`npm run verify:web-vitals-chunks`**, **`npm run size:check`** (size-limit per-chunk brotli budgets from `.size-limit.json`), **`npm run perf:ci`** (Lighthouse-CI), then **`node scripts/ensure-playwright.mjs`**, then E2E with **`PLAYWRIGHT_USE_PREVIEW=1`** (the E2E suite includes `sw-lifecycle.spec.ts` which asserts SW registration + manifest MIME + icons). **GitHub Actions** (`ci.yml`) skip `verify:pwa`, `size:check`, and Lighthouse — use `ci:local` or add workflow steps when those gates matter. **`.github/workflows/security.yml`** (gitleaks, CodeQL) is separate and not invoked by `ci:local`. Exact order: `package.json` → `scripts.ci:local`. **Do not** run the full chain for one-line fixes or copy-only brain edits.
 
 ---
 

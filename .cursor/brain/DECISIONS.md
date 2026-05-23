@@ -1,5 +1,26 @@
 # Architectural Decisions
 
+## [2026-05] Boundary validation via Zod safeFetch wrapper (PWA-aware)
+
+**Decision**: validate ALL API responses at boundary using Zod schemas via `src/lib/api/safeFetch.ts`. Reference example: `src/lib/api/greeting.queries.ts`. Pattern adopted as template seed because PWA cache survival creates structural drift risk (see Why below).
+
+**Why (PWA-specific)**: Workbox precache + runtime cache survive deploys. After BE schema change, old cached response keeps serving from cache until invalidation — application code expects new shape, gets old. `safeFetch` parses on every read = early detection. Standard SPA Zod-boundary pattern PLUS this Workbox-cache-survival use case = template ships pattern by default (not just doc reference).
+
+**Scope**:
+- TanStack Query `queryFn` → `safeFetchQueryFn(url, schema)`
+- Direct fetch → `safeFetch(url, schema)`
+- Workbox cache hit (handled transparently — same `safeFetch` runs on cache reads)
+- localStorage reads → `Schema.safeParse(JSON.parse(raw))`
+
+**Trade-offs**:
+- +0 KB bundle (Zod already in deps)
+- ~50-200μs parse per response (negligible)
+- Schemas duplicate BE types
+
+**Pairs with**: `src/lib/devGuards.ts installDevGuards()` (dev-only AbortError suppression). `safeFetchQueryFn` re-throws AbortError unchanged so TanStack Query handles cancellation correctly.
+
+**Revisit trigger**: if consumer fork removes safeFetch pattern from 3+ endpoints in same fork = signal pattern doesn't fit their context, drop from template seed.
+
 ## [2026-05] `size-limit` per-chunk brotli budget — `ci:local` gate
 
 **Decision**: add `size-limit@^12.1.0` + `@size-limit/preset-app@^12.1.0` devDeps + `npm run size:check` script + `.size-limit.json` config with per-chunk brotli budgets. Wired into `ci:local` AFTER `verify:web-vitals-chunks` and BEFORE `perf:ci` (LHCI) — size-limit asserts byte budgets first, LHCI asserts runtime perf. Per /consilium 2026-05-23 APPLY Item 6 (5/6 YES, 1 COND satisfied via pre-flight overlap check).

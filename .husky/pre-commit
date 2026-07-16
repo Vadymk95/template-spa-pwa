@@ -1,1 +1,4 @@
 npx lint-staged
+
+# TDD-gate: staged src logic files must have a co-located *.test.* sibling.
+node scripts/check-test-siblings.mjs

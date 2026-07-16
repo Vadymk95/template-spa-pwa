@@ -9,19 +9,19 @@
 export interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];
     readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-    prompt(): Promise<void>;
+    prompt: () => Promise<void>;
 }
 
 let captured: BeforeInstallPromptEvent | null = null;
 const subscribers = new Set<(event: BeforeInstallPromptEvent | null) => void>();
 
-const handler = (event: Event) => {
+const handler = (event: Event): void => {
     event.preventDefault();
     captured = event as BeforeInstallPromptEvent;
     for (const fn of subscribers) fn(captured);
 };
 
-const installedHandler = () => {
+const installedHandler = (): void => {
     captured = null;
     for (const fn of subscribers) fn(null);
 };

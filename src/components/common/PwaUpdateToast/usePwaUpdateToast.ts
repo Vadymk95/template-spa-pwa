@@ -3,7 +3,11 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import { PWA_SESSION_KEYS } from '@/lib/pwa/keys';
 
-export const usePwaUpdateToast = () => {
+export const usePwaUpdateToast = (): {
+    isVisible: boolean;
+    handleUpdate: () => void;
+    handleDismiss: () => void;
+} => {
     const {
         needRefresh: [needRefresh],
         updateServiceWorker
@@ -15,11 +19,11 @@ export const usePwaUpdateToast = () => {
 
     const isVisible = needRefresh && !dismissed;
 
-    const handleUpdate = () => {
+    const handleUpdate = (): void => {
         void updateServiceWorker(true);
     };
 
-    const handleDismiss = () => {
+    const handleDismiss = (): void => {
         setDismissed(true);
         sessionStorage.setItem(PWA_SESSION_KEYS.UPDATE_DISMISSED_V1, '1');
     };

@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import queryPlugin from '@tanstack/eslint-plugin-query';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import pluginImport from 'eslint-plugin-import-x';
+import i18next from 'eslint-plugin-i18next';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import oxlintPlugin from 'eslint-plugin-oxlint';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -48,6 +49,7 @@ export default defineConfig([
     {
         files: ['**/*.{ts,tsx}'],
         plugins: {
+            i18next,
             'jsx-a11y': jsxA11y,
             react: pluginReact
         },
@@ -118,6 +120,41 @@ export default defineConfig([
             // Use src/lib/logger.ts instead. console.* left in code = prod noise.
             'no-console': 'error',
 
+            // ─── Magic numbers — extract to a constants.ts (exempt below) ─────
+            // Cheap models scatter literals; force named constants. Universal units
+            // (60 s/min, 1000 ms/s, 100 %) + trivial (-1,0,1,2) ignored.
+            '@typescript-eslint/no-magic-numbers': [
+                'error',
+                {
+                    ignore: [-1, 0, 1, 2, 60, 100, 1000],
+                    ignoreEnums: true,
+                    ignoreReadonlyClassProperties: true,
+                    ignoreArrayIndexes: true,
+                    ignoreDefaultValues: true,
+                    ignoreTypeIndexes: true
+                }
+            ],
+
+            // ─── Architecture boundaries — lower layers must not import pages/UI ─
+            'import-x/no-restricted-paths': [
+                'error',
+                {
+                    zones: [
+                        {
+                            target: './src/components',
+                            from: './src/pages',
+                            message: 'Layer inversion: components must not import pages.'
+                        },
+                        { target: './src/hocs', from: './src/pages' },
+                        { target: './src/hooks', from: './src/pages' },
+                        { target: './src/store', from: './src/pages' },
+                        { target: './src/store', from: './src/components' },
+                        { target: './src/lib', from: './src/pages' },
+                        { target: './src/lib', from: './src/components' }
+                    ]
+                }
+            ],
+
             // ─── FC ban — use FunctionComponent explicitly ────────────────────
             // FC is just a short alias: type FC<P> = FunctionComponent<P>
             // Prefer the full name for clarity. Pattern:
@@ -157,6 +194,26 @@ export default defineConfig([
                 'error',
                 { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }
             ],
+            // ─── Explicit in/out contracts ───────────────────────────────────
+            // Every named function declares its output: either a variable type
+            // annotation (const X: FunctionComponent<Props> = () => …) or an
+            // explicit return type (const useX = (): UseXResult => …). Inline
+            // callbacks passed as arguments/JSX props stay free (allowExpressions).
+            // Inputs are covered by TS strict itself: noImplicitAny forces every
+            // props/param type to be declared.
+            '@typescript-eslint/explicit-function-return-type': [
+                'error',
+                {
+                    allowExpressions: true,
+                    allowTypedFunctionExpressions: true,
+                    allowHigherOrderFunctions: true,
+                    allowIIFEs: true
+                }
+            ],
+            // Property-style signatures (`onSelect: (id: string) => void`) get
+            // strict contravariant parameter checks; method style (`onSelect(id)`)
+            // is checked bivariantly — looser, can hide unsound narrowing.
+            '@typescript-eslint/method-signature-style': ['error', 'property'],
             // Note: prefer-nullish-coalescing + prefer-optional-chain require type-aware
             // linting (parserOptions.project). Enable by switching to tseslint.configs.strictTypeChecked
             // + adding languageOptions.parserOptions.project. Slows linting but catches more issues.
@@ -183,16 +240,55 @@ export default defineConfig([
             ],
 
             // ─── jsx-a11y ────────────────────────────────────────────────────
-            ...jsxA11y.configs.recommended.rules
+            ...jsxA11y.configs.recommended.rules,
+
+            // ─── i18n — surface hardcoded user-visible strings (nudge t()) ────
+            // The lint gate runs with --max-warnings 0, so a warning here still
+            // blocks — warn severity only softens the IDE color while typing.
+            // `mode: 'jsx-text-only'` (the v6 default, kept explicit) flags ONLY
+            // plain text whose direct parent is a JSXElement/JSXFragment — the
+            // lowest-false-positive mode. Defaults already exempt className/key/
+            // id/type attrs and the <Trans> component, so structural strings
+            // don't flood. Intentional English-only surfaces (i18n-init
+            // fallbacks, dev tooling) and tests/e2e/constants turn this off in
+            // their override blocks below.
+            'i18next/no-literal-string': ['warn', { mode: 'jsx-text-only' }]
+        }
+    },
+    // ─── Intentional English-only surfaces ───────────────────────────────────
+    // I18nInitErrorFallback + RouteErrorBoundary render when i18next may have
+    // failed to init — t() is unavailable by definition, copy is fixed English
+    // (documented in each component). DevPlayground is dev tooling, not
+    // user-facing product UI.
+    {
+        files: [
+            'src/components/common/I18nInitErrorFallback/**/*.{ts,tsx}',
+            'src/components/common/RouteErrorBoundary/**/*.{ts,tsx}',
+            'src/pages/DevPlayground/**/*.{ts,tsx}'
+        ],
+        rules: {
+            'i18next/no-literal-string': 'off'
         }
     },
     // ─── shadcn/ui generated components — relaxed rules ─────────────────────
-    // shadcn generates function declarations. Don't fight the generator.
-    // When running `npx shadcn@latest add`, components land here as-is.
+    // shadcn generates function declarations without return annotations. Don't
+    // fight the generator. When running `npx shadcn@latest add`, components
+    // land here as-is.
     {
         files: ['src/components/ui/**/*.{ts,tsx}'],
         rules: {
-            'func-style': 'off'
+            'func-style': 'off',
+            '@typescript-eslint/explicit-function-return-type': 'off'
+        }
+    },
+    // ─── TanStack Query option factories — inference is the API design ───────
+    // queryOptions() derives queryKey/queryFn types from the options object;
+    // spelling out its return type would be brittle noise. The options object
+    // itself is the declared contract.
+    {
+        files: ['src/lib/api/**/*.queries.ts'],
+        rules: {
+            '@typescript-eslint/explicit-function-return-type': 'off'
         }
     },
     // Vite plugins load before Vite resolves `@/`; they may import `../src/**` explicitly.
@@ -214,11 +310,23 @@ export default defineConfig([
             ]
         }
     },
+    // ─── Constants files — the one place named magic numbers live ────────────
+    {
+        files: ['**/constants.ts', '**/constants/**/*.{ts,tsx}'],
+        rules: {
+            '@typescript-eslint/no-magic-numbers': 'off'
+        }
+    },
     // ─── Test files — relaxed rules ──────────────────────────────────────────
     {
         files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
         rules: {
+            // Test helpers/fixtures don't need declared return contracts.
+            '@typescript-eslint/explicit-function-return-type': 'off',
             '@typescript-eslint/no-empty-function': 'off',
+            '@typescript-eslint/no-magic-numbers': 'off',
+            // Hardcoded JSX text in test fixtures is not user-facing — don't nudge t().
+            'i18next/no-literal-string': 'off',
             // Tests legitimately use non-null assertions for mocks
             '@typescript-eslint/no-non-null-assertion': 'off',
             // Test files can use inline types more freely
@@ -239,6 +347,9 @@ export default defineConfig([
         },
         rules: {
             ...tseslint.configs.disableTypeChecked.rules,
+            '@typescript-eslint/explicit-function-return-type': 'off',
+            '@typescript-eslint/no-magic-numbers': 'off',
+            'i18next/no-literal-string': 'off',
             'import-x/no-cycle': 'off',
             'import-x/order': 'off',
             'func-style': 'off',

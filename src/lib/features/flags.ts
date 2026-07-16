@@ -21,7 +21,7 @@ export type FeatureFlag = keyof typeof FEATURE_FLAGS;
 
 export interface FeatureFlagProvider {
     /** Synchronous read. If your provider is async (LaunchDarkly), resolve inside the provider before calling React. */
-    isEnabled(flag: FeatureFlag): boolean;
+    isEnabled: (flag: FeatureFlag) => boolean;
 }
 
 /**

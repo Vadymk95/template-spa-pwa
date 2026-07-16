@@ -11,7 +11,7 @@ import { useLocation } from 'react-router-dom';
  * focus. The ref persists across the StrictMode cycle; the equality check
  * naturally no-ops when pathname doesn't change.
  */
-export const useRouteFocus = (mainRef: RefObject<HTMLElement | null>) => {
+export const useRouteFocus = (mainRef: RefObject<HTMLElement | null>): void => {
     const location = useLocation();
     const prevPath = useRef<string | null>(null);
 
@@ -36,7 +36,7 @@ export const useRouteFocus = (mainRef: RefObject<HTMLElement | null>) => {
         el.setAttribute('data-route-focus', '');
         el.focus({ preventScroll: true });
 
-        const onBlur = () => {
+        const onBlur = (): void => {
             el.removeAttribute('data-route-focus');
         };
         el.addEventListener('blur', onBlur);

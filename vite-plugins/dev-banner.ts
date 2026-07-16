@@ -9,11 +9,11 @@ interface BannerOptions {
     disabled?: boolean;
 }
 
-const dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
-const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
-const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
-const green = (s: string) => `\x1b[32m${s}\x1b[0m`;
-const yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
+const dim = (s: string): string => `\x1b[2m${s}\x1b[0m`;
+const bold = (s: string): string => `\x1b[1m${s}\x1b[0m`;
+const cyan = (s: string): string => `\x1b[36m${s}\x1b[0m`;
+const green = (s: string): string => `\x1b[32m${s}\x1b[0m`;
+const yellow = (s: string): string => `\x1b[33m${s}\x1b[0m`;
 
 const safeExec = (cmd: string): string | null => {
     try {
@@ -50,7 +50,7 @@ export const devBanner = (options: BannerOptions = {}): Plugin => {
         configureServer(server) {
             if (options.disabled || process.env.VITE_DEV_BANNER === 'false') return;
 
-            const printOnce = () => {
+            const printOnce = (): void => {
                 const env: Record<string, string | undefined> = server.config.env;
                 const mswFlag = flagState(env.VITE_ENABLE_MSW, 'off');
                 const wvFlag = flagState(env.VITE_WEB_VITALS_ATTRIBUTION, 'off');

@@ -15,7 +15,7 @@ priority: 100
 
 ### Phase 1 Fast-Track
 
-If the task targets **only** files matching `*.styled.ts`, `*.styled.tsx`, `*.scss`, `*.css`, `*.i18n.*`, `*.spec.ts`, `*.test.ts`, or `*.md` — skip Brain reads and proceed directly to Phase 3. State: `"Phase 1 skipped — styling/i18n/test/docs task."` When in doubt → run full Phase 1.
+If the task targets **only** files matching `*.styled.ts`, `*.styled.tsx`, `*.scss`, `*.css`, `*.i18n.*`, `*.spec.ts`, `*.test.ts`, or `*.md` — skip Brain reads and proceed directly to Phase 3. State: `"Phase 1 skipped — styling/i18n/test/docs task."` Still emit the **Rule Receipt** (step 6 below — e.g. "none beyond always-on", or `test-driven-development.mdc` for a `*.test.ts` task). When in doubt → run full Phase 1.
 
 ---
 
@@ -24,8 +24,10 @@ Before any reasoning about implementation:
 1. **Brain Scan**: Read `.cursor/brain/MAP.md` (store topology, data flows, routes, component wiring).
 2. **Risk Detection**: Read `.cursor/brain/SKELETONS.md` — check if task touches any danger zone.
 3. **Context Gathering**: Identify affected files (components, hooks, stores, API). Search codebase for existing implementations of similar logic.
-4. **Scope Declaration**: Produce clear **In-scope / Out-of-scope** list.
-5. **Explicit declaration**: State in one message: scope + SKELETONS zones touched (or "none"). Do not code before this.
+4. **Rule Routing**: Load the matching conditional rules using `global.mdc` §0.1 **before planning edits** — Cursor does not reliably auto-attach `alwaysApply: false` rules.
+5. **Rule Receipt**: List the conditional rules actually loaded (or "none beyond always-on"). This is the proof the routing step ran — never skip it.
+6. **Scope Declaration**: Produce clear **In-scope / Out-of-scope** list.
+7. **Explicit declaration**: State in one message: scope + loaded rules + SKELETONS zones touched (or "none"). Do not code before this.
 
 > **Gate**: If task touches a SKELETONS zone — flag the risk and propose mitigation before Phase 2.
 
@@ -56,7 +58,7 @@ After the critique, generate **1–2 mental test cases** per non-trivial functio
 - Trace execution: "Given X, step 1 does A, step 2 does B, result is Y."
 - If trace reveals unexpected result — revise plan **before writing code**.
 
-> **Gate**: Present Architectural Critique. For tasks > 10 lines or touching stores/API: wait for approval (**The Approval Law** from `workflow.mdc`). Minor fixes (< 10 lines) proceed with brief notification.
+> **Gate (by risk, not LOC)**: Present Architectural Critique. If the task hits a SKELETONS/danger-zone surface, a store-model or store-shape change, an API/payload-contract change, or router topology — wait for approval (**The Approval Law** from `workflow.mdc`). Trivial leaf edits (isolated, reversible, no contract/state impact) proceed with brief notification.
 
 ---
 
@@ -170,7 +172,7 @@ START
   ▼
 [Phase 2: Architectural Simulation + Solver-Verifier]
   │ sequential-thinking → Critique → Mental test cases
-  │ ── Gate: Approval if > 10 lines or stores/API touched ──
+  │ ── Gate (by risk): Approval if SKELETONS/store-shape/API-contract/router touched ──
   │
   ▼
 [Phase 3: TDD-First Execution]

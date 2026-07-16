@@ -26,8 +26,19 @@ test.describe('PWA service worker lifecycle (preview only)', () => {
         // Wait for SW to register and become active. vite-plugin-pwa with
         // injectRegister:'inline' attaches the registration script in <head>,
         // so registration starts before React boots.
+        // `serviceWorker.ready` resolves with an ACTIVE worker whose state may
+        // still be 'activating' (activate handler running, e.g. precache
+        // cleanup) — explicitly wait for the 'activated' statechange.
         const registration = await page.evaluate(async () => {
             const reg = await navigator.serviceWorker.ready;
+            const worker = reg.active;
+            if (worker && worker.state !== 'activated') {
+                await new Promise<void>((resolve) => {
+                    worker.addEventListener('statechange', () => {
+                        if (worker.state === 'activated') resolve();
+                    });
+                });
+            }
             return {
                 scope: reg.scope,
                 hasActive: Boolean(reg.active),

@@ -34,7 +34,7 @@ type Direction = 'up' | 'down';
 - **Indentation**: 4 spaces strictly.
 - **Functions**: Arrow functions everywhere — components, hooks, utilities.
 - **Components**: `const X: FunctionComponent<Props> = ({ ... }) => { ... }` — `FunctionComponent` always explicit, never `FC`.
-- **Exports**: Named exports for everything. Default exports only for React Router lazy pages.
+- **Exports**: Named exports for everything — including pages. There are no default page exports; the page `index.ts` lazy wrapper maps the named export to `default` for `React.lazy`.
 - **Comments**: Use `/** */` JSDoc for exported public contracts (API shapes, non-obvious behaviour, external data sources that need sync). Use `//` inside function bodies to explain _why_ or non-obvious constraints only. **NEVER** use JSDoc for local helpers or unexported code. **NEVER** restate the code.
 - **File size cap**: New files must not exceed ~200 LOC. Extract to hook or `lib/` when approaching limit.
 
@@ -67,4 +67,15 @@ if (status === STATUS.PENDING) { ... }
 
 - **One-Way Loyalty**: If a file contradicts these rules, the rules win. Files > 300 LOC are not valid style references for new code.
 - **Legacy Maintenance**: When editing existing files — preserve their style. Never replicate legacy patterns in new files.
-- **Explicit Dependencies**: Functions that need data from another module must accept it via typed params. Avoid implicit cross-module coupling.
+- **Explicit Dependencies**: Functions that need data from another module must accept it via typed params. Never reach into another module's internals — pass what you need as typed params.
+
+## 5. Layer Import Boundaries (HARD — eslint-enforced)
+
+Dependencies flow **one way**: `pages` → everything; lower layers **NEVER** climb up. NEW/touched code must obey these directions absolutely — there is no "just this once":
+
+- `components`, `hocs`, `hooks` → **NEVER** import from `pages`.
+- `store`, `lib` → **NEVER** import from `pages` **or** `components`.
+- **NEVER** cross-import between sibling stores (store A importing store B) — see `state-management.mdc`.
+- **NEVER** relative `../` parent imports — `@/` alias only.
+
+Enforced by `eslint.config.js` (`import-x/no-restricted-paths` zones + `no-restricted-imports` parent-relative pattern + `import-x/no-cycle: error`). A new import that trips these is an architecture defect, not a lint nit — fix the dependency direction, never disable the rule.

@@ -1,12 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { BaseSyntheticEvent } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { authApi } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
+import { HTTP_UNAUTHORIZED, MIN_PASSWORD_LENGTH } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { RoutesPath } from '@/router/routes';
 import { useUserStore } from '@/store/user/userStore';
@@ -17,12 +18,18 @@ import { useUserStore } from '@/store/user/userStore';
 // z.email() is the Zod v4 way — replaces the deprecated z.string().email()
 const loginSchema = z.object({
     email: z.string().min(1, 'Email is required').pipe(z.email('Enter a valid email address')),
-    password: z.string().min(1, 'Password is required').min(8, 'At least 8 characters')
+    password: z
+        .string()
+        .min(1, 'Password is required')
+        .min(MIN_PASSWORD_LENGTH, `At least ${String(MIN_PASSWORD_LENGTH)} characters`)
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
-export const useLoginForm = () => {
+export const useLoginForm = (): {
+    form: UseFormReturn<LoginFormData>;
+    onSubmit: (e?: BaseSyntheticEvent) => void;
+} => {
     const { t } = useTranslation(['auth', 'errors']);
     const navigate = useNavigate();
     const setUser = useUserStore.use.setUser();
@@ -40,7 +47,7 @@ export const useLoginForm = () => {
         } catch (error) {
             logger.warn('Login failed', { error: String(error) });
             const message =
-                error instanceof ApiError && error.status === 401
+                error instanceof ApiError && error.status === HTTP_UNAUTHORIZED
                     ? t('auth:login.error.invalidCredentials')
                     : t('errors:api.unknown');
             form.setError('root', { message });

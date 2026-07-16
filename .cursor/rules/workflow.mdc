@@ -9,10 +9,12 @@ priority: 90
 
 ## The Approval Law
 
-| Task Size | Protocol |
+Gate by **risk, not LOC** (Surface / Reasoning / Reversibility — the highest axis sets the discipline):
+
+| Task Risk | Protocol |
 |---|---|
-| < 10 lines, single file | Proceed with brief notification |
-| > 10 lines OR touches store/API/router | Present plan → wait for approval → implement |
+| Trivial leaf edit — isolated, reversible, no contract/state impact | Proceed with brief notification |
+| SKELETONS/danger-zone surface, store-shape change, API/payload-contract change, or router topology | Present plan → wait for approval → implement |
 | New architecture pattern | Always present plan |
 
 **FORBIDDEN**: Starting implementation of a non-trivial task before approval.
@@ -30,7 +32,7 @@ A plan must include:
 
 1. **Discover** — Brain scan + scope declaration (Phase 1 of agent-pipeline).
 2. **Simulate** — `sequential-thinking` for tasks > 3 steps. Architectural critique.
-3. **Approve** — Get approval if > 10 lines or store/API touched.
+3. **Approve** — Get approval if the change hits a SKELETONS surface, store-shape, API/payload contract, or router topology (risk, not LOC).
 4. **Execute** — TDD for logic. Max 1–2 files per iteration.
 5. **Verify** — Full loop: `npm run lint && npm run format:check && npx tsc -b --noEmit && npm test`.
 6. **Brain Sync** — Update brain docs in `.cursor/brain/` (`MAP.md`, `DECISIONS.md`, `SKELETONS.md`, `DICTIONARY.md`) as needed.
@@ -70,6 +72,7 @@ type(scope): description
 ### Before Committing
 
 - [ ] `npm run lint` — clean
+- [ ] `npm run format:check` — Prettier clean
 - [ ] `npx tsc -b --noEmit` — no errors
 - [ ] `npm test` — all green
 - [ ] `git diff` reviewed — no unintended changes

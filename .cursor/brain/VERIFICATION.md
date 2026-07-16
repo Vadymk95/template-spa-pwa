@@ -21,9 +21,23 @@ Full reference: `.github/workflows/ci.yml`. Stricter one-command pre-push: `npm 
 | **Feature flag wiring** (`src/lib/features/**`, `src/hooks/features/**`, provider swap in `main.tsx`) | `npm run lint && npm run typecheck && npm test` |
 | **MSW** (`src/mocks/**`, `test/handlers.ts`, MSW wiring in `main.tsx`) | `npm run lint && npm run typecheck && npm test` (smoke dev manually if handlers changed) |
 | **Suspected bundle size / duplicate deps** | `npm run build:analyze` → open `dist/bundle-analysis.html` (do not commit HTML) |
-| **Regressions in standard vs attribution web-vitals chunks** | `npm run verify:web-vitals-chunks` (two full builds — use sparingly) |
+| **Regressions in standard vs attribution web-vitals chunks** | `npm run verify:web-vitals-chunks:full` (two full builds — use sparingly); bare `npm run verify:web-vitals-chunks` = single-build assert on existing `dist/` |
 | **Vendor chunk byte budget** (touched `vite.config.ts` `codeSplitting.groups`, added a vendor dep, or `npm run build` output looks heavier) | `npm run build && npm run size:check` (reads `.size-limit.json` per-chunk brotli budgets) |
 | **PWA Service Worker lifecycle** (`vite.config.ts → VitePWA`, `removeMswPlugin`, `workbox` config, `injectRegister`, manifest icons in `public/icons/`) | `npm run build && PLAYWRIGHT_USE_PREVIEW=1 npm run test:e2e -- sw-lifecycle.spec.ts` (verifies SW reg + manifest MIME + icons resolve; preview-mode only — dev disables PWA SW) |
+
+---
+
+## Deterministic enforcement layers (added 2026-06-05)
+
+Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor Auto/Composer) can't skip it. Layers, earliest → latest:
+
+1. **Session start** — Cursor `session-init.sh` + Claude `brain-loader.sh` inject this repo's brain pointers + SKELETONS danger-zones + a "read before editing" mandate into context (`~/.claude/hooks/brain-digest.sh`). Unskippable, unlike `/init`.
+2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
+3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) **blocks** on error; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*`.
+4. **Pre-push** — `tsc -b` typecheck.
+5. **CI** (`.github/workflows/ci.yml`) — full lint + `test:coverage` + build + e2e.
+
+Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named consts in `src/lib/constants.ts`), `import-x/no-restricted-paths` (layer boundaries: `components/hocs/hooks/lib/store` ⇏ `pages`), `i18next/no-literal-string` (warn; hardcoded JSX strings → `t()`).
 
 ---
 
@@ -37,7 +51,7 @@ Run **`npm run ci:local`** for the full pre-push gate. It **aligns** with `.gith
 
 | Command | Why |
 |---------|-----|
-| `npm run verify:web-vitals-chunks` | Two production builds; only for vitals/env/chunk work |
+| `npm run verify:web-vitals-chunks:full` | Two production builds (default + attribution); only for vitals/env/chunk work — bare `verify:web-vitals-chunks` is the cheap single-build assert on `dist/` |
 | `npm run icons:placeholders` | Regenerates the placeholder PWA icons; only run after editing the generator script. The output PNGs are committed |
 | `ANALYZE=true` / `build:analyze` | Heavy; only for bundle investigation |
 | `npm ci` | Reinstalls deps; CI uses it on clean runners — locally use when lockfile changes |

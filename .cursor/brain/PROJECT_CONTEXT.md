@@ -47,10 +47,14 @@ src/
   mocks/
     browser.ts   # DEV-only MSW `setupWorker` (handlers from `test/handlers`)
   lib/
-    api/         # client, auth; `greeting.*` = minimal wired Query + transport (HomePage); `_example.*` = unwired pattern seeds
+    api/         # client, auth; safeFetch.ts (Zod boundary validation for all API responses — see DECISIONS.md); `greeting.*` = minimal wired Query + transport (HomePage); `_example.*` = unwired pattern seeds
     i18n/        # i18next setup, constants, resources
+    pwa/         # installPromptCapture; keys.ts (PWA storage keys + events)
     webVitals/   # subscribeStandard / subscribeAttribution (loaded from vitals.ts)
     queryClient.ts  # TanStack Query client factory
+    queryKeys.ts # TanStack Query key-factory registry
+    devGuards.ts # dev-only guards (AbortError noise suppression, wired from main.tsx)
+    constants.ts # centralized named constants (`no-magic-numbers` exemption)
     env.ts       # @t3-oss/env-core validated public env
     vitals.ts, logger, utils  # observability + cn()
   pages/
@@ -66,6 +70,7 @@ src/
   store/
     user/        # userStore + tests
     utils/       # createSelectors
+    keys.ts      # Zustand persist/devtools key registry
   test/
     setup.ts, server.ts, handlers.ts, test-utils
 ```
@@ -143,7 +148,7 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 ## Dev Tooling
 
 - **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs full `ci:local`; avoids running audit/build/vitals for every small change).
-- `npm run ci:local` — pre-push superset vs `.github/workflows/ci.yml`: after `build` adds `npm run verify:pwa`, `npm run perf:ci` (Lighthouse-CI), `node scripts/ensure-playwright.mjs`, then E2E with `PLAYWRIGHT_USE_PREVIEW=1`. **GitHub Actions** `ci.yml` do not run `verify:pwa` or `perf:ci` (run locally or extend the workflow). **`.github/workflows/security.yml`** runs gitleaks + CodeQL on PR/push/schedule — not part of `ci:local`.
+- `npm run ci:local` — pre-push superset vs `.github/workflows/ci.yml`: full sequence after `build` = `verify:pwa`, `verify:web-vitals-chunks` (also in `ci.yml`), `size:check` (per-chunk brotli budgets, `.size-limit.json`), `perf:ci` (Lighthouse-CI), `ensure-playwright.mjs`, then E2E with `PLAYWRIGHT_USE_PREVIEW=1`. **GitHub Actions** `ci.yml` runs `verify:web-vitals-chunks` but not `verify:pwa`, `size:check`, or `perf:ci` (run locally or extend the workflow). **`.github/workflows/security.yml`** runs gitleaks + CodeQL on PR/push/schedule — not part of `ci:local`.
 - `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
 - `npm run build` — `tsc -b` then Vite production build (Rolldown)
 - `npm run verify:pwa` — asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify (after `npm run build`). Wired into `ci:local`.

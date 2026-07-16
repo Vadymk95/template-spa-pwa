@@ -74,3 +74,28 @@ import { useUserStore } from '@/store/user/userStore';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 ```
+
+## UI Quality — avoid the AI aesthetic
+
+AI-generated UI has recognizable tells. For any UI work reject the default in favour of the tokens in `src/index.css`:
+
+- **Palette**: brand is `--primary` = **Google Blue** (`221.2 83.2% 53.3%` light / `217.2 91.2% 59.8%` dark). Never reach for the AI-default purple/indigo. Use the semantic tokens (`primary`, `secondary`, `muted`, `accent`, `destructive`) — no raw hex / `bg-violet-500`.
+- **No new ad-hoc colors**: a color needs a token. Add HSL to `:root` + `.dark`, map in `@theme inline` (see Tailwind v4 above) — don't sprinkle one-off literals.
+- **Gradients**: none are defined in the theme — keep surfaces flat. No decorative `bg-gradient-to-*` unless a real design calls for it.
+- **Radius**: respect the scale — `--radius: 0.5rem` drives `rounded-sm`/`rounded-md`/`rounded-lg` (`--radius-sm/md/lg`). Vary radius by hierarchy; don't slap `rounded-2xl`/`rounded-full` on everything.
+- **Shadows**: the theme ships no custom elevation tokens — depth is subtle. Avoid shadow-heavy cards (`shadow-2xl`); shadcn/ui new-york defaults are the ceiling unless specified.
+- **Spacing**: use the Tailwind scale, not uniform oversized padding (`p-8`/`gap-12` everywhere). Let hierarchy set the rhythm.
+- **Layout**: content-first and priority-driven over a generic template hero + uniform stock card grid. LCP-priority element first (see performance rules).
+- **Copy**: realistic content via `t()` keys, never lorem-ipsum — real strings reveal real wrapping / overflow / length (and keep i18n honest).
+- **Dark mode**: every surface must read in both themes — verify against `.dark` tokens, don't hardcode a light-only color.
+- **Charts**: use `--chart-1`…`--chart-5`, not arbitrary picked colors.
+- **Baseline only**: prefer Baseline "Widely available" Web APIs; do not introduce "Newly available" ones (e.g. `scheduler.yield()`) without a fallback.
+
+## PWA — load-bearing config (CRITICAL — DO NOT TOUCH casually)
+
+This is a PWA template. The service-worker and manifest wiring is fragile and several settings are **decided once / destructive to change**. Full reference + threat model: `.cursor/brain/PWA.md`; danger zones: `.cursor/brain/SKELETONS.md`. NEVER change any of the following without explicit approval (Approval Law):
+
+- **`registerType: 'prompt'` is decided ONCE.** It lives in `vite.config.ts` (`VitePWA(...)`). **NEVER** flip `'prompt'` → `'autoUpdate'` (or back) post-deploy — it is destructive: the toast/no-toast contract leaks into production caches, and `autoUpdate` silently force-reloads tabs and **destroys mid-session form state** (vite-pwa #228/#438). The template defaults to `'prompt'` for that reason.
+- **Ship BOTH `apple-mobile-web-app-capable` AND `mobile-web-app-capable` meta tags** in `index.html` (lines 25–26). MDN flags `apple-*` as deprecated, but iOS Safari **still** silently breaks home-screen splash screens without it. **NEVER** "clean up" the apparent duplicate (next.js #70272 / #74524).
+- **MSW × Workbox precache order is load-bearing.** In `vite.config.ts`, `removeMswPlugin()` MUST stay registered **before** `VitePWA(...)` so its `closeBundle` deletes `dist/mockServiceWorker.js` before the precache scan finalizes. **Reordering them ships MSW's worker as a dead precache entry → 404 storm on every install.** `workbox.globIgnores` is defence-in-depth; `scripts/check-pwa.mjs` fails the build if `dist/sw.js` references `mockServiceWorker.js` — NEVER bypass it.
+- **Two service workers never coexist by design**: `public/mockServiceWorker.js` (MSW, DEV-only, gated by `import.meta.env.DEV` in `src/main.tsx`) and `dist/sw.js` (vite-plugin-pwa, PROD-only, `devOptions.enabled: false`). Do not enable PWA in dev or register MSW in prod.

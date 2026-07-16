@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
 import { RoutesPath } from '@/router/routes';
@@ -17,7 +18,7 @@ import { useUserStore } from '@/store/user/userStore';
  * `isLoggedIn: false` until rehydrate completes — without `_hasHydrated`, an authenticated
  * user would be redirected to /login mid-rehydrate and never recover.
  */
-export const ProtectedRoute = () => {
+export const ProtectedRoute = (): ReactElement | null => {
     const hasHydrated = useUserStore.use._hasHydrated();
     const isLoggedIn = useUserStore.use.isLoggedIn();
 

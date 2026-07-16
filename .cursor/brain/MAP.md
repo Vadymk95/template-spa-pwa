@@ -71,7 +71,7 @@ app start → i18next init → loads common + errors + <current page ns>
 vite-plugin-pwa (vite.config.ts) → generateSW → dist/sw.js + dist/workbox-*.js + dist/manifest.webmanifest
                                               ↓
 main.tsx → side-effect import @/lib/pwa/installPromptCapture (eager beforeinstallprompt listener)
-        → vite-plugin-pwa auto-injected registerSW.js loads in document
+        → vite-plugin-pwa inlines the SW register script into `index.html` (`injectRegister: 'inline'`) — registration runs during HTML parse, before React/i18n
         → SW registers, precaches `globPatterns` assets
         → on new deploy: SW transitions to waiting → useRegisterSW hook fires needRefresh
         → PwaUpdateToast (mounted in App.tsx) renders → user clicks → updateServiceWorker(true) → reload

@@ -9,12 +9,16 @@ priority: 85
 
 ## 1. Mandatory Test-First (Strict TDD)
 
-Write tests **before** implementation for:
+Write the failing test **before** the implementation — **always**, for:
 
 - **Zustand stores** (`src/store/*/`)
 - **Custom hooks** with logic > 10 lines (`src/hooks/*/`)
 - **Utilities and transforms** (`src/lib/`)
 - **Zod schemas** — validate schema before using it
+
+**Vertical slices, NOT horizontal (mandatory):** one test → its implementation → repeat. **NEVER** write all tests then all code, and **NEVER** write the implementation first and backfill tests. Test behavior through the public interface, not implementation details, so tests survive refactors.
+
+**Enforced gate (do not bypass):** the pre-commit hook runs `scripts/check-test-siblings.mjs` (`.husky/pre-commit`), which **blocks committing** a `src` logic file without a co-located `*.test.*` sibling. A missing test is a blocked commit, not a follow-up TODO. Skipping hooks (`--no-verify`) is forbidden (see `SKELETONS.md` § husky + commitlint).
 
 ## 2. Hybrid UI Approach
 

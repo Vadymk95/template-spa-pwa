@@ -13,6 +13,23 @@ priority: 95
 - The pipeline (Priority 100) orchestrates all phases: Discovery → Simulation → TDD Execution → Verification → Brain Sync → Confidence.
 - Domain standards live in their respective rules. The pipeline enforces them — never bypass it.
 
+## 0.1 Conditional Rule Routing (CRITICAL)
+
+Do NOT assume Cursor auto-attaches glob-scoped rules. `alwaysApply: false` rules attach inconsistently, so before planning/editing in a task area, **explicitly read the matching conditional rules**:
+
+- **React / component / hook / page / HOC work** → `react-patterns.mdc`, `engineering-standards.mdc`, `performance.mdc`
+- **New behavioral component or changed behavior** → also `test-driven-development.mdc` before implementation
+- **Tests / specs / fixtures / mocks** → `test-driven-development.mdc`
+- **API client / TanStack Query / data-fetching / payload contracts** → `api.mdc`, `resilience.mdc`, `engineering-standards.mdc`
+- **Zustand stores / selectors / server-state** → `state-management.mdc`, `resilience.mdc`, `engineering-standards.mdc`
+- **Router / route organization / pages** → `routing.mdc`
+- **Async / error handling / debugging** → `resilience.mdc`
+- **Styling / render-perf / memo / list keys** → `performance.mdc` + `react-patterns.mdc`
+- **Constants / magic strings / config values** → `constants.mdc`, `engineering-standards.mdc`
+- **PWA / service worker / `vite.config.ts` / manifest / `index.html` meta / MSW** → `project-config.mdc` §PWA + **mandatory** `.cursor/brain/PWA.md` + `.cursor/brain/SKELETONS.md` (load-bearing, destructive-to-change config)
+
+Always-on rules (`agent-pipeline.mdc`, `global.mdc`, `workflow.mdc`, `project-config.mdc`) attach automatically — they need not appear in the Rule Receipt (`agent-pipeline.mdc` Phase 1).
+
 ## Language (chat vs codebase)
 
 - **Chat with the user:** Russian by default unless the user switches language.

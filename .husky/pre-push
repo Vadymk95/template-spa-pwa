@@ -1,5 +1,13 @@
+# Optional nvm version switch (.nvmrc). Fenced with set +e: husky runs hooks
+# under `sh -e`, and nvm re-arms errexit internally before returning non-zero —
+# without the fence a missing nvm version kills the hook before its real work.
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" && nvm use --silent 2>/dev/null || true
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    set +e
+    . "$NVM_DIR/nvm.sh" > /dev/null 2>&1
+    nvm use --silent > /dev/null 2>&1
+    set -e
+fi
 
 # Pre-commit (lint-staged) already enforces format + lint on staged files.
 # Pre-push is the last gate before remote sees broken code — keep it minimal:

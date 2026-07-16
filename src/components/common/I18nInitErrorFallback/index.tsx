@@ -8,6 +8,8 @@
  * inline styles are the floor.
  */
 
+import type { ReactElement } from 'react';
+
 const sectionStyle = {
     minHeight: '100vh',
     display: 'flex',
@@ -43,7 +45,7 @@ const buttonStyle = {
     fontWeight: 500
 };
 
-export const I18nInitErrorFallback = () => (
+export const I18nInitErrorFallback = (): ReactElement => (
     <section
         role="alert"
         aria-live="assertive"

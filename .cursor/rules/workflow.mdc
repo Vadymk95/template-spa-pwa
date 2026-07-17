@@ -31,10 +31,10 @@ A plan must include:
 ## Implementation Workflow
 
 1. **Discover** — Brain scan + scope declaration (Phase 1 of agent-pipeline).
-2. **Simulate** — `sequential-thinking` for tasks > 3 steps. Architectural critique.
+2. **Simulate** — `sequential-thinking` (if available in your environment) for tasks > 3 steps. Architectural critique.
 3. **Approve** — Get approval if the change hits a SKELETONS surface, store-shape, API/payload contract, or router topology (risk, not LOC).
 4. **Execute** — TDD for logic. Max 1–2 files per iteration.
-5. **Verify** — Full loop: `npm run lint && npm run format:check && npx tsc -b --noEmit && npm test`.
+5. **Verify** — Full loop: `npm run verify` (check-hooks → typecheck → oxlint → eslint → format:check → tests+coverage).
 6. **Brain Sync** — Update brain docs in `.cursor/brain/` (`MAP.md`, `DECISIONS.md`, `SKELETONS.md`, `DICTIONARY.md`) as needed.
 7. **Confidence** — Declare HIGH | MEDIUM | LOW.
 
@@ -50,11 +50,10 @@ A plan must include:
 Always run after code changes:
 
 ```bash
-npm run lint          # ESLint (exit 0 required)
-npm run format:check  # Prettier check
-npx tsc -b --noEmit   # TypeScript solution (project references)
-npm test              # All tests green
+npm run verify   # canonical gate: check-hooks → typecheck → oxlint (--deny-warnings) → eslint (--max-warnings 0) → format:check → test:coverage
 ```
+
+Individual scripts (`npm run typecheck`, `npm run lint`, `npm run lint:oxlint`, `npm run format:check`, `npm test`) are targeted iteration checks only — bare `npm test` bypasses coverage thresholds. The gate is `npm run verify`.
 
 ## Git Commits
 
@@ -71,10 +70,7 @@ type(scope): description
 
 ### Before Committing
 
-- [ ] `npm run lint` — clean
-- [ ] `npm run format:check` — Prettier clean
-- [ ] `npx tsc -b --noEmit` — no errors
-- [ ] `npm test` — all green
+- [ ] `npm run verify` — full gate green (check-hooks, typecheck, oxlint, eslint, prettier, tests + coverage)
 - [ ] `git diff` reviewed — no unintended changes
 - [ ] No `console.log` left in production code
 

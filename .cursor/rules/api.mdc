@@ -11,17 +11,16 @@ priority: 83
 
 ```
 src/lib/api/
-  client.ts        # Base fetch wrapper (configured)
-  <domain>.ts      # Domain-specific API functions (getUser, updateUser, ...)
-
-src/hooks/<domain>/
-  use<Domain>Query.ts   # TanStack Query hooks wrapping API functions
-  use<Domain>Mutation.ts
+  client.ts             # Base fetch wrapper (configured)
+  safeFetch.ts          # fetch + Zod boundary validation (safeFetchQueryFn)
+  <domain>.ts           # Domain-specific API functions (getUser, updateUser, ...)
+  <domain>.queries.ts   # Key factory + queryOptions() factories for the domain
+                        # canonical shape: _example.queries.ts; live slice: greeting.queries.ts
 ```
 
-- **API functions** (`lib/api/`): pure async functions returning typed data. No React, no hooks.
-- **Query hooks** (`hooks/`): TanStack Query wrappers. No raw `fetch` here.
-- **Components**: consume query hooks only. Never call `apiClient` directly in components.
+- **API functions** (`lib/api/<domain>.ts`): pure async functions returning typed data. No React, no hooks.
+- **Query factories** (`lib/api/<domain>.queries.ts`): `<domain>Keys` key factory + `queryOptions()` factories. Consumers call `useQuery(<domain>Options(...))` from a page/component-local hook (e.g. `src/pages/HomePage/useHomePage.ts`). Register each new key factory in `src/lib/queryKeys.ts` as well.
+- **Components**: consume hooks only. Never call `apiClient` directly in components.
 
 ## 2. Implementation Rules
 
@@ -37,13 +36,24 @@ export const getUser = async (id: string): Promise<User> => {
     return apiClient<User>(`/users/${id}`);
 };
 
-// src/hooks/user/useUserQuery.ts
-export const useUserQuery = (id: string) => {
-    return useQuery({
-        queryKey: ['user', id],
+// src/lib/api/users.queries.ts — queryOptions() return type stays inferred by design
+// (explicit-function-return-type is off for src/lib/api/**/*.queries.ts, see eslint.config.js)
+export const userKeys = {
+    all: ['users'] as const,
+    detail: (id: string) => [...userKeys.all, id] as const,
+};
+
+export const userDetailOptions = (id: string) =>
+    queryOptions({
+        queryKey: userKeys.detail(id),
         queryFn: () => getUser(id),
         staleTime: 5 * 60 * 1000,
     });
+
+// Page-local hook, e.g. src/pages/UserPage/useUserPage.ts — explicit return type required
+export const useUserPage = (id: string): { user: User | undefined; isLoading: boolean } => {
+    const { data, isLoading } = useQuery(userDetailOptions(id));
+    return { user: data, isLoading };
 };
 ```
 

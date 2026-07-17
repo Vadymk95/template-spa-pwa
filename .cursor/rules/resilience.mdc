@@ -37,7 +37,7 @@ if (error) return <ErrorMessage message={error.message} />;
 ```
 
 - Always handle `error` state in query results.
-- Use `onError` in `QueryClient` defaults for global error logging.
+- No global `onError` in `QueryClient` defaults — TanStack Query v5 removed query-level `onError`. Global config (`createQueryClient` in `src/lib/queryClient.ts`) owns the retry policy only (no retry on 4xx, capped retries otherwise). Errors surface through the query's `error`/`isError` state rendered by consumers; render-time throws are caught by `ErrorBoundary`/`RouteErrorBoundary`, which log with context via `logger`.
 - Use `retry: false` for non-retryable errors (4xx).
 
 ## 3. Form Validation

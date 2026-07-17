@@ -23,12 +23,15 @@ useState     →  local component state (not shared beyond component)
 - **Test alongside**: `userStore.ts` + `userStore.test.ts` in the same folder.
 - **Selectors**: Always wrap with `createSelectors` from `src/store/utils/createSelectors.ts`.
 - **Direct imports**: Import from the store file directly — no `index.ts` re-exports.
-- **DevTools**: Wire every store to Redux DevTools via `devtools()`. Use `type: 'store-name/slice/action'` naming.
+- **DevTools**: Wrap stores with the DEV-gated `withDevtools` pattern (see `src/store/user/userStore.ts`) — `devtools` in dev, identity function in prod, so the tree-shaker drops the Redux DevTools bridge from the production bundle. Never wire raw `devtools()` unconditionally. Use `type: 'store-name/slice/action'` naming.
 
 ```typescript
 // src/store/user/userStore.ts
+// DEV-gated: devtools ships bridge code even with `enabled: false` — gate the middleware itself.
+const withDevtools = (import.meta.env.DEV ? devtools : <T>(fn: T): T => fn) as typeof devtools;
+
 const useUserStoreBase = create<UserState>()(
-    devtools(
+    withDevtools(
         (set) => ({
             username: null,
             setUser: (username) => set({ username }, false, { type: 'user-store/user/setUser' }),
@@ -47,7 +50,7 @@ useUserStore.use.username()       // auto-selector via createSelectors
 ## 3. TanStack Query Standards
 
 - **Config root**: `src/lib/queryClient.ts` — configure `defaultOptions` here (retry, staleTime, etc.).
-- **Query hooks**: in `src/hooks/<domain>/` — wrapping API functions from `src/lib/api/`.
+- **Query factories**: key factory + `queryOptions()` factories live in `src/lib/api/<domain>.queries.ts`; consumers call `useQuery(<domain>Options(...))` from page/component-local hooks (see `api.mdc`).
 - **Query keys**: Use factory pattern — always arrays, never strings.
 - **Mutations**: `onSuccess` → invalidate or update cache. `onError` → log with context.
 

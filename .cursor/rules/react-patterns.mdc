@@ -51,6 +51,7 @@ UserCard/
 ## 3. Hooks
 
 - **Arrow functions** for hooks.
+- **Explicit return type**: hooks declare their output — `const useX = (): UseXResult => …` (enforced by `@typescript-eslint/explicit-function-return-type`; inline callbacks exempt).
 - **Domain grouping**: `src/hooks/<domain>/hookName.ts` + `hookName.test.ts` alongside.
 - **Direct imports** — no `index.ts` barrel re-exports.
 - **Rules of Hooks**: Hooks only in React components or other hooks. Never in callbacks, loops, or conditions.

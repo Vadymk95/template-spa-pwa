@@ -26,10 +26,13 @@ if (user.role === USER_ROLES.ADMIN) { ... }
 
 | Scope | Location |
 |---|---|
-| Single component | Co-locate above component in same file |
-| Store-level | `src/store/<domain>/constants.ts` |
+| Shared / app-wide values, all named numbers | `src/lib/constants.ts` — the canonical constants file (exempt from `no-magic-numbers`) |
+| Single-component, single-use **strings** | Co-locate above component in same file |
+| Store identifiers (persist keys, devtools names, action types) | `src/store/keys.ts` |
 | Route paths | `src/router/routes.ts` |
 | i18n namespace names | `src/lib/i18n/constants.ts` |
+
+**Lint enforcement**: `@typescript-eslint/no-magic-numbers` is an **error** — numeric literals in logic must become named constants in `src/lib/constants.ts` (constants files carry a documented exemption in `eslint.config.js`). Co-located constants are for domain-local strings; numbers always go to `src/lib/constants.ts`.
 
 ## 3. Pattern
 

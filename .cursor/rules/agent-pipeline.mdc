@@ -15,13 +15,13 @@ priority: 100
 
 ### Phase 1 Fast-Track
 
-If the task targets **only** files matching `*.styled.ts`, `*.styled.tsx`, `*.scss`, `*.css`, `*.i18n.*`, `*.spec.ts`, `*.test.ts`, or `*.md` — skip Brain reads and proceed directly to Phase 3. State: `"Phase 1 skipped — styling/i18n/test/docs task."` Still emit the **Rule Receipt** (step 6 below — e.g. "none beyond always-on", or `test-driven-development.mdc` for a `*.test.ts` task). When in doubt → run full Phase 1.
+If the task targets **only** files matching `*.css`, `public/locales/**/*.json` (i18n resources), `*.spec.ts`, `*.test.ts`, `*.test.tsx`, or `*.md` — skip Brain reads and proceed directly to Phase 3. State: `"Phase 1 skipped — styling/i18n/test/docs task."` Still emit the **Rule Receipt** (step 6 below — e.g. "none beyond always-on", or `test-driven-development.mdc` for a `*.test.ts` task). When in doubt → run full Phase 1.
 
 ---
 
 Before any reasoning about implementation:
 
-1. **Brain Scan**: Read `.cursor/brain/MAP.md` (store topology, data flows, routes, component wiring).
+1. **Brain Scan** (AGENTS.md "Start here" order): Read `.cursor/brain/PROJECT_CONTEXT.md` first, then `MAP.md` (store topology, data flows, routes, component wiring) and `VERIFICATION.md` (what to run per change). PWA-touching tasks also read `PWA.md`.
 2. **Risk Detection**: Read `.cursor/brain/SKELETONS.md` — check if task touches any danger zone.
 3. **Context Gathering**: Identify affected files (components, hooks, stores, API). Search codebase for existing implementations of similar logic.
 4. **Rule Routing**: Load the matching conditional rules using `global.mdc` §0.1 **before planning edits** — Cursor does not reliably auto-attach `alwaysApply: false` rules.
@@ -39,7 +39,7 @@ Before any reasoning about implementation:
 
 Before simulating changes:
 
-- Activate `sequential-thinking` with `totalThoughts >= 3` for any task > 3 steps.
+- Activate `sequential-thinking` (if available in your environment) with `totalThoughts >= 3` for any task > 3 steps; otherwise reason through the same steps explicitly.
 - Dedicate at least one thought to **adversarial analysis**: "What could go wrong? What existing behavior might break?"
 
 ### Architectural Critique
@@ -100,18 +100,17 @@ Implement directly → write integration tests via `renderWithProviders`.
 ### 4.1 Automated Checks
 
 ```bash
-npm run lint          # must exit 0
-npm run format:check  # Prettier compliance
-npx tsc -b --noEmit   # solution / project references — aligns with package.json `tsc -b`
-npm test              # all tests green
+npm run verify   # canonical gate: check-hooks → typecheck → oxlint (--deny-warnings) → eslint (--max-warnings 0) → format:check → test:coverage
 ```
+
+`npm run verify` (see `package.json`) is the one command that must exit 0 before a task is complete. While iterating on a specific failure, individual scripts are fine as targeted checks (`npm run typecheck`, `npm run lint`, `npm run lint:oxlint`, `npm run format:check`, `npm test`) — but they are not the gate: bare `npm test` bypasses coverage thresholds, so always finish with `npm run verify`.
 
 ### 4.2 Self-Correction with Root Cause Analysis
 
 If any check fails:
 
 1. **Do NOT patch the symptom.**
-2. Use `sequential-thinking` to trace error back to origin.
+2. Use `sequential-thinking` (if available in your environment) to trace error back to origin.
 3. Fix the **root cause**, not the surface error.
 4. Re-run full loop after fix.
 
@@ -142,6 +141,8 @@ Before marking task complete:
 | `DECISIONS.md` | New architectural pattern, deviation from existing, trade-off made |
 | `SKELETONS.md` | New risk discovered, existing risk mitigated |
 | `DICTIONARY.md` | New domain term, acronym, or concept introduced |
+
+The full brain set also includes `PROJECT_CONTEXT.md`, `VERIFICATION.md`, `PWA.md`, `TEMPLATE_SEEDS.md`, and `EXTENSIONS.md` (see AGENTS.md "Start here") — update whichever file the change invalidates.
 
 **Rule**: If no update needed — explicitly state: `"Brain sync: none needed."`
 **FORBIDDEN**: Completing a task without this declaration.
@@ -181,7 +182,7 @@ START
   │
   ▼
 [Phase 4: Verification Loop + Diff Self-Review]
-  │ lint → format → types → tests → manual review
+  │ npm run verify (full gate) → manual review
   │ ── Fail? → Root Cause Analysis → Fix → Re-verify ──
   │
   ▼

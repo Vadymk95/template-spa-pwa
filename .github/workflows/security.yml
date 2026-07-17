@@ -28,8 +28,10 @@ jobs:
                   fetch-depth: 0
 
             - name: Run gitleaks
-              # Pinned to a release tag — never `@latest` for security tooling.
-              uses: gitleaks/gitleaks-action@v2
+              # SHA-pinned — tags are mutable and have been retargeted in supply-chain
+              # attacks (tj-actions, 2025); Dependabot's github-actions ecosystem keeps
+              # this fresh.
+              uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   # Fail the job on any finding (default already, but explicit).

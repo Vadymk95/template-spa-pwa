@@ -38,8 +38,9 @@ cd <your-project-folder>
 # `engines.node: ">=24"` will block `npm install` with EBADENGINE otherwise.
 nvm use
 
-# Install dependencies and start dev server
-npm install && npm run dev
+# Install dependencies, install git hooks once (lifecycle scripts are
+# disabled via .npmrc — supply-chain guard), then start the dev server
+npm install && npm run prepare && npm run dev
 ```
 
 > Open <http://localhost:3000> to see the app.

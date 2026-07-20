@@ -6,6 +6,7 @@ Production-ready React 19 + Vite 8 + TypeScript 6 **SPA + PWA** template — rou
 
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
+- [Forking / rename checklist](#forking-this-template-rename-checklist)
 - [Tech Stack](#-tech-stack)
 - [PWA](#-pwa)
 - [Project Structure](#-project-structure)
@@ -53,6 +54,31 @@ npm install && npm run prepare && npm run dev
 3. Replace placeholder PWA assets — see [PWA](#-pwa)
 4. Review [Key Patterns](#-key-patterns)
 
+## Forking this template: rename checklist
+
+This scaffold ships with placeholder branding: `react-spa-pwa-foundation` (the
+package / identifier slug) and `React SPA + PWA Foundation` / `React PWA` (the
+display name). When you start a real project, replace every spot below, then grep
+the old strings to be sure none survive; a missed brand string in `<title>`, the
+PWA manifest, or the e2e title assertion is the usual slip:
+
+- `package.json` **and** `package-lock.json`: `name`
+- `index.html`: `<title>`, `<meta name="description">`, `apple-mobile-web-app-title`
+- `vite.config.ts`: PWA manifest `name`, `short_name`, `description`, `lang`,
+  `theme_color`, `background_color` (`VitePWA({ manifest: { ... } })`)
+- `public/icons/{192x192,512x512,apple-touch-icon}.png`: swap the red "REPLACE
+  ME" placeholder icons for branded PNGs at the same paths and sizes (see
+  [PWA](#-pwa))
+- `public/locales/<lng>/common.json`: `appName` (the single brand source; Header
+  and Footer render `t('appName')`, so no brand string is hardcoded in components)
+  plus the consumer-facing `pwa.*` toast copy
+- `e2e/smoke.spec.ts`: the expected document-title assertion
+- `README.md`: heading + description
+- `LICENSE`: MIT is fine for an open project; for a **proprietary/commercial**
+  app delete `LICENSE` and set `package.json` `"license": "UNLICENSED"` (the repo
+  is already `private`)
+- `.cursor/brain/PROJECT_CONTEXT.md` + `AGENTS.md`: heading (internal agent docs)
+
 ## 🚀 Tech Stack
 
 ### Core
@@ -97,7 +123,7 @@ npm install && npm run prepare && npm run dev
 - **Husky + lint-staged** — git hooks for quality gates
 - **Commitlint** — conventional commits enforcement
 - **Vitest 4.1** — unit testing with Testing Library
-- **Playwright 1.59** — E2E tests
+- **Playwright 1.61** — E2E tests
 
 ## 📲 PWA
 
@@ -420,7 +446,7 @@ npm run build
 
 ### Bundle Analysis
 
-`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. The build fails if any chunk exceeds 600kb.
+`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. A chunk over 600 kB raises a Vite build **warning** (`chunkSizeWarningLimit`); the enforced per-chunk budgets are the brotli limits in `.size-limit.json`, checked by `npm run size:check` (part of `ci:local`).
 
 ### Deployment
 

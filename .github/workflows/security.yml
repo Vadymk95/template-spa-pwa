@@ -22,7 +22,7 @@ jobs:
             contents: read
         steps:
             - name: Checkout (full history)
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   # gitleaks needs commit history to scan past commits, not just HEAD.
                   fetch-depth: 0
@@ -31,7 +31,7 @@ jobs:
               # SHA-pinned — tags are mutable and have been retargeted in supply-chain
               # attacks (tj-actions, 2025); Dependabot's github-actions ecosystem keeps
               # this fresh.
-              uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+              uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   # Fail the job on any finding (default already, but explicit).
@@ -50,10 +50,10 @@ jobs:
                 language: [javascript-typescript]
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@v3
+              uses: github/codeql-action/init@v4
               with:
                   languages: ${{ matrix.language }}
                   # Adds the security-extended pack — broader coverage at the cost of run time.
@@ -61,6 +61,6 @@ jobs:
                   queries: security-extended
 
             - name: Perform analysis
-              uses: github/codeql-action/analyze@v3
+              uses: github/codeql-action/analyze@v4
               with:
                   category: '/language:${{ matrix.language }}'

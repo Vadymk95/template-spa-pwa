@@ -5,6 +5,7 @@
 **Decision**: extract magic strings used in 2+ places OR carrying external contract to named constants. Apply selectively. NOT blanket extraction.
 
 **Extraction sites added this commit**:
+
 - `src/store/keys.ts` — STORAGE_KEYS (Zustand persist localStorage), DEVTOOLS_NAMES + per-store ACTION constants
 - `src/lib/queryKeys.ts` — TanStack Query key factory (Dorfmeister pattern)
 - `src/lib/pwa/keys.ts` — PWA_SESSION_KEYS (e.g. SW update toast dismiss key) — PWA cache survives deploys, renaming session key without migration = silent UX regression for existing users
@@ -24,12 +25,14 @@
 **Why (PWA-specific)**: Workbox precache + runtime cache survive deploys. After BE schema change, old cached response keeps serving from cache until invalidation — application code expects new shape, gets old. `safeFetch` parses on every read = early detection. Standard SPA Zod-boundary pattern PLUS this Workbox-cache-survival use case = template ships pattern by default (not just doc reference).
 
 **Scope**:
+
 - TanStack Query `queryFn` → `safeFetchQueryFn(url, schema)`
 - Direct fetch → `safeFetch(url, schema)`
 - Workbox cache hit (handled transparently — same `safeFetch` runs on cache reads)
 - localStorage reads → `Schema.safeParse(JSON.parse(raw))`
 
 **Trade-offs**:
+
 - +0 KB bundle (Zod already in deps)
 - ~50-200μs parse per response (negligible)
 - Schemas duplicate BE types
@@ -42,7 +45,7 @@
 
 **Decision**: add `size-limit@^12.1.0` + `@size-limit/preset-app@^12.1.0` devDeps + `npm run size:check` script + `.size-limit.json` config with per-chunk brotli budgets. Wired into `ci:local` AFTER `verify:web-vitals-chunks` and BEFORE `perf:ci` (LHCI) — size-limit asserts byte budgets first, LHCI asserts runtime perf. Per /consilium 2026-05-23 APPLY Item 6 (5/6 YES, 1 COND satisfied via pre-flight overlap check).
 
-**Why**: `scripts/check-web-vitals-chunks.mjs` asserts chunk *composition* (subscribeStandard vs subscribeAttribution), NOT chunk *size*. `lighthouserc.json` `total-byte-weight` is total page weight (warn-only ≤800 KB), NOT per-chunk. `chunkSizeWarningLimit: 600` (KB raw) in `vite.config.ts` is Vite *warning*, not CI fail. No per-vendor-chunk byte-budget gate currently exists. `size-limit` 868K weekly DLs ~10× over `bundlesize` (May 2026 npm registry direct).
+**Why**: `scripts/check-web-vitals-chunks.mjs` asserts chunk _composition_ (subscribeStandard vs subscribeAttribution), NOT chunk _size_. `lighthouserc.json` `total-byte-weight` is total page weight (warn-only ≤800 KB), NOT per-chunk. `chunkSizeWarningLimit: 600` (KB raw) in `vite.config.ts` is Vite _warning_, not CI fail. No per-vendor-chunk byte-budget gate currently exists. `size-limit` 868K weekly DLs ~10× over `bundlesize` (May 2026 npm registry direct).
 
 **Initial budgets (brotli)** — matched to template-1 for symmetry; recalibrate per fork. PWA-specific: SW (`dist/sw.js`) and workbox runtime (`dist/workbox-*.js`) NOT budgeted — vite-plugin-pwa owns their size; budget would brittlely chase workbox patch bumps.
 
@@ -175,7 +178,17 @@ npm run lint && npm run lint:oxlint  # both must pass
 
 **Decision**: `.cursor/brain/VERIFICATION.md` defines minimal checks per task type; `npm run ci:local` extends `.github/workflows/ci.yml` with extra gates (see `ci:local` ADR above). Agents should read it and avoid running audit/build/vitals-analyze for every trivial edit.
 
-**Why**: Reduces noise, latency, and false “full audit” habits while keeping a single command for pre-push confidence.
+**Why**: Reduces noise, latency, and false “full audit” habits while keeping a single command for full local CI confidence.
+
+---
+
+## [2026-07] Playwright e2e inside `verify` + pre-push
+
+**Decision**: append build + `ensure-playwright.mjs` + `test:e2e:prod` (`PLAYWRIGHT_USE_PREVIEW=1`) to `npm run verify`, and point `.husky/pre-push` at full `npm run verify` (was typecheck-only). `ci:local` remains the stricter audit / PWA / size / LHCI superset.
+
+**Why**: Catch preview-mode e2e (incl. SW lifecycle) before CI; typecheck-only pre-push left runtime gaps.
+
+**Trade-off**: pre-push is slower. Accepted so e2e cannot be skipped by habit.
 
 ---
 

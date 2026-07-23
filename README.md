@@ -282,9 +282,11 @@ VITE_ENABLE_MSW=false
 | `npm test`                         | Run unit tests (Vitest)                                               |
 | `npm run test:watch`               | Run tests in watch mode                                               |
 | `npm run test:coverage`            | Run tests with coverage report                                        |
-| `npm run test:e2e`                 | Playwright E2E tests                                                  |
+| `npm run test:e2e`                 | Playwright E2E (vite dev locally unless preview)                      |
+| `npm run test:e2e:prod`            | Playwright against `vite preview` (verify gate)                       |
 | `npm run test:e2e:ui`              | Playwright UI mode                                                    |
-| `npm run ci:local`                 | Full local CI (mirrors `.github/workflows/ci.yml`)                    |
+| `npm run verify`                   | Commit/push gate: typecheck → lint → format → coverage → build → e2e  |
+| `npm run ci:local`                 | Superset of verify (adds audit + PWA + chunk/size + LHCI)             |
 | `npm run verify:pwa`               | Assert manifest fields, populated SW precache, PWA meta tags retained |
 | `npm run icons:placeholders`       | Regenerate placeholder PWA icons in `public/icons/`                   |
 | `npm run verify:web-vitals-chunks` | Assert standard vs attribution web-vitals chunks                      |
@@ -303,7 +305,7 @@ VITE_ENABLE_MSW=false
 
 **Pre-push:**
 
-- Runs `npx tsc -b --force --noEmit`
+- Runs full **`npm run verify`** (includes production build + Playwright against `vite preview`)
 
 ### CI (GitHub Actions)
 
@@ -425,7 +427,7 @@ describe('Component', () => {
 
 ### E2E
 
-Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173 after `build`.
+Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `npm run test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173 after `build`. The local **`npm run verify`** gate (and husky pre-push) runs `test:e2e:prod` (via `ensure-playwright.mjs`).
 
 ## 🏗️ Build & Deployment
 

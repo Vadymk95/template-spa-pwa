@@ -44,8 +44,9 @@ React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · sha
 
 ```bash
 npm run dev          # Vite dev server
-npm run verify       # typecheck → oxlint → eslint → prettier check → tests+coverage (commit gate)
-npm run ci:local     # full local CI (adds audit, build, PWA verify, chunk/size checks, LHCI, e2e)
+npm run verify       # typecheck → oxlint → eslint → prettier → coverage → build → e2e (commit/push gate)
+npm run test:e2e:prod # Playwright against `vite preview` (same as verify gate)
+npm run ci:local     # full local CI (adds audit + PWA verify + chunk/size + LHCI on top of verify)
 ```
 
 **Bootstrap after clone**: `npm run prepare` (once) — `.npmrc` disables lifecycle

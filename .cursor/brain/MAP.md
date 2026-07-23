@@ -2,12 +2,12 @@
 
 ## Entry Points
 
-| File                   | Role                                                |
-| ---------------------- | --------------------------------------------------- |
-| `index.html`           | HTML shell — `i18n-loading` FOUC guard + `#i18n-boot` decorative spinner until i18n ready; PWA meta tags (theme-color × 2, mobile-web-app-capable, apple-mobile-web-app-* set, apple-touch-icon link) |
-| `src/main.tsx`         | Async bootstrap: eager `installPromptCapture` import → optional DEV MSW worker → root: i18n ready gate (or `I18nInitErrorFallback`) → `I18nextProvider` → QueryClient → Router; `reportWebVitals()` after mount |
-| `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer + auto-mounted `PwaUpdateToast` |
-| `src/router/index.tsx` | Router assembly, merge route modules here           |
+| File                   | Role                                                                                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`           | HTML shell — `i18n-loading` FOUC guard + `#i18n-boot` decorative spinner until i18n ready; PWA meta tags (theme-color × 2, mobile-web-app-capable, apple-mobile-web-app-* set, apple-touch-icon link)                      |
+| `src/main.tsx`         | Async bootstrap: eager `installPromptCapture` import → optional DEV MSW worker → root: i18n ready gate (or `I18nInitErrorFallback`) → `I18nextProvider` → QueryClient → Router; `reportWebVitals()` after mount            |
+| `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer + auto-mounted `PwaUpdateToast`                                                                                                                                           |
+| `src/router/index.tsx` | Router assembly, merge route modules here                                                                                                                                                                                  |
 | `vite.config.ts`       | Build config + `VitePWA({...})` + local plugins in `vite-plugins/` (dev-banner, i18n-hmr, html-optimize) — manifest, Workbox precache, `registerType: 'prompt'`, `devOptions.enabled: false`, `globIgnores` for MSW worker |
 
 ## Adding a New Page
@@ -79,17 +79,17 @@ main.tsx → side-effect import @/lib/pwa/installPromptCapture (eager beforeinst
 
 Full reference: `.cursor/brain/PWA.md`. Source-of-truth files map below.
 
-| Concern                  | File                                                  |
-| ------------------------ | ----------------------------------------------------- |
-| Plugin config + manifest | `vite.config.ts → VitePWA({...})`                     |
-| Update UI                | `src/components/common/PwaUpdateToast/`               |
-| Install hook             | `src/hooks/pwa/usePwaInstall.ts`                      |
-| `beforeinstallprompt` capture | `src/lib/pwa/installPromptCapture.ts` (eager)    |
-| Icons                    | `public/icons/{192x192,512x512,apple-touch-icon}.png` |
-| iOS / theme meta         | `index.html`                                          |
-| Type surface             | `src/vite-env.d.ts`                                   |
-| Build verification       | `scripts/check-pwa.mjs` → wired into `ci:local`       |
-| Placeholder icon generator | `scripts/generate-placeholder-icons.mjs`            |
+| Concern                       | File                                                  |
+| ----------------------------- | ----------------------------------------------------- |
+| Plugin config + manifest      | `vite.config.ts → VitePWA({...})`                     |
+| Update UI                     | `src/components/common/PwaUpdateToast/`               |
+| Install hook                  | `src/hooks/pwa/usePwaInstall.ts`                      |
+| `beforeinstallprompt` capture | `src/lib/pwa/installPromptCapture.ts` (eager)         |
+| Icons                         | `public/icons/{192x192,512x512,apple-touch-icon}.png` |
+| iOS / theme meta              | `index.html`                                          |
+| Type surface                  | `src/vite-env.d.ts`                                   |
+| Build verification            | `scripts/check-pwa.mjs` → wired into `ci:local`       |
+| Placeholder icon generator    | `scripts/generate-placeholder-icons.mjs`              |
 
 ## CSS / Theming
 
@@ -103,6 +103,7 @@ src/index.css — single source of truth for Tailwind v4:
 ```
 
 Dark mode toggle: `src/hooks/theme/useTheme.ts`
+
 - Modes: `'light' | 'dark' | 'system'` (system follows OS preference)
 - Toggles `.dark` class on `<html>`, persists to `localStorage` key `"theme"`
 - Usage: `const { theme, setTheme } = useTheme()`
@@ -114,9 +115,9 @@ To add new color token: add to `:root`, then map in `@theme inline`.
 
 MSW runs in two modes — same handlers, different adapter:
 
-| Mode | Where | Adapter | When to use |
-|------|-------|---------|-------------|
-| **Node** | `src/test/server.ts` | `msw/node` | Unit + integration tests (Vitest). No browser needed. |
+| Mode        | Where                         | Adapter                                  | When to use                                                                                                                                            |
+| ----------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Node**    | `src/test/server.ts`          | `msw/node`                               | Unit + integration tests (Vitest). No browser needed.                                                                                                  |
 | **Browser** | `public/mockServiceWorker.js` | `msw/browser` via `src/mocks/browser.ts` | Dev without a real backend (worker started from `main.tsx` unless `VITE_ENABLE_MSW` is `'false'`); Storybook / Playwright can reuse the same handlers. |
 
 `public/mockServiceWorker.js` is a generated Service Worker — do not edit it manually.
@@ -125,10 +126,9 @@ To update after MSW upgrade: `npx msw init public/`.
 
 ## CI / Supply chain
 
-| Artifact                   | Role                                                                 |
-| -------------------------- | -------------------------------------------------------------------- |
-| `.github/workflows/ci.yml` | PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` (default single-build assert on `dist/`) → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step |
-| `.github/workflows/security.yml` | PR + push `master` + weekly schedule: **gitleaks** (full history); **CodeQL** JS/TS with `security-extended` query pack — orthogonal to `ci.yml`; not part of `npm run ci:local` |
-| `npm run ci:local` | Superset vs `ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`** (size-limit per-chunk brotli budgets from `.size-limit.json`), **`perf:ci`** (Lighthouse-CI / `lighthouserc.json`), then `ensure-playwright`, E2E with **`PLAYWRIGHT_USE_PREVIEW=1`** (suite includes `e2e/sw-lifecycle.spec.ts` — SW reg + manifest MIME + icons resolve assertions). Exact order: `package.json` → `ci:local` |
-| `.cursor/brain/VERIFICATION.md` | **When to run which checks** (agents: avoid full pipeline for tiny edits); pre-push: `ci:local` |
-| `.github/dependabot.yml`   | Weekly npm version PRs (limit 8 open)                                |
+- **`.github/workflows/ci.yml`** — PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step
+- **`.github/workflows/security.yml`** — PR + push `master` + weekly schedule: **gitleaks**; **CodeQL** JS/TS — orthogonal to `ci.yml`; not part of `npm run ci:local`
+- **`npm run verify`** — local commit/push gate (build + ensure-playwright + `test:e2e:prod`); husky **pre-push**
+- **`npm run ci:local`** — stricter superset vs `ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`**, **`perf:ci`** (LHCI), then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`)
+- **`.cursor/brain/VERIFICATION.md`** — when to run which checks; pre-push = `verify`, not `ci:local`
+- **`.github/dependabot.yml`** — weekly npm version PRs (limit 8 open)

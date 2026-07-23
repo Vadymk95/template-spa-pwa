@@ -6,26 +6,26 @@ Production-ready React SPA + PWA template. Copy, rename, start building. Include
 
 ## Tech Stack
 
-| Layer        | Choice                            | Version                   |
-| ------------ | --------------------------------- | ------------------------- |
-| UI           | React                             | 19                        |
-| Language     | TypeScript                        | 6.0 strict                |
-| Bundler      | Vite + Rolldown (official `vite`) | 8                         |
-| Styling      | Tailwind CSS                      | **v4** (CSS-based config) |
-| Components   | shadcn/ui (new-york)              | latest                    |
-| Global State | Zustand + devtools                | 5                         |
-| Server State | TanStack Query                    | 5                         |
-| Routing      | React Router                      | 7                         |
-| Forms        | react-hook-form + zod             | 7 / 4                     |
-| i18n         | i18next + react-i18next           | 26 / 17                   |
-| Testing      | Vitest + Testing Library          | 4                         |
-| Linting      | ESLint 9 flat + Oxlint (staged)   | 9 / 1.x                   |
-| Formatting   | Prettier                          | 3                         |
-| Git hooks    | Husky + commitlint + lint-staged  | 9 / 20                    |
-| PWA          | vite-plugin-pwa (generateSW + prompt) | 1.x (Workbox)         |
-| Perf gate    | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions | 0.x |
-| A11y gate    | axe-core via `@axe-core/playwright` (E2E) | 4.x |
-| Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | — |
+| Layer         | Choice                                                                      | Version                   |
+| ------------- | --------------------------------------------------------------------------- | ------------------------- |
+| UI            | React                                                                       | 19                        |
+| Language      | TypeScript                                                                  | 6.0 strict                |
+| Bundler       | Vite + Rolldown (official `vite`)                                           | 8                         |
+| Styling       | Tailwind CSS                                                                | **v4** (CSS-based config) |
+| Components    | shadcn/ui (new-york)                                                        | latest                    |
+| Global State  | Zustand + devtools                                                          | 5                         |
+| Server State  | TanStack Query                                                              | 5                         |
+| Routing       | React Router                                                                | 7                         |
+| Forms         | react-hook-form + zod                                                       | 7 / 4                     |
+| i18n          | i18next + react-i18next                                                     | 26 / 17                   |
+| Testing       | Vitest + Testing Library                                                    | 4                         |
+| Linting       | ESLint 9 flat + Oxlint (staged)                                             | 9 / 1.x                   |
+| Formatting    | Prettier                                                                    | 3                         |
+| Git hooks     | Husky + commitlint + lint-staged                                            | 9 / 20                    |
+| PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 1.x (Workbox)             |
+| Perf gate     | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions     | 0.x                       |
+| A11y gate     | axe-core via `@axe-core/playwright` (E2E)                                   | 4.x                       |
+| Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | —                         |
 
 ## Architecture
 
@@ -147,8 +147,10 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 
 ## Dev Tooling
 
-- **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs full `ci:local`; avoids running audit/build/vitals for every small change).
-- `npm run ci:local` — pre-push superset vs `.github/workflows/ci.yml`: full sequence after `build` = `verify:pwa`, `verify:web-vitals-chunks` (also in `ci.yml`), `size:check` (per-chunk brotli budgets, `.size-limit.json`), `perf:ci` (Lighthouse-CI), `ensure-playwright.mjs`, then E2E with `PLAYWRIGHT_USE_PREVIEW=1`. **GitHub Actions** `ci.yml` runs `verify:web-vitals-chunks` but not `verify:pwa`, `size:check`, or `perf:ci` (run locally or extend the workflow). **`.github/workflows/security.yml`** runs gitleaks + CodeQL on PR/push/schedule — not part of `ci:local`.
+- **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs `verify` / `ci:local`; avoids running audit/build/vitals for every small change).
+- `npm run verify` — commit/push gate: typecheck → oxlint → eslint → format → test:coverage → build → ensure-playwright → **`test:e2e:prod`**. Husky **pre-push** runs this.
+- `npm run ci:local` — stricter local CI vs `.github/workflows/ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`**, **`perf:ci`** (LHCI), then ensure-playwright + E2E. **GitHub Actions** `ci.yml` runs `verify:web-vitals-chunks` but not `verify:pwa`, `size:check`, or `perf:ci`. **`.github/workflows/security.yml`** runs gitleaks + CodeQL — not part of `ci:local`.
+- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / verify gate).
 - `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
 - `npm run build` — `tsc -b` then Vite production build (Rolldown)
 - `npm run verify:pwa` — asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify (after `npm run build`). Wired into `ci:local`.
@@ -158,5 +160,5 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 - `npm run typecheck` — `tsc -b` only (also used in CI before lint)
 - `npm run test` — Vitest run
 - `npm run lint` — ESLint 9 flat: `typescript-eslint` **strict + stylistic** (type-aware), `import-x` (**order**, **no-cycle**), parent-relative imports under `src/**` restricted (use `@/` or `@locales/` for locale JSON); `vite-plugins/**` may use `../src/**` (loads before Vite resolves `@/`). `lint:oxlint` runs first in CI.
-- **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium installed via `npx playwright install --with-deps chromium` in CI and `ci:local`.
+- **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium via `ensure-playwright.mjs` in verify / `ci:local`, and CI install step.
 - Staged commits: Oxlint fix → ESLint fix → Prettier (see `lint-staged` in package.json)

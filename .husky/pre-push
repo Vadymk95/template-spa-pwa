@@ -9,12 +9,9 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
     set -e
 fi
 
-# Pre-commit (lint-staged) already enforces format + lint on staged files.
-# Pre-push is the last gate before remote sees broken code — keep it minimal:
-# only what cannot be staged-scoped. `tsc -b` is incremental (cache in
-# node_modules/.tmp/) so the second push of the day is ~1s.
-#
-# To gate format/lint cross-file too, run `npm run ci:local` manually before push.
-
-echo "→ type-check (tsc -b)"
-npx tsc -b --noEmit || { echo "❌ TypeScript type-check failed. Fix errors before push."; exit 1; }
+echo "→ verify (typecheck → lint → format → coverage → build → e2e)"
+npm run verify || {
+    echo "❌ verify failed. Fix before push."
+    echo "   First-time Playwright browsers are installed by scripts/ensure-playwright.mjs"
+    exit 1
+}

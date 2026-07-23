@@ -125,10 +125,9 @@ To update after MSW upgrade: `npx msw init public/`.
 
 ## CI / Supply chain
 
-| Artifact                   | Role                                                                 |
-| -------------------------- | -------------------------------------------------------------------- |
-| `.github/workflows/ci.yml` | PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` (default single-build assert on `dist/`) → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step |
-| `.github/workflows/security.yml` | PR + push `master` + weekly schedule: **gitleaks** (full history); **CodeQL** JS/TS with `security-extended` query pack — orthogonal to `ci.yml`; not part of `npm run ci:local` |
-| `npm run ci:local` | Superset vs `ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`** (size-limit per-chunk brotli budgets from `.size-limit.json`), **`perf:ci`** (Lighthouse-CI / `lighthouserc.json`), then `ensure-playwright`, E2E with **`PLAYWRIGHT_USE_PREVIEW=1`** (suite includes `e2e/sw-lifecycle.spec.ts` — SW reg + manifest MIME + icons resolve assertions). Exact order: `package.json` → `ci:local` |
-| `.cursor/brain/VERIFICATION.md` | **When to run which checks** (agents: avoid full pipeline for tiny edits); pre-push: `ci:local` |
-| `.github/dependabot.yml`   | Weekly npm version PRs (limit 8 open)                                |
+- **`.github/workflows/ci.yml`** — PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step
+- **`.github/workflows/security.yml`** — PR + push `master` + weekly schedule: **gitleaks**; **CodeQL** JS/TS — orthogonal to `ci.yml`; not part of `npm run ci:local`
+- **`npm run verify`** — local commit/push gate (build + ensure-playwright + `test:e2e:prod`); husky **pre-push**
+- **`npm run ci:local`** — stricter superset vs `ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`**, **`perf:ci`** (LHCI), then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`)
+- **`.cursor/brain/VERIFICATION.md`** — when to run which checks; pre-push = `verify`, not `ci:local`
+- **`.github/dependabot.yml`** — weekly npm version PRs (limit 8 open)

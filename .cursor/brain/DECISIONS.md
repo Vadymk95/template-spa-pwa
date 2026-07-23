@@ -175,7 +175,17 @@ npm run lint && npm run lint:oxlint  # both must pass
 
 **Decision**: `.cursor/brain/VERIFICATION.md` defines minimal checks per task type; `npm run ci:local` extends `.github/workflows/ci.yml` with extra gates (see `ci:local` ADR above). Agents should read it and avoid running audit/build/vitals-analyze for every trivial edit.
 
-**Why**: Reduces noise, latency, and false “full audit” habits while keeping a single command for pre-push confidence.
+**Why**: Reduces noise, latency, and false “full audit” habits while keeping a single command for full local CI confidence.
+
+---
+
+## [2026-07] Playwright e2e inside `verify` + pre-push
+
+**Decision**: append build + `ensure-playwright.mjs` + `test:e2e:prod` (`PLAYWRIGHT_USE_PREVIEW=1`) to `npm run verify`, and point `.husky/pre-push` at full `npm run verify` (was typecheck-only). `ci:local` remains the stricter audit / PWA / size / LHCI superset.
+
+**Why**: Catch preview-mode e2e (incl. SW lifecycle) before CI; typecheck-only pre-push left runtime gaps.
+
+**Trade-off**: pre-push is slower. Accepted so e2e cannot be skipped by habit.
 
 ---
 

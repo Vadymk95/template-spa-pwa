@@ -6,26 +6,26 @@ Production-ready React SPA + PWA template. Copy, rename, start building. Include
 
 ## Tech Stack
 
-| Layer        | Choice                            | Version                   |
-| ------------ | --------------------------------- | ------------------------- |
-| UI           | React                             | 19                        |
-| Language     | TypeScript                        | 6.0 strict                |
-| Bundler      | Vite + Rolldown (official `vite`) | 8                         |
-| Styling      | Tailwind CSS                      | **v4** (CSS-based config) |
-| Components   | shadcn/ui (new-york)              | latest                    |
-| Global State | Zustand + devtools                | 5                         |
-| Server State | TanStack Query                    | 5                         |
-| Routing      | React Router                      | 7                         |
-| Forms        | react-hook-form + zod             | 7 / 4                     |
-| i18n         | i18next + react-i18next           | 26 / 17                   |
-| Testing      | Vitest + Testing Library          | 4                         |
-| Linting      | ESLint 9 flat + Oxlint (staged)   | 9 / 1.x                   |
-| Formatting   | Prettier                          | 3                         |
-| Git hooks    | Husky + commitlint + lint-staged  | 9 / 20                    |
-| PWA          | vite-plugin-pwa (generateSW + prompt) | 1.x (Workbox)         |
-| Perf gate    | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions | 0.x |
-| A11y gate    | axe-core via `@axe-core/playwright` (E2E) | 4.x |
-| Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | — |
+| Layer         | Choice                                                                      | Version                   |
+| ------------- | --------------------------------------------------------------------------- | ------------------------- |
+| UI            | React                                                                       | 19                        |
+| Language      | TypeScript                                                                  | 6.0 strict                |
+| Bundler       | Vite + Rolldown (official `vite`)                                           | 8                         |
+| Styling       | Tailwind CSS                                                                | **v4** (CSS-based config) |
+| Components    | shadcn/ui (new-york)                                                        | latest                    |
+| Global State  | Zustand + devtools                                                          | 5                         |
+| Server State  | TanStack Query                                                              | 5                         |
+| Routing       | React Router                                                                | 7                         |
+| Forms         | react-hook-form + zod                                                       | 7 / 4                     |
+| i18n          | i18next + react-i18next                                                     | 26 / 17                   |
+| Testing       | Vitest + Testing Library                                                    | 4                         |
+| Linting       | ESLint 9 flat + Oxlint (staged)                                             | 9 / 1.x                   |
+| Formatting    | Prettier                                                                    | 3                         |
+| Git hooks     | Husky + commitlint + lint-staged                                            | 9 / 20                    |
+| PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 1.x (Workbox)             |
+| Perf gate     | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions     | 0.x                       |
+| A11y gate     | axe-core via `@axe-core/playwright` (E2E)                                   | 4.x                       |
+| Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | —                         |
 
 ## Architecture
 

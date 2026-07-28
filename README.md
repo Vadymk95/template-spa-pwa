@@ -117,13 +117,13 @@ PWA manifest, or the e2e title assertion is the usual slip:
 
 ### Developer Experience
 
-- **ESLint 9** — Flat Config with import-x + jsx-a11y rules
+- **ESLint 10** — Flat Config with import-x, jsx-a11y, layer boundaries, no-magic-numbers, raw-hex ban, Tailwind class hygiene
 - **Oxlint** — fast structural pre-pass in CI and lint-staged
 - **Prettier 3** — code formatting
 - **Husky + lint-staged** — git hooks for quality gates
 - **Commitlint** — conventional commits enforcement
 - **Vitest 4.1** — unit testing with Testing Library
-- **Playwright 1.61** — E2E tests
+- **Playwright 1.62** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
 
 ## 📲 PWA
 
@@ -286,7 +286,11 @@ VITE_ENABLE_MSW=false
 | `npm run test:e2e:prod`            | Playwright against `vite preview` (verify gate)                       |
 | `npm run test:e2e:ui`              | Playwright UI mode                                                    |
 | `npm run verify`                   | Commit/push gate: typecheck → lint → format → coverage → build → e2e  |
-| `npm run ci:local`                 | Superset of verify (adds audit + PWA + chunk/size + LHCI)             |
+| `npm run verify:ci`                | `audit:gate && verify` — what pre-push and CI both run                |
+| `npm run ci:local`                 | `verify:ci` + `perf:ci` (Lighthouse), which stays out of the gate     |
+| `npm run fix`                      | The remedy: oxlint `--fix` -> eslint `--fix` -> prettier, repo-wide   |
+| `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist           |
+| `npm run bench:verify`             | The gate step by step with timings                                    |
 | `npm run verify:pwa`               | Assert manifest fields, populated SW precache, PWA meta tags retained |
 | `npm run icons:placeholders`       | Regenerate placeholder PWA icons in `public/icons/`                   |
 | `npm run verify:web-vitals-chunks` | Assert standard vs attribution web-vitals chunks                      |
@@ -316,6 +320,18 @@ On pull requests and pushes to `master` (Node 24.x, `npm ci`):
 3. `test:coverage`
 4. `build` + `scripts/check-pwa.mjs` + `scripts/check-web-vitals-chunks.mjs`
 5. Playwright E2E against `vite preview`
+
+### Where the security workflow works
+
+`gitleaks` runs anywhere — it executes the scanner itself and fails the job on a finding, independent of
+any GitHub feature or plan. The action only asks for a `GITLEAKS_LICENSE` when the repository is owned by
+an **organisation**; a personal account needs nothing.
+
+`codeql` needs GitHub **code scanning**, which is free on **public** repositories and a paid add-on on
+private ones. This template is public, so it works as shipped. In a **private fork** the analyze step
+fails while uploading results (`Code scanning is not enabled for this repository`, HTTP 403). A private
+fork must either enable Advanced Security for the repo or delete the `codeql` job and keep `gitleaks`.
+That is a plan boundary, not a misconfiguration — do not weaken the workflow to make it green.
 
 **Dependabot** (weekly): proposes npm dependency updates.
 

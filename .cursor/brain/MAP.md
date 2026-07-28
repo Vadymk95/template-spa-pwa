@@ -129,6 +129,6 @@ To update after MSW upgrade: `npx msw init public/`.
 - **`.github/workflows/ci.yml`** — PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step
 - **`.github/workflows/security.yml`** — PR + push `master` + weekly schedule: **gitleaks**; **CodeQL** JS/TS — orthogonal to `ci.yml`; not part of `npm run ci:local`
 - **`npm run verify`** — local commit/push gate (build + ensure-playwright + `test:e2e:prod`); husky **pre-push**
-- **`npm run ci:local`** — stricter superset vs `ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`**, **`perf:ci`** (LHCI), then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`)
+- **`npm run verify`** — the gate; `verify:pwa`, `verify:web-vitals-chunks` and `size:check` are inside it, after build, then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`). **`npm run verify:ci`** adds the network-dependent `audit:gate` and is what pre-push and the CI job both run. **`npm run ci:local`** is `verify:ci` plus `perf:ci` (LHCI), which stays out of the gate on cost grounds
 - **`.cursor/brain/VERIFICATION.md`** — when to run which checks; pre-push = `verify`, not `ci:local`
 - **`.github/dependabot.yml`** — weekly npm version PRs (limit 8 open)

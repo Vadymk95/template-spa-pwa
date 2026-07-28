@@ -9,6 +9,7 @@ import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import pluginReact from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import tailwind from 'eslint-plugin-tailwindcss';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -79,7 +80,9 @@ export default defineConfig([
             }
         },
         settings: {
-            react: { version: 'detect' },
+            // NOT 'detect' — see the trailing settings block at the end of this
+            // file for why that crashes under ESLint 10.
+            react: { version: '19.2' },
             // resolver-next is the new API for eslint-plugin-import-x.
             // The legacy 'import-x/resolver' interface throws "node with invalid interface"
             // at runtime. createTypeScriptImportResolver wraps eslint-import-resolver-typescript
@@ -255,11 +258,55 @@ export default defineConfig([
             'i18next/no-literal-string': ['warn', { mode: 'jsx-text-only' }]
         }
     },
+    // ─── Tailwind class hygiene ───────────────────────────────────────────────
+    // Reads the v4 CSS-first config (@import 'tailwindcss' + @theme) from
+    // src/index.css to know the custom theme classes. classnames-order and
+    // enforces-shorthand autofix; no-contradicting-classname and
+    // no-unnecessary-arbitrary-value surface real class-string mistakes.
+    {
+        files: ['**/*.tsx'],
+        plugins: { tailwindcss: tailwind },
+        settings: {
+            tailwindcss: { cssConfigPath: './src/index.css' }
+        },
+        rules: {
+            'tailwindcss/no-contradicting-classname': 'error',
+            'tailwindcss/classnames-order': 'error',
+            'tailwindcss/enforces-shorthand': 'error',
+            'tailwindcss/no-unnecessary-arbitrary-value': 'error'
+        }
+    },
+    // ─── No raw hex colors in components — use a design token ──────────────────
+    // Mirrors doityourohm's hex ban, scoped to this repo's UI surfaces:
+    // src/components/** (common/layout/ui) + src/pages/**. Semantic tokens live
+    // in src/index.css (@theme). The English-only + test overrides below turn
+    // this off where raw hex is intentional (fail-safe inline styles, fixtures).
+    {
+        files: ['src/components/**/*.{ts,tsx}', 'src/pages/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector:
+                        'Literal[value=/#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b/]',
+                    message: 'No raw hex colors in components; use a design token.'
+                },
+                {
+                    selector:
+                        'TemplateElement[value.raw=/#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b/]',
+                    message: 'No raw hex colors in components; use a design token.'
+                }
+            ]
+        }
+    },
     // ─── Intentional English-only surfaces ───────────────────────────────────
     // I18nInitErrorFallback + RouteErrorBoundary render when i18next may have
     // failed to init — t() is unavailable by definition, copy is fixed English
     // (documented in each component). DevPlayground is dev tooling, not
-    // user-facing product UI.
+    // user-facing product UI. no-restricted-syntax (hex ban) is also off here:
+    // I18nInitErrorFallback deliberately hardcodes hex in inline styles as a
+    // CSS-independence floor (tokens resolve to undefined if index.css failed
+    // to load) — documented in the component.
     {
         files: [
             'src/components/common/I18nInitErrorFallback/**/*.{ts,tsx}',
@@ -267,7 +314,8 @@ export default defineConfig([
             'src/pages/DevPlayground/**/*.{ts,tsx}'
         ],
         rules: {
-            'i18next/no-literal-string': 'off'
+            'i18next/no-literal-string': 'off',
+            'no-restricted-syntax': 'off'
         }
     },
     // ─── shadcn/ui generated components — relaxed rules ─────────────────────
@@ -327,6 +375,8 @@ export default defineConfig([
             '@typescript-eslint/no-magic-numbers': 'off',
             // Hardcoded JSX text in test fixtures is not user-facing — don't nudge t().
             'i18next/no-literal-string': 'off',
+            // Raw hex in test fixtures/mocks is not product UI — don't ban it.
+            'no-restricted-syntax': 'off',
             // Tests legitimately use non-null assertions for mocks
             '@typescript-eslint/no-non-null-assertion': 'off',
             // Test files can use inline types more freely
@@ -360,5 +410,18 @@ export default defineConfig([
                 }
             ]
         }
+    },
+    /*
+     * REQUIRED for ESLint 10, do not set back to 'detect'. `eslint-plugin-react`
+     * resolves `version: 'detect'` through `detectReactVersion` -> `resolveBasedir`,
+     * which calls the `context.getFilename()` API that ESLint 10 removed; every
+     * react rule needing the version then throws at load. An explicit string skips
+     * that path entirely (`lib/util/version.js`).
+     * This block deliberately has NO `files` key, so it applies to every linted file
+     * and cannot be undone by a shared config that sets 'detect' for its own
+     * patterns. Keep it in step with the `react` major/minor in package.json.
+     */
+    {
+        settings: { react: { version: '19.2' } }
     }
 ]);

@@ -1,5 +1,83 @@
 # Architectural Decisions
 
+## [2026-07] The gate is `verify`; `verify` is a superset of CI
+
+**Decision.** Every check lives in `package.json`, never only in a workflow file. `verify` holds all
+offline checks — including `verify:pwa`, `verify:web-vitals-chunks` and `size:check`, which previously
+lived only in `ci:local`. `verify:ci` is `audit:gate && verify` and is what both `.husky/pre-push` and
+the CI `validate` job run. The CI job is one step over that script.
+
+**Why.** CI listed its own steps, and two of them (`npm audit`, `verify:web-vitals-chunks`) were absent
+from `verify`, while `verify:pwa` and `size:check` ran in `ci:local` only — that is, in no pipeline at
+all. So a green local gate did not predict a green CI, and two gates gated nothing anywhere.
+
+**`perf:ci` (Lighthouse) stays outside both.** It was rejected on cost cascade and remains in `ci:local`
+for deliberate use. `ci:local` is now exactly `verify:ci` + `perf:ci`.
+
+**`audit:gate` is in `verify:ci`, not `verify`,** because it needs the network. An implementer working
+offline must still be able to run the complete offline gate. It fails closed: on every high or critical
+advisory, on an expired allowance, on an allowance whose advisory has disappeared, and on its own
+inability to complete. `scripts/audit-gate.test.mjs` covers those paths — a security gate that reports
+success when it cannot run is worse than no gate.
+
+**Pre-commit is repo-scoped.** `lint-staged` fixes and re-stages the staged set, but for a partially
+staged file it restores the unstaged hunks *after* fixing, so formatting drift survived the commit and
+only failed at push, leaving files that were already fixed and never committed. The hook now also runs
+the TDD sibling gate and then repo-wide `lint:oxlint` + `format:check`, collecting both failures so one
+attempt reports everything. **Not adopted:** a hook that commits for you — it would sweep whatever else
+is dirty into the commit and has no honest message to use.
+
+**`ensure-playwright.mjs` asks Playwright instead of guessing.** The previous version checked whether a
+directory starting with `chromium` existed, which fails OPEN across a Playwright bump: the stale build
+satisfies the name check, the install is skipped, and e2e dies with "Executable doesn't exist". It now
+parses `Install location:` out of `playwright install --dry-run`, and an unreadable plan installs rather
+than assuming the cache is good. `scripts/ensure-playwright.test.mjs` pins the stale-cache case.
+
+**Revisit trigger:** if `verify` crosses roughly five minutes locally, move e2e into its own CI job and
+out of the pre-push hook — but out of `verify` only together with the workflow, never one alone.
+
+## [2026-07] ESLint 10; `settings.react.version` must be a literal
+
+**Decision.** ESLint 10, ahead of the 9.x end of life on 2026-08-06. Three plugins still cap their
+`eslint` peer below 10 — `eslint-plugin-react` at `^9.7`, `eslint-plugin-jsx-a11y` at `^9`, and
+`eslint-plugin-import` transitively — so each gets an `overrides` entry mapping its peer to `$eslint`.
+`npm install` and `npm ci` both succeed with **no `--legacy-peer-deps`**; the blanket flag was rejected
+as a permanent posture in a repo with a hardened `.npmrc`.
+
+**`settings.react.version` is `'19.2'`, never `'detect'`.** `eslint-plugin-react` resolves `'detect'`
+through `detectReactVersion` -> `resolveBasedir`, which calls the `context.getFilename()` API that
+ESLint 10 removed; every react rule needing the version then throws at load. A trailing config object
+with no `files` key repeats the pin so no shared config can reintroduce `'detect'`.
+
+**The green was checked for fail-open**, because a silent no-op looks identical to a clean run: 1252
+rules declared, 237 active, 10 plugins loaded on a real source file. ESLint 10 also caught a dead store
+in `src/lib/api/client.ts` that 9.x did not — an error message initialised and then unconditionally
+overwritten in both branches below it.
+
+**`@types/node` returned to 24.x.** It had drifted to 26 against this repo's own documented hold, which
+exists so the types do not promise APIs that `engines.node >= 24` cannot deliver. Typecheck is clean at
+24.13.3.
+
+## [2026-07] Tailwind class hygiene + raw-hex ban (the deferred propagation, landed)
+
+**Decision.** Four Tailwind rules block in the gate: `no-contradicting-classname`, `classnames-order`,
+`enforces-shorthand`, `no-unnecessary-arbitrary-value`. Plus a raw-hex ban via `no-restricted-syntax`
+scoped to `src/components/**` and `src/pages/**`.
+
+**Rejected, do not re-propose:** `no-custom-classname` (crashes on `cva` callees and `tw-animate-css`)
+and `no-arbitrary-value` (bans the Radix `data-[state=…]` selectors the design system requires).
+
+**One documented carve-out.** `I18nInitErrorFallback` keeps raw hex in inline styles on purpose: it
+renders when `index.css` may not have loaded, so a design token would resolve to nothing. The reason is
+in the component and in the override block.
+
+**Why it was stuck.** The change was written, autofixed clean, and then held in a stash for a week
+because the TDD sibling gate blocked the commit on two files with no tests. Resolved by writing a real
+render test for `PwaUpdateToast` (its logic already had one, the shell did not) and by exempting
+`src/pages/DevPlayground/` — which `vitest.config.ts` already excludes from coverage, so demanding a
+test for it contradicted a decision the repo had already taken.
+
+
 ## [2026-05] Magic strings → constants (Zustand keys + TanStack Query factory + PWA session keys)
 
 **Decision**: extract magic strings used in 2+ places OR carrying external contract to named constants. Apply selectively. NOT blanket extraction.
@@ -114,7 +192,12 @@
 
 **Status**: skip (use `size-limit` instead per Item 6). **Why**: `size-limit@^12.1.0` adopted with broader ecosystem adoption.
 
-## [2026-04] ESLint 9 hold (NOT bumping to 10)
+## [2026-04] ESLint 9 hold (NOT bumping to 10) — SUPERSEDED
+
+**Superseded by "[2026-07] ESLint 10" below.** The hold was lifted before the 2026-08-06 end of life:
+the plugin peers still cap below 10, but three `overrides` entries resolve that without
+`--legacy-peer-deps`, and the one real crash path turned out to be
+`settings.react.version: 'detect'`. Kept for the reasoning, not as current guidance.
 
 **Decision**: stay on `eslint@^9.x` + `@eslint/js@^9.x` until plugin peer ranges catch up to ESLint 10.
 
@@ -228,7 +311,12 @@ npm run lint && npm run lint:oxlint  # both must pass
 
 ---
 
-## [2026-04] ESLint 9 (not 10) — intentional hold
+## [2026-04] ESLint 9 (not 10) — intentional hold — SUPERSEDED
+
+**Superseded by "[2026-07] ESLint 10" below.** The hold was lifted before the 2026-08-06 end of life:
+the plugin peers still cap below 10, but three `overrides` entries resolve that without
+`--legacy-peer-deps`, and the one real crash path turned out to be
+`settings.react.version: 'detect'`. Kept for the reasoning, not as current guidance.
 
 **Decision**: Holding on ESLint **9.x**. Not upgrading to ESLint **10** yet.
 

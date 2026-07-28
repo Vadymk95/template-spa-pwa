@@ -12,8 +12,14 @@ import { existsSync } from 'node:fs';
 
 // Exempt: tests themselves, type decls, barrels, constants, app shell, generated UI,
 // MSW mocks, test utils. These have no unit-testable logic of their own.
+//
+// `src/pages/DevPlayground/` and the `_example*` seeds are exempt because this repo
+// already excludes both from coverage in `vitest.config.ts` — dev tooling and
+// documented pattern seeds respectively. Keeping the two lists aligned matters: a
+// file the coverage config says is untested by design should not be a file the
+// commit gate demands a test for.
 const EXEMPT =
-    /(\.test\.[tj]sx?$|\.d\.ts$|\/index\.tsx?$|constants\.ts$|\/main\.tsx$|\/App\.tsx$|vite-env\.d\.ts$|\/env\.ts$|^src\/components\/ui\/|^src\/mocks\/|^src\/test\/)/;
+    /(\.test\.[tj]sx?$|\.d\.ts$|\/index\.tsx?$|constants\.ts$|\/main\.tsx$|\/App\.tsx$|vite-env\.d\.ts$|\/env\.ts$|^src\/pages\/DevPlayground\/|\/_example[^/]*$|^src\/components\/ui\/|^src\/mocks\/|^src\/test\/)/;
 
 const isSrcLogic = (f) => /^src\/.+\.(ts|tsx)$/.test(f) && !EXEMPT.test(f);
 

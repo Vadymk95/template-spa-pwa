@@ -19,7 +19,7 @@ Production-ready React SPA + PWA template. Copy, rename, start building. Include
 | Forms         | react-hook-form + zod                                                       | 7 / 4                     |
 | i18n          | i18next + react-i18next                                                     | 26 / 17                   |
 | Testing       | Vitest + Testing Library                                                    | 4                         |
-| Linting       | ESLint 9 flat + Oxlint (staged)                                             | 9 / 1.x                   |
+| Linting       | ESLint 10 flat + Oxlint (staged)                                            | 10 / 1.x                  |
 | Formatting    | Prettier                                                                    | 3                         |
 | Git hooks     | Husky + commitlint + lint-staged                                            | 9 / 20                    |
 | PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 1.x (Workbox)             |
@@ -159,6 +159,6 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 - `npm run build:analyze` — bundle visualizer (`ANALYZE=true`)
 - `npm run typecheck` — `tsc -b` only (also used in CI before lint)
 - `npm run test` — Vitest run
-- `npm run lint` — ESLint 9 flat: `typescript-eslint` **strict + stylistic** (type-aware), `import-x` (**order**, **no-cycle**), parent-relative imports under `src/**` restricted (use `@/` or `@locales/` for locale JSON); `vite-plugins/**` may use `../src/**` (loads before Vite resolves `@/`). `lint:oxlint` runs first in CI.
+- `npm run lint` — **ESLint 10** flat (`settings.react.version` pinned to a literal; `'detect'` crashes under 10, see `DECISIONS.md`): `typescript-eslint` **strict + stylistic** (type-aware), `import-x` (**order**, **no-cycle**), parent-relative imports under `src/**` restricted (use `@/` or `@locales/` for locale JSON); `vite-plugins/**` may use `../src/**` (loads before Vite resolves `@/`). `lint:oxlint` runs first in CI.
 - **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium via `ensure-playwright.mjs` in verify / `ci:local`, and CI install step.
 - Staged commits: Oxlint fix → ESLint fix → Prettier (see `lint-staged` in package.json)

@@ -20,6 +20,19 @@ advisory, on an expired allowance, on an allowance whose advisory has disappeare
 inability to complete. `scripts/audit-gate.test.mjs` covers those paths — a security gate that reports
 success when it cannot run is worse than no gate.
 
+**An allowance is the last resort, not the first.** `GHSA-mh99-v99m-4gvg` (brace-expansion, unbounded
+expansion → OOM) was allowlisted on the reading that `minimatch@3` is pinned by eslint's own
+dependencies and by `eslint-plugin-react` / `eslint-plugin-jsx-a11y`, so nothing could be bumped. True of
+the *direct* dependencies, wrong about the *transitive* one: `brace-expansion@5.0.8` is outside the
+advisory range `<=5.0.7`, so a root override `"brace-expansion": ">=5.0.8"` closes it with `minimatch@3`
+untouched — 5.0.8 is dual-published, so `require()` still resolves a CommonJS build. What made the
+allowance look inevitable was npm's own suggested remediation: `eslint-plugin-react@7.22.0`, a
+semver-major **downgrade**. Read the advisory's fixed range directly instead of trusting `fixAvailable`.
+
+**Removing an allowance and adding the override are ONE commit.** The moment the override lands the
+advisory disappears from the audit, which makes the allowance **stale**, which fails the gate by design.
+That is the stale check working — it is what stops allowances outliving the problem they described.
+
 **Pre-commit is repo-scoped.** `lint-staged` fixes and re-stages the staged set, but for a partially
 staged file it restores the unstaged hunks *after* fixing, so formatting drift survived the commit and
 only failed at push, leaving files that were already fixed and never committed. The hook now also runs

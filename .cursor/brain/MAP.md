@@ -132,3 +132,19 @@ To update after MSW upgrade: `npx msw init public/`.
 - **`npm run verify`** — the gate; `verify:pwa`, `verify:web-vitals-chunks` and `size:check` are inside it, after build, then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`). **`npm run verify:ci`** adds the network-dependent `audit:gate` and is what pre-push and the CI job both run. **`npm run ci:local`** is `verify:ci` plus `perf:ci` (LHCI), which stays out of the gate on cost grounds
 - **`.cursor/brain/VERIFICATION.md`** — when to run which checks; pre-push = `verify`, not `ci:local`
 - **`.github/dependabot.yml`** — weekly npm version PRs (limit 8 open)
+
+## Layout invariants and content variance
+
+| Path | Role |
+| --- | --- |
+| `e2e/support/geometry.ts` | Pure layout-invariant predicates (overflow, touch target, narrow wrapped label) + the control/field selectors. No Playwright import, so it is unit-testable and shared by two specs. |
+| `e2e/support/control-targets.ts` | The two kit sizes accepted below the 44px touch floor, each with a reason and an exit condition. A ratchet, not an amnesty. |
+| `e2e/support/cross-browser.ts` | Which specs run on every engine, and the `CROSS_BROWSER` switch. |
+| `e2e/dev/content-stress.spec.ts` | Measures every primitive × content state × 5 widths against the invariants. Dev server only. |
+| `e2e/layout-geometry.spec.ts` | The same invariants over the real routes with real content — the assembled page, not the primitive. |
+| `e2e/forced-colors.spec.ts` | Proves a focus indicator survives `forced-colors: active`, where the ring is suppressed. |
+| `src/pages/DevPlayground/stressMatrix.ts` | The content states and the case list. Counts are derived from it. |
+| `src/pages/DevPlayground/ContentStress.tsx` | The dev-only fixture page (`/dev/ui/content-stress`). |
+| `src/components/layout/chromeLink.ts` | Class contracts for chrome links — the touch height and the display mode that makes it apply. |
+| `scripts/check-coverage.mjs` | Runs the coverage suite and refuses a report that silently dropped files. |
+| `scripts/check-cross-browser-selection.mjs` | Refuses a cross-browser run where an engine collected no tests. |

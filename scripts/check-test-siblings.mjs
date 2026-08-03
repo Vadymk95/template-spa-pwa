@@ -13,13 +13,24 @@ import { existsSync } from 'node:fs';
 // Exempt: tests themselves, type decls, barrels, constants, app shell, generated UI,
 // MSW mocks, test utils. These have no unit-testable logic of their own.
 //
+// `src/router/routes.ts` is a declaration-only route map — an `as const` object of
+// literals and a derived type, exactly the class `constants.ts` is exempt for. A test
+// there would assert that a literal equals itself. Pinned in the spec, so this
+// widening is a recorded decision rather than a convenience.
+//
+// `index.ts` ONLY, never `index.tsx`. The exemption is for barrels, and in this
+// template a barrel is `index.ts` (a `lazy()` re-export) while `index.tsx` is the
+// component ITSELF. A pattern of `index.tsx?$` therefore exempted every component
+// in `src/components/**` from the gate. An exemption written for one file shape
+// must not be spelled loosely enough to cover another.
+//
 // `src/pages/DevPlayground/` and the `_example*` seeds are exempt because this repo
 // already excludes both from coverage in `vitest.config.ts` — dev tooling and
 // documented pattern seeds respectively. Keeping the two lists aligned matters: a
 // file the coverage config says is untested by design should not be a file the
 // commit gate demands a test for.
 const EXEMPT =
-    /(\.test\.[tj]sx?$|\.d\.ts$|\/index\.tsx?$|constants\.ts$|\/main\.tsx$|\/App\.tsx$|vite-env\.d\.ts$|\/env\.ts$|^src\/pages\/DevPlayground\/|\/_example[^/]*$|^src\/components\/ui\/|^src\/mocks\/|^src\/test\/)/;
+    /(\.test\.[tj]sx?$|\.d\.ts$|\/index\.ts$|constants\.ts$|\/routes\.ts$|\/main\.tsx$|\/App\.tsx$|vite-env\.d\.ts$|\/env\.ts$|^src\/pages\/DevPlayground\/|\/_example[^/]*$|^src\/components\/ui\/|^src\/mocks\/|^src\/test\/)/;
 
 export const isSrcLogic = (file) => /^src\/.+\.(ts|tsx)$/.test(file) && !EXEMPT.test(file);
 
@@ -29,14 +40,26 @@ export const isSrcLogic = (file) => /^src\/.+\.(ts|tsx)$/.test(file) && !EXEMPT.
  * likely to be edited later (usually to widen an exemption), so it is the piece
  * that needs a spec.
  */
+export const siblingCandidates = (file) => {
+    const base = file.replace(/\.(ts|tsx)$/, '');
+    const candidates = [`${base}.test.ts`, `${base}.test.tsx`];
+
+    const componentDirectory = /^(.*)\/index\.tsx$/.exec(file)?.[1];
+    if (componentDirectory) {
+        const name = componentDirectory.split('/').at(-1);
+        candidates.push(
+            `${componentDirectory}/${name}.test.tsx`,
+            `${componentDirectory}/${name}.test.ts`
+        );
+    }
+
+    return candidates;
+};
+
 export const findMissingSiblings = (files, exists) =>
-    files.filter((file) => {
-        if (!isSrcLogic(file)) {
-            return false;
-        }
-        const base = file.replace(/\.(ts|tsx)$/, '');
-        return !exists(`${base}.test.ts`) && !exists(`${base}.test.tsx`);
-    });
+    files.filter(
+        (file) => isSrcLogic(file) && !siblingCandidates(file).some((path) => exists(path))
+    );
 
 const stagedFiles = () =>
     execSync('git diff --cached --name-only --diff-filter=ACM', { encoding: 'utf8' })

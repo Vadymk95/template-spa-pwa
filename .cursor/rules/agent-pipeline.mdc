@@ -105,6 +105,34 @@ npm run verify   # canonical gate: check-hooks → typecheck → oxlint (--deny-
 
 `npm run verify` (see `package.json`) is the one command that must exit 0 before a task is complete. While iterating on a specific failure, individual scripts are fine as targeted checks (`npm run typecheck`, `npm run lint`, `npm run lint:oxlint`, `npm run format:check`, `npm test`) — but they are not the gate: bare `npm test` bypasses coverage thresholds, so always finish with `npm run verify`.
 
+### 4.1a Verification Integrity
+
+Green means nothing until you know the gate can go red.
+
+1. **Capture the exit code without a pipe**: `npm run verify > /tmp/verify.log 2>&1; echo $?`. Piping
+   to `tail` returns the PIPE's status, so a failed build reads as a pass.
+2. **Mutation-check the tests**: if mentally reverting your change leaves the suite green, the test is
+   worthless. Writing a test is Phase 3; proving it would have failed is this step.
+3. **Prove a new gate gates**: break it on purpose once — an expired entry in
+   `scripts/audit-allowlist.json`, a raw hex in a component, a staged `src` logic file with no
+   `*.test.*` sibling — and watch it refuse. Then revert the sabotage.
+4. **A check that reports success when it could not run is fail-OPEN.** Ask what it does on a missing
+   directory, an empty result, or no network — not only on the failure it was written for.
+5. **Name the condition under which the green would have been RED.** If you cannot name one, the check
+   proved nothing — and a check that cannot fail still gets recorded as evidence. Three real shapes in
+   this repo: a layout measurement taken while i18next still hides the document sees NO element and
+   passes every invariant vacuously; a Playwright `testMatch` that matches nothing collects zero tests
+   and exits 0; and `vitest --coverage` prints `Excluding it from coverage` for a file it could not
+   parse and then exits 0 with a percentage over a smaller set.
+6. **Check the cases that "cannot happen".** For UI that is: the shortest copy the schema allows, the
+   longest, one unbroken token with nothing to wrap on, zero items, one item, many — at every width
+   where it renders. Run `npm run verify:full`; `npm test` cannot see any of it, because jsdom has no
+   layout.
+7. **Do not reason about what a browser does — run it.** `CROSS_BROWSER=1` adds Firefox and WebKit to
+   the geometry specs. Measured here rather than predicted: Firefox reports `clientWidth: 0` for an
+   inline `<label>` (CSSOM says an inline box has no client box) while Chromium reports a box, so a rule
+   about content overflow was asking a question one engine cannot answer.
+
 ### 4.2 Self-Correction with Root Cause Analysis
 
 If any check fails:

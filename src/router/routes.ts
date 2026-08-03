@@ -10,6 +10,7 @@ export const RoutesPath = {
      * will 404 via NotFoundPage.
      */
     DevPlayground: '/dev/ui',
+    DevContentStress: '/dev/ui/content-stress',
     NotFound: '*'
 } as const;
 

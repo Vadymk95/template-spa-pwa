@@ -6,7 +6,7 @@
 // `exists` is injected, so the specs describe the decision, not the tree.
 import { describe, expect, it } from 'vitest';
 
-import { findMissingSiblings, isSrcLogic } from './check-test-siblings.mjs';
+import { findMissingSiblings, isSrcLogic, siblingCandidates } from './check-test-siblings.mjs';
 
 const nothingExists = () => false;
 
@@ -26,6 +26,8 @@ describe('isSrcLogic', () => {
         ['the vite env shim', 'src/vite-env.d.ts'],
         ['a barrel', 'src/pages/HomePage/index.ts'],
         ['a constants table', 'src/store/auth/constants.ts'],
+        // Declaration-only route map: an `as const` object of literals and a derived type.
+        ['a route map', 'src/router/routes.ts'],
         ['the app entry', 'src/main.tsx'],
         ['the root component', 'src/App.tsx'],
         ['validated env', 'src/env.ts'],
@@ -64,7 +66,53 @@ describe('isSrcLogic', () => {
     });
 });
 
+describe('siblingCandidates', () => {
+    it('probes both extensions for an ordinary module', () => {
+        expect(siblingCandidates('src/lib/utils.ts')).toEqual([
+            'src/lib/utils.test.ts',
+            'src/lib/utils.test.tsx'
+        ]);
+    });
+
+    it('accepts the directory-named test for a component written as index.tsx', () => {
+        expect(siblingCandidates('src/components/layout/Header/index.tsx')).toEqual([
+            'src/components/layout/Header/index.test.ts',
+            'src/components/layout/Header/index.test.tsx',
+            'src/components/layout/Header/Header.test.tsx',
+            'src/components/layout/Header/Header.test.ts'
+        ]);
+    });
+
+    it('does not invent a directory-named candidate for a non-index file', () => {
+        // Otherwise `Header/useHeader.ts` would be satisfied by `Header/Header.test.tsx`, and one test
+        // would cover every module in the folder.
+        expect(siblingCandidates('src/components/layout/Header/useHeader.ts')).toEqual([
+            'src/components/layout/Header/useHeader.test.ts',
+            'src/components/layout/Header/useHeader.test.tsx'
+        ]);
+    });
+});
+
 describe('findMissingSiblings', () => {
+    it('does NOT exempt a component that happens to be named index.tsx', () => {
+        // The barrel exemption is spelled `index.ts` on purpose: here `index.tsx` IS the component.
+        expect(isSrcLogic('src/components/layout/Header/index.tsx')).toBe(true);
+    });
+
+    it('refuses a component whose folder holds a test for a DIFFERENT module', () => {
+        const exists = (path) => path === 'src/components/layout/Header/useHeader.test.ts';
+
+        expect(findMissingSiblings(['src/components/layout/Header/index.tsx'], exists)).toEqual([
+            'src/components/layout/Header/index.tsx'
+        ]);
+    });
+
+    it('accepts a component covered by the directory-named test', () => {
+        const exists = (path) => path === 'src/components/layout/Header/Header.test.tsx';
+
+        expect(findMissingSiblings(['src/components/layout/Header/index.tsx'], exists)).toEqual([]);
+    });
+
     it('reports a logic file with no sibling', () => {
         expect(findMissingSiblings(['src/lib/utils.ts'], nothingExists)).toEqual([
             'src/lib/utils.ts'

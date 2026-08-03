@@ -3,6 +3,11 @@
 **Goal:** match checks to the change. Do **not** run the full CI stack for every tiny edit.
 
 - **The gate:** `npm run verify` — every **offline** check: typecheck → oxlint → eslint → format:check → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → `ensure-playwright` → **`test:e2e:prod`**.
+- **`npm run verify:full`** — `verify:ci && smoke:dev`. `smoke:dev` measures the content-variance
+  fixture, which is mounted only under `import.meta.env.DEV` and therefore unreachable from the
+  `vite preview` run inside `verify`. It needs a second server on its own port, so it is not in
+  `verify`; CI runs it as its own `dev-smoke` job, mandatory on every PR. Run it locally before a PR
+  that touched a shared UI primitive, the layout shell, or `src/index.css`.
 - **`npm run verify:ci`** — `audit:gate && verify`. The audit gate needs the network, which is why it is not inside `verify`: an offline implementer can still run the complete offline gate. Husky **pre-push** runs this, and the CI `validate` job is a single step over the same script.
 - **`npm run ci:local`** — `verify:ci` plus `perf:ci` (Lighthouse), which stays out of the gate on cost grounds.
 
@@ -83,3 +88,28 @@ Never resolve a finding by lowering a severity, adding an `eslint-disable`, movi
 ## Brain / MAP sync
 
 If you add new scripts or CI steps, update this file and `.cursor/brain/PROJECT_CONTEXT.md` → Dev Tooling. If entry points, routes, or `src/lib` layout change, align `.cursor/brain/MAP.md` (and `.cursor/brain/SKELETONS.md` if new hazard).
+
+---
+
+## Content variance
+
+Any component that renders authored copy must be proven against content it has not seen. The states are
+in `src/pages/DevPlayground/stressMatrix.ts`: `minimal` / `typical` / `long` / `unbroken` for text, and
+`none` / `one` / `many` for collections. `unbroken` is the one that finds a missing wrap guard — a long
+sentence wraps on its spaces and hides the defect. `npm run verify:full` is the command; `npm test`
+cannot see any of it, because jsdom has no layout.
+
+- **The RANGE a guard covers is part of its specification.** Both geometry specs sweep
+  390 / 640 / 768 / 1024 / 1440. A guard proven at one width usually just moves the defect to another.
+- **A wrap class with no red-to-green proof gets deleted.** Remove it, run the harness, and if nothing
+  goes red at any width in any state it was decoration — and decoration in a shared component is what
+  the next author copies.
+- **Do not reason about what a browser does — run it.** `CROSS_BROWSER=1` adds Firefox and WebKit to the
+  geometry specs. Measured rather than predicted: Firefox reports `clientWidth: 0` for an inline
+  `<label>` (CSSOM says an inline box has no client box) while Chromium reports a box.
+
+**Before believing a green result, name the concrete condition under which it would have been RED.**
+Three shapes here pass while measuring nothing: a page still hidden by the i18n boot gate (both geometry
+specs assert a non-empty measurement for exactly that reason), a Playwright `testMatch` that selects no
+tests, and `vitest --coverage` printing `Excluding it from coverage` for a file it could not parse and
+then exiting 0.

@@ -176,6 +176,17 @@ html:not(.i18n-loading) .i18n-boot {
 @layer base {
     body {
         @apply bg-background text-foreground min-h-screen antialiased;
+        /*
+         * A single unbroken token — a URL, an untranslated identifier, a long product name — has
+         * nothing to wrap on and pushes the page sideways. Measured before this line existed: the
+         * content-stress fixture overflowed its 292px column by 172px at 390 with a 40-character
+         * token, and only at 390, which is why a guard proven at one width proves nothing.
+         *
+         * `break-word` and not `anywhere`: `anywhere` also shrinks intrinsic min-content size, which
+         * would silently change how flex and grid items size themselves everywhere. Where a flex item
+         * needs that, it opts in locally with `min-w-0`.
+         */
+        overflow-wrap: break-word;
     }
 }
 
@@ -192,4 +203,22 @@ html:not(.i18n-loading) .i18n-boot {
 #main:focus-visible:not([data-route-focus]) {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+}
+
+/*
+ * Reduced-motion: neutralize tw-animate-css animations, accordion keyframes and transitions for users
+ * who opt out (WCAG 2.3.3). Essential status feedback (the i18n-boot spinner) still renders — only its
+ * motion is collapsed. This global reset was missing here while the sibling template had it, and this
+ * repo is the one that ships an animated boot spinner: individual `motion-safe:` classes covered some
+ * components and nothing covered the rest.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

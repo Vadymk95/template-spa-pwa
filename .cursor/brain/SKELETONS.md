@@ -118,3 +118,31 @@ MDN flags `apple-mobile-web-app-capable` as deprecated in favour of `mobile-web-
 Switching `registerType` from `'prompt'` → `'autoUpdate'` (or back) post-deploy is destructive (vite-plugin-pwa [#228](https://github.com/vite-pwa/vite-plugin-pwa/issues/228), [#438](https://github.com/vite-pwa/vite-plugin-pwa/pull/438)). The toast/no-toast contract leaks into production caches. Pick before launch and stick with it.
 
 Auto-update silently force-reloads tabs and destroys mid-session form state. The template defaults to `'prompt'` for that reason; if a fork is content-only and idempotent, flipping to `'autoUpdate'` is fine but only on day one.
+
+## `playwright.config.ts` must keep `dev/**` in `testIgnore`
+
+- **Risk:** the content-variance fixture is mounted only under `import.meta.env.DEV`. If the production
+  project collects `e2e/dev/**`, it runs those specs against `vite preview`, where the route 404s. The
+  spec then measures nothing and still reports a pass, so the coverage becomes an illusion that looks
+  like a win.
+- **Mitigation:** keep the ignore. `playwright.dev.config.ts` owns `e2e/dev/**` and brings its own dev
+  server on its own port with `reuseExistingServer: false` — never attach to a stray server from another
+  branch, or the run measures the wrong tree and looks clean.
+
+## Layout measurements can pass by measuring nothing
+
+- **Risk:** `html.i18n-loading { visibility: hidden }` hides the whole document while i18next loads. A
+  measurement taken mid-boot finds NO visible element, so every geometry invariant passes vacuously.
+- **Mitigation:** both geometry specs assert a non-empty measurement before checking anything, and the
+  content-stress spec allows an empty measurement ONLY for the `none` collection state (an empty list
+  legitimately has no box). Do not relax either assertion to make a flake go away.
+
+## Known deviation: a `<button>` nested inside a `<NavLink>`
+
+- **Where:** `src/components/layout/Header/index.tsx`, the sign-in control.
+- **What:** interactive content inside an `<a>` is invalid HTML and gives the control two competing
+  activation behaviours. It predates the geometry work and is recorded here rather than fixed, because
+  changing it means deciding what the chrome's auth control should be — a design decision for the
+  consuming app.
+- **If you touch that markup:** compose with `asChild` (a single element that is both the link and the
+  button) rather than nesting, and keep the touch height from `chromeLink.ts`.

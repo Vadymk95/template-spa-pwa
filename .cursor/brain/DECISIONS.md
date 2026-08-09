@@ -532,7 +532,10 @@ gitignored AND `ignorePatterns` keeps `.env*` out of Stryker's sandbox copy (Str
 `.gitignore`); the runner's tree enters the fail-closed audit gate — if it ever carries a high
 advisory, the remedy is an override floor with a major cap, not an allowlist entry. Known limit:
 the vitest runner mutates what unit/RTL tests can see; a defect only Playwright or the Service
-Worker runtime would catch is invisible to this score.
+Worker runtime would catch is invisible to this score. Second limit: mutation testing measures only
+the KILL side — whether the suite would catch a breakage — and cannot detect an over-strict test
+that wrongly rejects a legitimate implementation; that direction stays with review discipline, the
+same judgment behind this repo's refusing-direction specs.
 
 ## Override floors: fresh-advisory sweep of 2026-08-09, and the uncapped-floor class
 

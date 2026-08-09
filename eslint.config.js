@@ -454,6 +454,35 @@ export default defineConfig([
         }
     },
     /*
+     * Complexity ratchet — thresholds sit ABOVE the measured ceiling, so the tree is
+     * clean today and only future drift can trip them. Measured 2026-08-09 over
+     * src/** excluding tests and mocks (ESLint API probe with every rule at warn-zero):
+     *   complexity              max 10  p95 7  (worst: lib/api/client.ts)
+     *   max-depth               max 2
+     *   max-params              max 3
+     *   max-lines-per-function  max 89  (worst: pages/DevPlayground/DevPlayground.tsx)
+     *   max-lines               max 142 (worst: pages/DevPlayground/ContentStress.tsx)
+     * Tests, src/test/ and src/mocks/ are exempt on purpose: a describe block is one
+     * function and table-driven suites are long by design, so these rules there would
+     * only teach people to split tests for the linter's sake. When a threshold fires,
+     * the first answer is to split the function, not to raise the number; raising it
+     * needs a fresh measurement and a DECISIONS.md line ("Complexity ratchet" entry).
+     */
+    {
+        files: ['src/**/*.{ts,tsx}'],
+        ignores: ['**/*.test.*', 'src/test/**', 'src/mocks/**'],
+        rules: {
+            complexity: ['error', 12],
+            'max-depth': ['error', 3],
+            'max-params': ['error', 4],
+            'max-lines-per-function': [
+                'error',
+                { max: 120, skipBlankLines: true, skipComments: true }
+            ],
+            'max-lines': ['error', { max: 200, skipBlankLines: true, skipComments: true }]
+        }
+    },
+    /*
      * REQUIRED for ESLint 10, do not set back to 'detect'. `eslint-plugin-react`
      * resolves `version: 'detect'` through `detectReactVersion` -> `resolveBasedir`,
      * which calls the `context.getFilename()` API that ESLint 10 removed; every

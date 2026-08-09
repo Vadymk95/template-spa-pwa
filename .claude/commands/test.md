@@ -77,6 +77,11 @@ For anything in `.cursor/brain/SKELETONS.md`, at least one case beyond the happy
 For every test written: revert the behaviour it guards and confirm it goes red. Report what you
 reverted and what failed. A test you did not see fail is a test you are guessing about.
 
+For guards and acceptance lists — anything whose job is to REFUSE values — also prove the accepting
+direction: a legitimate near-variant must stay green. A guard you have only ever seen refuse may be
+refusing too much, and a revert-style proof cannot see that side; an over-strict test rejects valid
+implementations as readily as a weak one admits broken ones.
+
 Every test needs a meaningful assertion. `expect(true).toBe(true)`, `expect(x).toBeTruthy()` on a value
 the test just built, and `toHaveTextContent('')` where `toBeEmptyDOMElement()` was meant all count as no
 assertion at all.

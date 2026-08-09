@@ -113,7 +113,7 @@ The gate is **zero-warnings**: `eslint --max-warnings 0`, `oxlint --deny-warning
 - **TypeScript stays `~6.0.x`** — `typescript-eslint` peer is `<6.1.0`. TS 7 exists; do not bump until the peer widens.
 - **`oxlint` tilde-tracks `eslint-plugin-oxlint`** — lockstep releases; the plugin pins `~<its version>`.
 - **`@types/node` stays 24.x** — types match `engines.node >= 24`, not the newest Node.
-- **`overrides` in `package.json` are security floors** (qs, serialize-javascript, tmp, uuid, ws) — do not remove them to quiet npm.
+- **`overrides` in `package.json` are security floors WITH major caps** (`>=fixed <next-major`; qs, serialize-javascript, tmp, uuid, ws) — do not remove them to quiet npm, and never write an uncapped floor: two of our own (`brace-expansion`, `fast-uri`) aged into their advisories' vulnerable ranges and turned the audit gate red. An uncapped floor is a delayed regression — see `DECISIONS.md`.
 
 ## Machine-agnostic configs
 

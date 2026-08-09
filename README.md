@@ -291,6 +291,7 @@ VITE_ENABLE_MSW=false
 | `npm run fix`                      | The remedy: oxlint `--fix` -> eslint `--fix` -> prettier, repo-wide   |
 | `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist           |
 | `npm run bench:verify`             | The gate step by step with timings                                    |
+| `npm run test:mutation`            | StrykerJS mutation score (test strength) — weekly CI job              |
 | `npm run verify:pwa`               | Assert manifest fields, populated SW precache, PWA meta tags retained |
 | `npm run icons:placeholders`       | Regenerate placeholder PWA icons in `public/icons/`                   |
 | `npm run verify:web-vitals-chunks` | Assert standard vs attribution web-vitals chunks                      |

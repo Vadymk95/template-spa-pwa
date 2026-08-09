@@ -502,3 +502,47 @@ rule, which now exempts exactly `display: inline` and is tested in both directio
 A `testMatch` that matches nothing collects ZERO tests and reports success, so
 `scripts/check-cross-browser-selection.mjs` asks Playwright whether every configured project actually has
 work, and fails closed on a report it cannot read.
+
+## Complexity ratchet: thresholds above the measured ceiling, production code only
+
+Five ESLint core rules (`complexity` 12, `max-depth` 3, `max-params` 4, `max-lines-per-function` 120,
+`max-lines` 200) gate `src/**` excluding tests and mocks. Thresholds were set from a measurement, not
+taste: an ESLint API probe with every rule at warn-zero measured the ceiling at complexity 10
+(`lib/api/client.ts`) / depth 2 / params 3 / 89 lines per function / 142 per file (2026-08-09), so the
+gate is clean on day one and fires only on future drift. The complexity limit is 12 rather than 10
+because the worst function already sits AT 10 — a threshold equal to the ceiling would fire on the next
+legitimate branch in that function, which is a tripwire, not a ratchet. **Tests and mocks are exempt on
+purpose** — a `describe` block is one function to these rules and table-driven suites are long by
+design; indexing the ratchet on test style is the failure mode that killed this rule set in a sibling
+repo's review. When a threshold fires, split the function; raising a number requires a fresh
+measurement recorded here.
+
+## Mutation testing: weekly strength gate, deliberately outside `verify`
+
+`npm run test:mutation` (StrykerJS 9.6.1 + vitest runner) measures what coverage cannot: whether the
+tests would CATCH a wrong implementation. Baseline measured 2026-08-09: **mutation score 45.20%** —
+325 of 719 mutants killed, 252 survived, 142 in code no test covers — against a green 65% coverage
+floor. `thresholds.break: 40` is a floor-of-record: the weekly `mutation.yml` job (cron + dispatch)
+fails only when strength regresses below the measured baseline; raise the floor after a good run,
+never lower it to go green. NOT in `verify`/pre-push: a full run costs 2m54s locally and more on CI
+runners. Scope mirrors the coverage excludes (DevPlayground, template seeds, MSW mocks, the SW
+install-capture singleton and the cross-fetch shim all stay out for the same reasons they are out of
+coverage). Hardenings from an external review of this proposal: `.stryker-tmp`/`reports` are
+gitignored AND `ignorePatterns` keeps `.env*` out of Stryker's sandbox copy (Stryker does not read
+`.gitignore`); the runner's tree enters the fail-closed audit gate — if it ever carries a high
+advisory, the remedy is an override floor with a major cap, not an allowlist entry. Known limit:
+the vitest runner mutates what unit/RTL tests can see; a defect only Playwright or the Service
+Worker runtime would catch is invisible to this score.
+
+## Override floors: fresh-advisory sweep of 2026-08-09, and the uncapped-floor class
+
+Fresh high advisories landed on the existing tree at once: `js-yaml` <4.3.1 (commitlint→cosmiconfig)
+and <3.15.1 (@lhci/utils — two majors, so two SCOPED floors, a top-level pin would force the 3.x
+consumer onto 4.x), `undici` <7.29.0 (jsdom), `nanoid` <5.1.16 / <3.3.17 (estimo / postcss, scoped
+for the same two-major reason), `ip-address` <=10.3.0 (@lhci→proxy-agent→socks), `brace-expansion`
+<5.0.9, `fast-uri` <4.1.2. Two of the failing floors were our own uncapped ones (`brace-expansion:
+">=5.0.8"`, `fast-uri: ">=3.1.4"`) that aged into the vulnerable ranges — the override that once
+cleared an advisory became the reason the gate was red. All floors now carry a major cap
+(`">=fixed <next-major"`), and the five pre-existing uncapped floors (qs, serialize-javascript, tmp,
+uuid, ws) were capped in the same pass before they could age the same way. An uncapped floor is a
+delayed regression.

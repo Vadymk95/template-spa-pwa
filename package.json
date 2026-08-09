@@ -33,6 +33,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "node scripts/check-coverage.mjs",
+        "test:mutation": "stryker run",
         "test:coverage:raw": "vitest run --coverage",
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
@@ -71,6 +72,8 @@
         "@lhci/cli": "^0.15.1",
         "@playwright/test": "^1.61.1",
         "@size-limit/preset-app": "^13.0.1",
+        "@stryker-mutator/core": "^9.6.1",
+        "@stryker-mutator/vitest-runner": "^9.6.1",
         "@tailwindcss/vite": "^4.3.3",
         "@tanstack/eslint-plugin-query": "^5.101.2",
         "@testing-library/jest-dom": "^7.0.0",
@@ -113,13 +116,13 @@
         "vitest": "^4.1.10"
     },
     "overrides": {
-        "brace-expansion": ">=5.0.8",
-        "fast-uri": ">=3.1.4",
-        "qs": ">=6.15.2",
-        "serialize-javascript": ">=7.0.5",
-        "tmp": ">=0.2.4",
-        "uuid": ">=13.0.1",
-        "ws": ">=8.21.0",
+        "brace-expansion": ">=5.0.9 <6",
+        "fast-uri": ">=4.1.2 <5",
+        "qs": ">=6.15.2 <7",
+        "serialize-javascript": ">=7.0.5 <8",
+        "tmp": ">=0.2.4 <1",
+        "uuid": ">=13.0.1 <14",
+        "ws": ">=8.21.0 <9",
         "eslint-plugin-react": {
             "eslint": "$eslint"
         },
@@ -128,6 +131,22 @@
         },
         "eslint-plugin-import": {
             "eslint": "$eslint"
+        },
+        "undici": ">=7.29.0 <8",
+        "cosmiconfig": {
+            "js-yaml": ">=4.3.1 <5"
+        },
+        "@lhci/utils": {
+            "js-yaml": ">=3.15.1 <4"
+        },
+        "socks": {
+            "ip-address": ">=10.3.1 <11"
+        },
+        "estimo": {
+            "nanoid": ">=5.1.16 <6"
+        },
+        "postcss": {
+            "nanoid": ">=3.3.17 <4"
         }
     },
     "lint-staged": {

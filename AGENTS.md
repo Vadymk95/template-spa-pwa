@@ -70,6 +70,7 @@ infrastructure, so nothing has to be guessed.
 
 ```bash
 npm run dev           # Vite dev server
+npm run verify:iter   # iteration tier: oxlint → tsc → vitest --changed (seconds; not a hand-over gate)
 npm run verify        # THE gate: typecheck → oxlint → eslint → format → coverage → build
                       # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e
 npm run verify:ci     # verify + audit:gate — what pre-push and GitHub CI both run
@@ -88,6 +89,13 @@ Keeping that true is a rule: **a new check goes into the script, never only into
 `verify:pwa` and `size:check` used to live only in `ci:local` and therefore ran in no pipeline at all.
 `audit:gate` sits in `verify:ci` rather than `verify` because it needs the network, so an offline agent
 can still run the full offline gate. `perf:ci` stays outside both — Lighthouse was rejected on cost.
+
+**The gate is tiered by moment, not run per edit.** Iterating: `npm run verify:iter` (oxlint → tsc
+incremental → `vitest --changed`, seconds) plus the one Playwright spec the change affects, against the
+running dev server. Handing over: the full `verify` runs ONCE before the task is reported done, and the
+reviewer re-runs it at acceptance — heavy verification belongs to code being accepted, not to every
+iteration. Pre-push (`verify:ci`) stays the one full run before anything leaves the machine; the tiering
+is not permission to skip it.
 
 **Pre-commit is repo-scoped, not staged-scoped.** `lint-staged` fixes and re-stages what you are
 committing, but for a partially staged file it restores the unstaged hunks _after_ fixing — so formatting

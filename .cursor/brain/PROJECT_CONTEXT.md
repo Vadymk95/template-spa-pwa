@@ -148,8 +148,9 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 ## Dev Tooling
 
 - **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs `verify` / `ci:local`; avoids running audit/build/vitals for every small change).
-- `npm run verify` — commit/push gate: typecheck → oxlint → eslint → format → test:coverage → build → ensure-playwright → **`test:e2e:prod`**. Husky **pre-push** runs this.
-- `npm run ci:local` — stricter local CI vs `.github/workflows/ci.yml`: after build adds **`verify:pwa`**, **`verify:web-vitals-chunks`**, **`size:check`**, **`perf:ci`** (LHCI), then ensure-playwright + E2E. **GitHub Actions** `ci.yml` runs `verify:web-vitals-chunks` but not `verify:pwa`, `size:check`, or `perf:ci`. **`.github/workflows/security.yml`** runs gitleaks + CodeQL — not part of `ci:local`.
+- `npm run verify:iter` — the iteration rung: oxlint → tsc (incremental) → `vitest --changed` (seconds). Run per change; the gate runs ONCE before hand-over.
+- `npm run verify` — the gate, all offline checks: typecheck → oxlint → eslint → format → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → ensure-playwright → **`test:e2e:prod`**. Husky **pre-push** runs `verify:ci` (= `audit:gate && verify`).
+- `npm run ci:local` — `verify:ci` + **`perf:ci`** (LHCI), the only check outside the gate. **GitHub Actions** `ci.yml` is a single `npm run verify:ci` step plus the separate `dev-smoke` job. **`.github/workflows/security.yml`** runs gitleaks + CodeQL — not part of `ci:local`.
 - `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / verify gate).
 - `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
 - `npm run build` — `tsc -b` then Vite production build (Rolldown)

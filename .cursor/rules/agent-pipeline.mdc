@@ -100,10 +100,11 @@ Implement directly → write integration tests via `renderWithProviders`.
 ### 4.1 Automated Checks
 
 ```bash
-npm run verify   # canonical gate: check-hooks → typecheck → oxlint (--deny-warnings) → eslint (--max-warnings 0) → format:check → test:coverage
+npm run verify:iter   # iteration tier: oxlint → tsc (incremental) → vitest --changed (seconds) — after every change
+npm run verify        # canonical gate: check-hooks → typecheck → oxlint (--deny-warnings) → eslint (--max-warnings 0) → format:check → test:coverage
 ```
 
-`npm run verify` (see `package.json`) is the one command that must exit 0 before a task is complete. While iterating on a specific failure, individual scripts are fine as targeted checks (`npm run typecheck`, `npm run lint`, `npm run lint:oxlint`, `npm run format:check`, `npm test`) — but they are not the gate: bare `npm test` bypasses coverage thresholds, so always finish with `npm run verify`.
+`npm run verify` (see `package.json`) is the one command that must exit 0 before a task is complete — run it ONCE, before reporting done; it is not an iteration tool. Between batches run `npm run verify:iter`, plus the one affected Playwright spec against the running dev server. While drilling into a specific failure, individual scripts are fine (`npm run typecheck`, `npm run lint`, `npm run lint:oxlint`, `npm run format:check`, `npm test`) — but they are not the gate: bare `npm test` bypasses coverage thresholds, so the task still finishes with one full `npm run verify`.
 
 ### 4.1a Verification Integrity
 

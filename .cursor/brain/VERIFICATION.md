@@ -7,7 +7,7 @@
   run it after every change. Two deliberate properties: while `package.json` or a vite/vitest config is
   dirty, `--changed` runs the FULL suite (force-rerun triggers); and `--changed` follows the import graph
   only, so cross-cutting suites surface at the full-gate run, not during iteration.
-- **The gate:** `npm run verify` — every **offline** check: typecheck → oxlint → eslint → format:check → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → `ensure-playwright` → **`test:e2e:prod`**.
+- **The gate:** `npm run verify` — every **offline** check: `check-gate-env` (preflight: the preview port is free — prints the fix) → lint:oxlint → format:check → typecheck → lint (cached; cheap independent stages first) → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → `ensure-playwright` → **`test:e2e:prod`** (fresh `vite preview`, never an attached leftover; real `CI` keeps retries and the single worker).
 - **`npm run verify:full`** — `verify:ci && smoke:dev`. `smoke:dev` measures the content-variance
   fixture, which is mounted only under `import.meta.env.DEV` and therefore unreachable from the
   `vite preview` run inside `verify`. It needs a second server on its own port, so it is not in

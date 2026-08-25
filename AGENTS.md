@@ -71,7 +71,7 @@ infrastructure, so nothing has to be guessed.
 ```bash
 npm run dev           # Vite dev server
 npm run verify:iter   # iteration tier: oxlint → tsc → vitest --changed (seconds; not a hand-over gate)
-npm run verify        # THE gate: typecheck → oxlint → eslint → format → coverage → build
+npm run verify        # THE gate: preflight → oxlint → format → typecheck → eslint (cached) → coverage → build
                       # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e
 npm run verify:ci     # verify + audit:gate — what pre-push and GitHub CI both run
 npm run verify:full   # verify:ci + smoke:dev — adds the content-variance fixture (needs a dev server)

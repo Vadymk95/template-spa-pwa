@@ -24,6 +24,8 @@
 
 - **Docs only** (`*.md` in repo root / `README`, brain markdown) — `npm run format:check`
 - **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check` + `npm run lint` (if CSS is in ESLint scope)
+- **i18n copy only** (value edits in `public/locales/**/*.json`) — `npm run format:check`; wrapping for
+  new copy lengths is the content-variance tier's job, not a per-edit run
 - **TS/TSX / tests** (logic, components, hooks, stores) — `npm run verify:iter`
 - **E2E / Playwright** (`e2e/**`, `playwright.config.ts`, routing/flows) — `npm run test:e2e:prod` (or `npm run build && PLAYWRIGHT_USE_PREVIEW=1 npm run test:e2e`; needs Chromium once)
 - **Touches `src/env.ts`, `vite.config.ts`, `src/lib/vitals.ts`, `src/lib/webVitals/`** — Above + `npm run build && node scripts/check-web-vitals-chunks.mjs`

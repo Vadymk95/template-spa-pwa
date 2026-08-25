@@ -23,6 +23,7 @@ reports
 /.lighthouseci/
 *.local
 .eslintcache
+.prettiercache
 *.tsbuildinfo
 
 # Environment variables

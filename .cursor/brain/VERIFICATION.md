@@ -18,19 +18,20 @@ always runs the full chain — the phase gates only the LOCAL hook.
 | dev-server smoke (content variance) | CI `dev-smoke` job, every PR | unchanged by phases |
 | mutation score, Lighthouse | weekly CI / outside the gate | unchanged by phases |
 
-## The tracer, and what silence means
+## The tracer — how it works (the RULES it enforces are the tier law)
 
 Every `verify*` and `test:e2e` run appends one TSV row to `.gate-trace.log` (gitignored);
 `npm run trace:report` turns rows into findings — a forbidden stage run standalone, a run over its
 moment's budget, a code check against a docs-only change, a push from a linked worktree. Moments,
-budgets and classes are DATA in `scripts/gate-tiers.json`; the analyser names no stage. **After a push:
-gate output present in the terminal is part of the contract — silence is a failure, not a pass.**
+budgets and classes are DATA in `scripts/gate-tiers.json`; the analyser names no stage, so the
+discipline changes by editing that JSON.
 
-## Ports — busy means MOVE; only the gate kills
+## Ports — the mechanics
 
-`e2e:one` and `verify:measure` take the next free port (`scripts/run-on-free-port.mjs`) and Playwright
-tears down the server it started; never kill a server you did not start. The push gate alone clears its
-own port (`check-gate-env --kill-port`: SIGTERM, re-probe, refuse if it will not die).
+`e2e:one` and `verify:measure` route through `scripts/run-on-free-port.mjs`, which probes up from the
+base port and exports `PORT` + `PLAYWRIGHT_BASE_URL`; the Playwright config passes that port into its
+webServer command, because Vite reads neither variable. Playwright tears down the server it started.
+The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it will not die).
 
 ## What each chain contains (mechanics — WHEN to run them is the tier law)
 
@@ -80,7 +81,7 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 1. **Session start** — Cursor `session-init.sh` + Claude `brain-loader.sh` inject this repo's brain pointers + SKELETONS danger-zones + a "read before editing" mandate into context (`~/.claude/hooks/brain-digest.sh`). Unskippable, unlike `/init`.
 2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
 3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*`; then **repo-wide** `lint:oxlint` and `format:check`. The repo-wide pass exists because `lint-staged` restores the unstaged hunks of a partially staged file *after* fixing, so formatting drift used to survive the commit and fail at push — leaving files that were already fixed and never committed. Both repo-wide checks run even when the first fails, so one attempt reports everything.
-4. **Pre-push** — **`npm run verify:ci`** (the audit gate plus the whole offline gate).
+4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate always, plus the offline gate at phase 0 and the whole chain from phase 1.
 5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads. **`.github/workflows/security.yml`** runs gitleaks over full history and CodeQL `security-extended` in parallel; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
 Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named consts in `src/lib/constants.ts`), `import-x/no-restricted-paths` (layer boundaries: `components/hocs/hooks/lib/store` ⇏ `pages`), `i18next/no-literal-string` (warn; hardcoded JSX strings → `t()`).

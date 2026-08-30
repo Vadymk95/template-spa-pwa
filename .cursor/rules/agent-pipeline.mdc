@@ -106,9 +106,8 @@ npm run verify:measure                # need to LOOK at a built result? legal at
 ```
 
 **The tier law lives in `AGENTS.md` § Commands / the gate — this file points at it and restates
-nothing.** (Until 2026-08-30 this section said `npm run verify` must run ONCE before reporting done;
-that mandate is exactly the drift that cost a sibling repo a day of 40-minute rounds.) The full chain
-belongs to the pre-push hook and CI, and the push is phase-aware — see `scripts/gate-tiers.json`.
+nothing.** The full chain belongs to the pre-push hook and CI, and the push is phase-aware — see
+`scripts/gate-tiers.json`.
 While drilling into a specific failure individual scripts are fine (`npm run typecheck`, `npm run lint`,
 `npm run format:check`, `npm test`) — but bare `npm test` bypasses coverage thresholds, so it is a
 drill-down, never a verdict.
@@ -117,7 +116,7 @@ drill-down, never a verdict.
 
 Green means nothing until you know the gate can go red.
 
-1. **Capture the exit code without a pipe**: `npm run verify > /tmp/verify.log 2>&1; echo $?`. Piping
+1. **Capture the exit code without a pipe**: `npm run verify:iter > /tmp/verify.log 2>&1; echo $?`. Piping
    to `tail` returns the PIPE's status, so a failed build reads as a pass.
 2. **Mutation-check the tests**: if mentally reverting your change leaves the suite green, the test is
    worthless. Writing a test is Phase 3; proving it would have failed is this step.
@@ -134,8 +133,9 @@ Green means nothing until you know the gate can go red.
    parse and then exits 0 with a percentage over a smaller set.
 6. **Check the cases that "cannot happen".** For UI that is: the shortest copy the schema allows, the
    longest, one unbroken token with nothing to wrap on, zero items, one item, many — at every width
-   where it renders. Run `npm run verify:full`; `npm test` cannot see any of it, because jsdom has no
-   layout.
+   where it renders. That is the MEASURE moment — `npm run verify:measure -- <spec>` or
+   `npm run smoke:dev` for the dev-only fixture; `npm test` cannot see any of it, because jsdom has
+   no layout.
 7. **Do not reason about what a browser does — run it.** `CROSS_BROWSER=1` adds Firefox and WebKit to
    the geometry specs. Measured here rather than predicted: Firefox reports `clientWidth: 0` for an
    inline `<label>` (CSSOM says an inline box has no client box) while Chromium reports a box, so a rule

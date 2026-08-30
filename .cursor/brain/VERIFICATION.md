@@ -32,19 +32,21 @@ gate output present in the terminal is part of the contract — silence is a fai
 tears down the server it started; never kill a server you did not start. The push gate alone clears its
 own port (`check-gate-env --kill-port`: SIGTERM, re-probe, refuse if it will not die).
 
-- **The iteration rung:** `npm run verify:iter` — `lint:oxlint` → `typecheck` (incremental via `tsc -b`)
-  → `vitest run --changed --passWithNoTests` (only tests reachable from the uncommitted diff). Seconds;
-  run it after every change. Two deliberate properties: while `package.json` or a vite/vitest config is
-  dirty, `--changed` runs the FULL suite (force-rerun triggers); and `--changed` follows the import graph
-  only, so cross-cutting suites surface at the full-gate run, not during iteration.
-- **The gate:** `npm run verify` — every **offline** check: `check-gate-env` (preflight: the preview port is free — prints the fix) → lint:oxlint → format:check → typecheck → lint (cached; cheap independent stages first) → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → `ensure-playwright` → **`test:e2e:prod`** (fresh `vite preview`, never an attached leftover; real `CI` keeps retries and the single worker).
-- **`npm run verify:full`** — `verify:ci && smoke:dev`. `smoke:dev` measures the content-variance
-  fixture, which is mounted only under `import.meta.env.DEV` and therefore unreachable from the
-  `vite preview` run inside `verify`. It needs a second server on its own port, so it is not in
-  `verify`; CI runs it as its own `dev-smoke` job, mandatory on every PR. Run it locally before a PR
-  that touched a shared UI primitive, the layout shell, or `src/index.css`.
-- **`npm run verify:ci`** — `audit:gate && verify`. The audit gate needs the network, which is why it is not inside `verify`: an offline implementer can still run the complete offline gate. Husky **pre-push** runs this, and the CI `validate` job is a single step over the same script.
-- **`npm run ci:local`** — `verify:ci` plus `perf:ci` (Lighthouse), which stays out of the gate on cost grounds.
+## What each chain contains (mechanics — WHEN to run them is the tier law)
+
+- **`npm run verify:iter`** — `lint:oxlint` → `typecheck` (incremental via `tsc -b`) →
+  `vitest run --changed --passWithNoTests`. Two deliberate properties: while `package.json` or a
+  vite/vitest config is dirty, `--changed` runs the FULL suite (force-rerun triggers); and
+  `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.
+- **`npm run verify`** — every **offline** check: `check-gate-env` preflight → lint:oxlint →
+  format:check → typecheck → lint (cached; cheap independent stages first) → test:coverage → build →
+  `verify:pwa` → `verify:web-vitals-chunks` → `size:check` → `ensure-playwright` → `test:e2e:prod`
+  (fresh `vite preview`, never an attached leftover; real `CI` keeps retries and the single worker).
+- **`npm run verify:ci`** — `audit:gate && verify`; the audit gate needs the network, which is why it
+  sits outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
+  measures the content-variance fixture (mounted only under `import.meta.env.DEV`, so it is
+  unreachable from the `vite preview` run and needs its own server); CI runs it as the mandatory
+  `dev-smoke` job. **`npm run ci:local`** — `verify:ci` plus Lighthouse, outside the gate on cost.
 
 **`verify` is a strict superset of the offline checks CI runs**, so a green `verify` predicts a green CI. The rule that keeps this true: **a new check goes into the script, never only into the workflow file.** `verify:pwa` and `size:check` previously lived only in `ci:local` and therefore ran in no pipeline at all.
 
@@ -100,7 +102,7 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 ## Capturing results honestly
 
 ```bash
-npm run verify > /tmp/verify.log 2>&1; echo $?
+npm run verify:iter > /tmp/verify.log 2>&1; echo $?
 ```
 
 **Without a pipe.** Piping to `tail` returns the pipe's exit status, so a failed build reads as a pass. This has bitten this project's own tooling work.

@@ -148,7 +148,9 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 ## Dev Tooling
 
 - **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs `verify` / `ci:local`; avoids running audit/build/vitals for every small change).
-- `npm run verify:iter` — the iteration rung: oxlint → tsc (incremental) → `vitest --changed` (seconds). Run per change; the gate runs ONCE before hand-over.
+- **The tier law lives in `AGENTS.md` § Commands / the gate; this list is a POINTER, not a second copy** (it said "the gate runs ONCE before hand-over" until 2026-08-30, one of three rules live at once).
+- `npm run verify:iter` — the iteration rung: oxlint → tsc (incremental) → `vitest --changed` (seconds). Run per change; one touched spec via `npm run e2e:one -- <spec>`; need to LOOK at a built result: `npm run verify:measure`.
+- The local push is PHASE-AWARE (`scripts/gate-tiers.json`): phase 0 skips build/pwa/chunks/size/e2e until the first deploy; CI always runs the full chain.
 - `npm run verify` — the gate, all offline checks: `check-gate-env` preflight (free preview port, prints the fix) → oxlint → format → typecheck → eslint (cached) → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → ensure-playwright → **`test:e2e:prod`** (fresh preview; retries and the single worker stay on real `CI`). Husky **pre-push** runs `verify:ci` (= `audit:gate && verify`).
 - `npm run ci:local` — `verify:ci` + **`perf:ci`** (LHCI), the only check outside the gate. **GitHub Actions** `ci.yml` is a single `npm run verify:ci` step plus the separate `dev-smoke` job. **`.github/workflows/security.yml`** runs gitleaks + CodeQL — not part of `ci:local`.
 - `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / verify gate).

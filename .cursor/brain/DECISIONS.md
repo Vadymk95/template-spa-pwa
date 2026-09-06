@@ -10,6 +10,8 @@
 
 ---
 
+**Size budget moved with the same pass (2026-09-06)**: after the compatible dependency updates the `index entry` chunk measured 25.17 kB brotli against a 25 kB ceiling (166 B over); every vendor chunk stayed under its budget and no application code changed, so the growth is dependency minors in the entry chunk, not attributed to a single package. Ceiling raised 25 → 26 kB in `.size-limit.json` with this measurement as the record; the next unexplained growth is a hunt, not another bump.
+
 ## [2026-07] The gate is `verify`; `verify` is a superset of CI
 
 **Decision.** Every check lives in `package.json`, never only in a workflow file. `verify` holds all

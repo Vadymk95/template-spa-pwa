@@ -285,8 +285,8 @@ VITE_ENABLE_MSW=false
 | `npm run test:e2e`                 | Playwright E2E (vite dev locally unless preview)                      |
 | `npm run test:e2e:prod`            | Playwright against `vite preview` (verify gate)                       |
 | `npm run test:e2e:ui`              | Playwright UI mode                                                    |
-| `npm run verify`                   | Commit/push gate: typecheck → lint → format → coverage → build → e2e  |
-| `npm run verify:ci`                | `audit:gate && verify` — what pre-push and CI both run                |
+| `npm run verify`                   | **The gate** — every offline check (see below)                        |
+| `npm run verify:ci`                | `audit:gate && verify` — the CI chain; the push runs it in phase 1    |
 | `npm run ci:local`                 | `verify:ci` + `perf:ci` (Lighthouse), which stays out of the gate     |
 | `npm run fix`                      | The remedy: oxlint `--fix` -> eslint `--fix` -> prettier, repo-wide   |
 | `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist           |
@@ -296,6 +296,17 @@ VITE_ENABLE_MSW=false
 | `npm run icons:placeholders`       | Regenerate placeholder PWA icons in `public/icons/`                   |
 | `npm run verify:web-vitals-chunks` | Assert standard vs attribution web-vitals chunks                      |
 | `npm run build:analyze`            | Bundle visualizer (`ANALYZE=true`)                                    |
+
+### The gate
+
+`npm run verify` is every offline check; `npm run verify:ci` adds the network-bound `audit:gate` and is
+what CI runs. The gate is tiered by moment (iterate, measure, commit, push, CI), and the ONLY definition of
+which script belongs to which moment, what the push runs in each phase and what is never run by hand is
+`AGENTS.md` § Commands / the gate. Stage timings: `.cursor/brain/VERIFICATION.md`. The exact stage order:
+the `verify:inner` script in `package.json` — it is not repeated here on purpose.
+
+`npm test` deliberately does not enforce coverage — the thresholds in `vitest.config.ts` only apply with
+`--coverage`, which is why the gate uses `test:coverage`.
 
 ### Git Hooks
 
@@ -310,7 +321,7 @@ VITE_ENABLE_MSW=false
 
 **Pre-push:**
 
-- Runs full **`npm run verify`** (includes production build + Playwright against `vite preview`)
+- `npm run verify:push` — phase-aware (`scripts/gate-tiers.json`): phase 0 skips build, PWA/web-vitals checks, `size:check` and e2e until the first deploy; phase 1 runs the full `verify:ci`.
 
 ### CI (GitHub Actions)
 

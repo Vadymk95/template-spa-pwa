@@ -147,13 +147,8 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 
 ## Dev Tooling
 
-- **Which checks to run** — see `.cursor/brain/VERIFICATION.md` (point-in-time vs `verify` / `ci:local`; avoids running audit/build/vitals for every small change).
-- **The tier law lives in `AGENTS.md` § Commands / the gate; this list is a POINTER, not a second copy.**
-- `npm run verify:iter` — the iteration rung: oxlint → tsc (incremental) → `vitest --changed` (seconds). Run per change; one touched spec via `npm run e2e:one -- <spec>`; need to LOOK at a built result: `npm run verify:measure`.
-- The local push is PHASE-AWARE (`scripts/gate-tiers.json`): phase 0 skips build/pwa/chunks/size/e2e until the first deploy; CI always runs the full chain.
-- `npm run verify` — the gate, all offline checks: `check-gate-env` preflight (free preview port, prints the fix) → oxlint → format → typecheck → eslint (cached) → test:coverage → build → **`verify:pwa`** → **`verify:web-vitals-chunks`** → **`size:check`** → ensure-playwright → **`test:e2e:prod`** (fresh preview; retries and the single worker stay on real `CI`). Husky **pre-push** runs `verify:ci` (= `audit:gate && verify`).
-- `npm run ci:local` — `verify:ci` + **`perf:ci`** (LHCI), the only check outside the gate. **GitHub Actions** `ci.yml` is a single `npm run verify:ci` step plus the separate `dev-smoke` job. **`.github/workflows/security.yml`** runs gitleaks + CodeQL — not part of `ci:local`.
-- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / verify gate).
+- **The gate, its moments and its scripts** — `AGENTS.md` § Commands / the gate is the only definition (which script belongs to which moment, the push phases, what is forbidden by hand). Stage timings and what was deliberately not added: `.cursor/brain/VERIFICATION.md`. The full script list: `package.json`. Nothing about the gate is repeated in this file.
+- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / the gate); a fresh preview per run, retries and the single worker only on real `CI`.
 - `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
 - `npm run build` — `tsc -b` then Vite production build (Rolldown)
 - `npm run verify:pwa` — asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify (after `npm run build`). Wired into `ci:local`.

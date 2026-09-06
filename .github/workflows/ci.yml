@@ -60,8 +60,8 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-            # ONE step on purpose. `verify:ci` is the same command the pre-push hook
-            # runs, and the `verify` inside it is a strict superset of every check
+            # ONE step on purpose. `verify:ci` is the chain the pre-push hook runs in
+            # phase 1 (`verify:push` dispatches to it), and the `verify` inside it is a strict superset of every check
             # this job used to list separately — including verify:pwa and size:check,
             # which previously lived only in ci:local and therefore ran in no
             # pipeline at all. Adding a check HERE instead of to the script is what

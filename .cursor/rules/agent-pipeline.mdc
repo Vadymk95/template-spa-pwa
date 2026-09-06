@@ -105,12 +105,9 @@ npm run e2e:one -- e2e/<file>.spec.ts # only the spec the change affects — fre
 npm run verify:measure                # need to LOOK at a built result? legal at any time
 ```
 
-**The tier law lives in `AGENTS.md` § Commands / the gate — this file points at it and restates
-nothing.** The full chain belongs to the pre-push hook and CI, and the push is phase-aware — see
-`scripts/gate-tiers.json`.
-While drilling into a specific failure individual scripts are fine (`npm run typecheck`, `npm run lint`,
-`npm run format:check`, `npm test`) — but bare `npm test` bypasses coverage thresholds, so it is a
-drill-down, never a verdict.
+Everything else about the gate — the push and its phases, CI, what is forbidden by hand, the
+superset rule, which scripts are drill-downs rather than moments — is `AGENTS.md` § Commands / the
+gate › _The tier law_, and is not repeated here.
 
 ### 4.1a Verification Integrity
 

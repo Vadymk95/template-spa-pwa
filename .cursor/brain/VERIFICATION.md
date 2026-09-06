@@ -91,7 +91,7 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 ## Local gates (`verify` vs `ci:local`)
 
 - **`npm run verify`** — the gate. Everything offline, listed at the top of this file.
-- **`npm run verify:ci`** — `audit:gate && verify`. Pre-push and CI both run this.
+- **`npm run verify:ci`** — `audit:gate && verify`. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
 - **`npm run ci:local`** — `verify:ci` + `perf:ci`. Lighthouse is the only check outside the gate.
 - **`npm run bench:verify`** — the same steps with per-step timings, to attribute a slow gate.
 - **`npm run fix`** — the one remedy: `oxlint --fix` → `eslint --fix` → `prettier --write`, repo-wide. Re-run `lint` and `format:check` afterwards to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.

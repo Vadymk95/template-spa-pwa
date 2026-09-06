@@ -563,3 +563,12 @@ cleared an advisory became the reason the gate was red. All floors now carry a m
 (`">=fixed <next-major"`), and the five pre-existing uncapped floors (qs, serialize-javascript, tmp,
 uuid, ws) were capped in the same pass before they could age the same way. An uncapped floor is a
 delayed regression.
+
+## [2026-09] Gate hygiene: the Stryker sandbox is ignored by prettier and ESLint, not only by git
+
+A Stryker run that crashed in a sibling template left `.stryker-tmp/sandbox-*` behind, and the next push
+there failed with 44 lint errors that were all inside that copy of the repo (prettier "Delete ⏎" on the
+copied files, ESLint "multiple candidate TSConfigRootDirs"). `.stryker-tmp` was in `.gitignore` only, in
+all four templates. It is now also in `.prettierignore` and in ESLint's global ignores here: a tool's temp
+directory belongs in every ignore list the gate reads, or a crashed tool run reddens the gate for an
+unrelated change and reads as a regression.

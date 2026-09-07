@@ -325,13 +325,12 @@ the `verify:inner` script in `package.json` — it is not repeated here on purpo
 
 ### CI (GitHub Actions)
 
-On pull requests and pushes to `master` (Node 24.x, `npm ci`):
+**`ci.yml`** — on pull requests and pushes to `master` (Node 24.x, `npm ci --ignore-scripts`):
+`validate` is a single `npm run verify:ci` step — one step on purpose, see the gate rule above, so this
+section never has to list stages again; `dev-smoke` runs the content-variance fixture against `vite dev` (`npm run smoke:dev`); `cross-browser` re-runs the geometry specs on Firefox and WebKit.
 
-1. `npm audit --audit-level=moderate`
-2. `typecheck` → `lint:oxlint` → `lint` → `format:check`
-3. `test:coverage`
-4. `build` + `scripts/check-pwa.mjs` + `scripts/check-web-vitals-chunks.mjs`
-5. Playwright E2E against `vite preview`
+**`security.yml`** — on push, PR and a weekly cron: gitleaks over the full history and CodeQL
+`security-extended`. **`mutation.yml`** — the weekly StrykerJS strength gate (`npm run test:mutation`).
 
 ### Where the security workflow works
 

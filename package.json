@@ -161,7 +161,8 @@
         },
         "postcss": {
             "nanoid": ">=3.3.18 <4"
-        }
+        },
+        "@puppeteer/browsers": ">=3.0.2 <4"
     },
     "lint-staged": {
         "*.{ts,tsx,js,jsx}": [

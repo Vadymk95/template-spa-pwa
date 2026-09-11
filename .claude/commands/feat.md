@@ -49,6 +49,10 @@ surface is the one place in this template where a wrong change ships to installe
 rolled back by a redeploy; `.cursor/brain/PWA.md` carries the threat model. Trivial leaf edits proceed
 with a brief note.
 
+**Bigger than a one-sentence diff?** Then the scope lives in `.cursor/<feature-slug>/SPEC.md` and
+`PLAN.md` (templates in `.cursor/templates/`, law in `AGENTS.md` § Before code). Create or update them
+before §3; a plan is approved as a pull-request review, never as a chat reply.
+
 ## 3. Build
 
 - **Logic first, test-first**: for stores, hooks and `src/lib` modules, write the failing test, then the

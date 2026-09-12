@@ -21,7 +21,7 @@ This template ships as an installable Progressive Web App via `vite-plugin-pwa`.
 | iOS / Android meta       | `index.html`                                                      |
 | Icons                    | `public/icons/{192x192,512x512,apple-touch-icon}.png`             |
 | Type surface             | `src/vite-env.d.ts` (triple-slash refs for `vite-plugin-pwa/*`)   |
-| Build verification       | `scripts/check-pwa.mjs` (wired into `ci:local`)                   |
+| Build verification       | `scripts/check-pwa.mjs` (inside `npm run verify`)                 |
 
 Generated at build: `dist/manifest.webmanifest`, `dist/sw.js`, `dist/workbox-*.js`.
 
@@ -137,7 +137,7 @@ npm run build                    # vite-plugin-pwa logs precache count + sw.js p
 npm run verify:pwa               # scripts/check-pwa.mjs — manifest fields, sw precache, meta tags
 ```
 
-`verify:pwa` is wired into `ci:local`. It catches three red-team-flagged failure modes: empty precache (Rolldown vs rollupOptions API drift), MSW worker leaking into precache, and `oxc` minifier silently stripping iOS / theme-color meta tags.
+`verify:pwa` runs inside `npm run verify` (so at the push in phase 1, and in CI). It catches three red-team-flagged failure modes: empty precache (Rolldown vs rollupOptions API drift), MSW worker leaking into precache, and `oxc` minifier silently stripping iOS / theme-color meta tags.
 
 Production reality-check (deploy + new tab):
 
@@ -151,7 +151,7 @@ Production reality-check (deploy + new tab):
 - **SW scope `/`** — intercepts every fetch on the origin, including auth tokens. Consumers shipping multi-tenant or auth-sensitive flows must scope or harden requests; SW does not re-validate `Authorization` headers.
 - **`handle_links: 'auto'`** — chosen over `'preferred'` to avoid auto-hijacking deep links into the installed PWA on Chromium. Forks shipping auth flows MUST keep this; auth deep-link hijack into a stale PWA window is a real exploit class (state leak between users on shared devices).
 - **`launch_handler.client_mode: 'navigate-existing'`** — reuses an existing PWA window. Combined with `localStorage` / `sessionStorage` user state, this can leak a previous user's view on shared devices. Consumers shipping user-scoped state must clear it on `visibilitychange` / `focus` if device-sharing is in their threat model.
-- **Supply chain** — `vite-plugin-pwa → workbox-build → @rollup/plugin-terser → serialize-javascript` had a CVE chain (high-severity RCE). Mitigation: `package.json` `overrides` pins `serialize-javascript >=7.0.5`. `npm audit --audit-level=moderate` is part of `ci:local`. Re-check on every plugin upgrade.
+- **Supply chain** — `vite-plugin-pwa → workbox-build → @rollup/plugin-terser → serialize-javascript` had a CVE chain (high-severity RCE). Mitigation: `package.json` `overrides` pins `serialize-javascript >=7.0.5`. `scripts/audit-gate.mjs` (fail-closed on high/critical) runs in `verify:ci`. Re-check on every plugin upgrade.
 - **`devOptions.enabled: false`** — keeps the PWA SW out of `vite dev`. MSW's `mockServiceWorker.js` lives at `/` in dev only; flipping `devOptions.enabled: true` breaks MSW. See SKELETONS.md.
 
 ## Known TODO / future work

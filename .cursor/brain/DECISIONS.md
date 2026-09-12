@@ -146,6 +146,8 @@ test for it contradicted a decision the repo had already taken.
 
 ## [2026-05] `size-limit` per-chunk brotli budget — `ci:local` gate
 
+**Superseded by "[2026-07] The gate is `verify`; `verify` is a superset of CI" above — `size:check` runs inside `verify` and `ci:local` is now `verify:ci` + `perf:ci`; kept for the reasoning.**
+
 **Decision**: add `size-limit@^12.1.0` + `@size-limit/preset-app@^12.1.0` devDeps + `npm run size:check` script + `.size-limit.json` config with per-chunk brotli budgets. Wired into `ci:local` AFTER `verify:web-vitals-chunks` and BEFORE `perf:ci` (LHCI) — size-limit asserts byte budgets first, LHCI asserts runtime perf. Per /consilium 2026-05-23 APPLY Item 6 (5/6 YES, 1 COND satisfied via pre-flight overlap check).
 
 **Why**: `scripts/check-web-vitals-chunks.mjs` asserts chunk _composition_ (subscribeStandard vs subscribeAttribution), NOT chunk _size_. `lighthouserc.json` `total-byte-weight` is total page weight (warn-only ≤800 KB), NOT per-chunk. `chunkSizeWarningLimit: 600` (KB raw) in `vite.config.ts` is Vite _warning_, not CI fail. No per-vendor-chunk byte-budget gate currently exists. `size-limit` 868K weekly DLs ~10× over `bundlesize` (May 2026 npm registry direct).
@@ -260,6 +262,8 @@ npm run lint && npm run lint:oxlint  # both must pass
 
 ## [2026-04] `ci:local` stricter than GitHub Actions
 
+**Superseded by "[2026-07] The gate is `verify`; `verify` is a superset of CI" above — `verify:pwa`, the chunk check and `size:check` are inside `verify`, CI runs `verify:ci`, and `ci:local` is `verify:ci` + `perf:ci`; kept for the reasoning.**
+
 **Decision**: `npm run ci:local` runs **`verify:pwa`**, **`perf:ci`** (Lighthouse-CI against the production preview build), **`scripts/ensure-playwright.mjs`**, and sets **`PLAYWRIGHT_USE_PREVIEW=1`** for E2E, on top of the same audit → typecheck → lint → coverage → build → **`verify:web-vitals-chunks`** → E2E path as `.github/workflows/ci.yml`. The workflow file does **not** invoke `verify:pwa` or Lighthouse (PWA + perf budgets are validated locally and in `ci:local` until/unless matching workflow steps are added).
 
 **Why**: Keeps default GitHub CI lean (minutes, browser install) while one pre-push command still catches PWA `dist/` regressions, Web Vitals bundle split, Lighthouse assertions, and preview-mode E2E. `ensure-playwright` skips install when Chromium is already cached.
@@ -283,6 +287,8 @@ npm run lint && npm run lint:oxlint  # both must pass
 ---
 
 ## [2026-04] Verification guide (`.cursor/brain/VERIFICATION.md`) + `ci:local`
+
+**Superseded by "[2026-07] The gate is `verify`; `verify` is a superset of CI" above — `ci:local` is now `verify:ci` + `perf:ci`; kept for the reasoning.**
 
 **Decision**: `.cursor/brain/VERIFICATION.md` defines minimal checks per task type; `npm run ci:local` extends `.github/workflows/ci.yml` with extra gates (see `ci:local` ADR above). Agents should read it and avoid running audit/build/vitals-analyze for every trivial edit.
 
@@ -400,6 +406,8 @@ the plugin peers still cap below 10, but three `overrides` entries resolve that 
 ---
 
 ## [2026-03] CI: production build + audit + Dependabot
+
+**Superseded by "[2026-07] The gate is `verify`; `verify` is a superset of CI" above — CI is one `verify:ci` step (so `verify:pwa` and `size:check` do run there) and `ci:local` is `verify:ci` + `perf:ci`; kept for the reasoning.**
 
 **Decision**: GitHub Actions runs `npm ci` → audit → `typecheck` → `lint:oxlint` → `lint` (ESLint) → `format:check` → `test:coverage` → **`npm run build`** → **`npm run verify:web-vitals-chunks`** → **Playwright E2E** (Chromium; preview on 4173). Triggers on PR and push to `master`. Dependabot opens weekly npm update PRs (capped at 8 open). **`verify:pwa`** and **`perf:ci`** are not in `ci.yml`; use **`npm run ci:local`** for those gates (see [2026-04] `ci:local` stricter than GitHub Actions). Security scanning: **`security.yml`** (gitleaks, CodeQL).
 

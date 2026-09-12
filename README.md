@@ -113,7 +113,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 - **PwaUpdateToast** — auto-mounted i18n-aware update toast driven by `useRegisterSW`
 - **`usePwaInstall` hook** — `beforeinstallprompt` capture + manual install flow (UI is consumer's choice)
 - **Manifest** — standard W3C fields + Chromium-only `display_override` / `handle_links: 'auto'` / `launch_handler`
-- **Build verification** — `scripts/check-pwa.mjs` wired into `ci:local` (asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify)
+- **Build verification** — `scripts/check-pwa.mjs` inside `npm run verify` (asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify)
 
 ### Developer Experience
 
@@ -122,7 +122,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 - **Prettier 3** — code formatting
 - **Husky + lint-staged** — git hooks for quality gates
 - **Commitlint** — conventional commits enforcement
-- **Vitest 4.1** — unit testing with Testing Library
+- **Vitest 5** — unit testing with Testing Library
 - **Playwright 1.62** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
 
 ## 📲 PWA
@@ -174,8 +174,8 @@ src/
       Main/                # Main content wrapper
     ui/                    # Shadcn UI primitives (Button, Input, etc.)
   hocs/
-    ProtectedRoute/        # Auth gate for nested routes
-    WithSuspense/          # Suspense wrapper for lazy pages
+    ProtectedRoute.tsx     # Auth gate for nested routes
+    WithSuspense.tsx       # Suspense wrapper for lazy pages
   hooks/
     i18n/
       useI18nReload.ts     # i18n hot reload hook (dev-only)
@@ -194,7 +194,6 @@ src/
     pwa/
       installPromptCapture.ts # Eager beforeinstallprompt listener (side-effect from main.tsx)
     webVitals/             # subscribeStandard / subscribeAttribution
-    env.ts                 # @t3-oss/env-core validated public env
     queryClient.ts         # TanStack Query factory
     vitals.ts              # Web Vitals lazy reporting
     logger.ts, utils.ts    # observability + cn()
@@ -218,6 +217,7 @@ src/
     server.ts, handlers.ts # MSW node adapter
     test-utils.tsx         # renderWithProviders
   App.tsx                  # Layout shell
+  env.ts                   # @t3-oss/env-core validated public env
   main.tsx                 # Entry point
 ```
 
@@ -288,6 +288,14 @@ VITE_ENABLE_MSW=false
 | `npm run verify`                   | **The gate** — every offline check (see below)                        |
 | `npm run verify:ci`                | `audit:gate && verify` — the CI chain; the push runs it in phase 1    |
 | `npm run ci:local`                 | `verify:ci` + `perf:ci` (Lighthouse), which stays out of the gate     |
+| `npm run verify:iter`              | Iteration tier: oxlint → tsc → vitest --changed; run per change       |
+| `npm run verify:measure`           | MEASURE moment: build + look (`-- e2e/<f>.spec.ts` for one spec)      |
+| `npm run verify:full`              | `verify:ci` + `smoke:dev` — adds the content-variance fixture         |
+| `npm run smoke:dev`                | The content-stress fixture alone, against `vite dev`                  |
+| `npm run e2e:one -- <spec>`        | One Playwright spec, FREE port, through the tracer                    |
+| `npm run probe -- <route>`         | LOOK: render, screenshot per width, print measured quantities         |
+| `npm run test:one -- <file>`       | One unit test file, through the tracer (not around it)                |
+| `npm run trace:report`             | Findings from `.gate-trace.log`: moments, budgets, worktrees          |
 | `npm run fix`                      | The remedy: oxlint `--fix` -> eslint `--fix` -> prettier, repo-wide   |
 | `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist           |
 | `npm run bench:verify`             | The gate step by step with timings                                    |
@@ -312,8 +320,12 @@ the `verify:inner` script in `package.json` — it is not repeated here on purpo
 
 **Pre-commit** (via Husky + lint-staged):
 
-- Oxlint `--fix` → ESLint `--fix` → Prettier on staged files
-- Blocks commit if errors remain
+1. `lint-staged` — oxlint `--fix` → ESLint `--fix` → Prettier on the **staged** files
+2. TDD gate — a staged `src` logic file with no co-located `*.test.*` blocks the commit
+3. **Repo-wide** `lint:oxlint`, `format:check` and `typecheck`
+
+Why step 3 exists: `.cursor/brain/DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. On failure the
+hook prints the remedy: `npm run fix && git add -u`.
 
 **Commit message** (via Commitlint):
 
@@ -454,7 +466,7 @@ describe('Component', () => {
 
 ### E2E
 
-Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `npm run test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173 after `build`. The local **`npm run verify`** gate (and husky pre-push) runs `test:e2e:prod` (via `ensure-playwright.mjs`).
+Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `npm run test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173 after `build`. The local **`npm run verify`** gate runs `test:e2e:prod` (after `ensure-playwright.mjs`); the push runs it only in phase 1 (§ Git Hooks).
 
 ## 🏗️ Build & Deployment
 
@@ -475,7 +487,7 @@ npm run build
 
 ### Bundle Analysis
 
-`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. A chunk over 600 kB raises a Vite build **warning** (`chunkSizeWarningLimit`); the enforced per-chunk budgets are the brotli limits in `.size-limit.json`, checked by `npm run size:check` (part of `ci:local`).
+`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. A chunk over 600 kB raises a Vite build **warning** (`chunkSizeWarningLimit`); the enforced per-chunk budgets are the brotli limits in `.size-limit.json`, checked by `npm run size:check` (inside `npm run verify`).
 
 ### Deployment
 
@@ -587,6 +599,7 @@ Phase highlights:
 - **Phase 7 — PWA extras.** Maskable icon, screenshots, shortcuts, share_target, push notifications.
 - **Phase 8 — Deployment hardening.** Cache-policy contract per host; CSP nonces; HSTS.
 - **Phase 10 — Scale-out.** FSD architecture, monorepo, micro-frontends, migration to Next.js / Remix.
+- **Tool-by-tool alternatives** (auth providers, error monitoring, analytics, flags, data tables, deployment): [`.cursor/docs/enterprise-upgrade.md`](.cursor/docs/enterprise-upgrade.md).
 
 Brain docs ([`PROJECT_CONTEXT.md`](./.cursor/brain/PROJECT_CONTEXT.md), [`MAP.md`](./.cursor/brain/MAP.md), [`SKELETONS.md`](./.cursor/brain/SKELETONS.md), [`PWA.md`](./.cursor/brain/PWA.md), [`TEMPLATE_SEEDS.md`](./.cursor/brain/TEMPLATE_SEEDS.md)) stay the source of truth for stack, danger zones, and patterns — `EXTENSIONS.md` is the cross-cutting graduation checklist that points at them.
 

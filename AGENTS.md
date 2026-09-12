@@ -14,7 +14,7 @@ Production-ready React 19 + Vite 8 (Rolldown) PWA template — vite-plugin-pwa (
 
 ## Stack
 
-React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 4.1 · vite-plugin-pwa 1.x (Workbox, generateSW + prompt-mode)
+React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 5 · vite-plugin-pwa 1.x (Workbox, generateSW + prompt-mode)
 
 ## Critical rules
 
@@ -200,8 +200,9 @@ that lives only in a conversation is not a plan.
 **Pre-commit is repo-scoped, not staged-scoped.** `lint-staged` fixes and re-stages what you are
 committing, but for a partially staged file it restores the unstaged hunks _after_ fixing — so formatting
 drift used to survive a commit and only fail at push, leaving "already fixed but never committed" files
-in the tree. The hook now also runs the TDD sibling gate and then `lint:oxlint` + `format:check` over the
-whole repo, reporting both failures in one run and naming the remedy: `npm run fix && git add -u`.
+in the tree. The hook now also runs the TDD sibling gate and then `lint:oxlint`, `format:check` and
+`typecheck` over the whole repo, reporting every failure in one run and naming the remedy:
+`npm run fix && git add -u`.
 
 **Bootstrap after clone**: `npm run prepare` (once) — `.npmrc` disables lifecycle
 scripts as a supply-chain guard, so husky hooks don't install themselves; the

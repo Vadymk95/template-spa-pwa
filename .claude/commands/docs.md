@@ -15,7 +15,8 @@ until the operator approves them.**
   git history does not capture.
 - `.cursor/brain/TEMPLATE_SEEDS.md` — what must not be deleted as dead code.
 - `.cursor/brain/PWA.md` — manifest, update flow, cache-policy contract, deployment caching.
-- `.cursor/brain/VERIFICATION.md` — which checks to run per change; goes stale with every gate change.
+- `.cursor/brain/VERIFICATION.md` — mechanics, the phase table and measured timings; goes stale with every gate change.
+- `.cursor/brain/READING_INDEX.md` — situations, pointers only.
 - `.cursor/brain/EXTENSIONS.md` — the fork graduation checklist.
 - `README.md` — only when the setup or the commands changed.
 

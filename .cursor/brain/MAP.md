@@ -88,7 +88,7 @@ Full reference: `.cursor/brain/PWA.md`. Source-of-truth files map below.
 | Icons                         | `public/icons/{192x192,512x512,apple-touch-icon}.png` |
 | iOS / theme meta              | `index.html`                                          |
 | Type surface                  | `src/vite-env.d.ts`                                   |
-| Build verification            | `scripts/check-pwa.mjs` → wired into `ci:local`       |
+| Build verification            | `scripts/check-pwa.mjs` → inside `npm run verify`     |
 | Placeholder icon generator    | `scripts/generate-placeholder-icons.mjs`              |
 
 ## CSS / Theming
@@ -126,12 +126,8 @@ To update after MSW upgrade: `npx msw init public/`.
 
 ## CI / Supply chain
 
-- **`.github/workflows/ci.yml`** — PR + push `master`: audit (moderate+) → typecheck → oxlint → ESLint → format → test:coverage → **build** → `verify:web-vitals-chunks` → **Playwright E2E** (Chromium; `CI=true` → `vite preview` on 4173) — **no** `verify:pwa` or **Lighthouse** step
-- **`.github/workflows/security.yml`** — PR + push `master` + weekly schedule: **gitleaks**; **CodeQL** JS/TS — orthogonal to `ci.yml`; not part of `npm run ci:local`
-- **`npm run verify`** — local commit/push gate (build + ensure-playwright + `test:e2e:prod`); husky **pre-push**
-- **`npm run verify`** — the gate; `verify:pwa`, `verify:web-vitals-chunks` and `size:check` are inside it, after build, then ensure-playwright + E2E (incl. `e2e/sw-lifecycle.spec.ts`). **`npm run verify:ci`** adds the network-dependent `audit:gate`; the CI job always runs it in one step, and the push runs it in phase 1 (`AGENTS.md` § Commands / the gate). **`npm run ci:local`** is `verify:ci` plus `perf:ci` (LHCI), which stays out of the gate on cost grounds
-- **`.cursor/brain/VERIFICATION.md`** — when to run which checks; pre-push = `verify`, not `ci:local`
-- **`.github/dependabot.yml`** — weekly npm version PRs (limit 8 open)
+- The gate, its moments and phases: `AGENTS.md` § Commands / the gate; CI = `.github/workflows/ci.yml` (one `verify:ci` step + `dev-smoke` + `cross-browser`), `security.yml` (gitleaks + CodeQL, orthogonal to `ci.yml`), `mutation.yml`. Lighthouse (`perf:ci`) stays outside the gate, in `ci:local` only.
+- Dependencies: `.github/dependabot.yml` (weekly, cooldown, holds mirrored from `DECISIONS.md`).
 
 ## Layout invariants and content variance
 

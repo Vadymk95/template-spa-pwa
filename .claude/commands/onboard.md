@@ -9,7 +9,8 @@ job: the docs can be stale, and finding that out now is cheaper than finding it 
 
 In this order, in full:
 
-1. `AGENTS.md` — invariants, the gate, what is out of scope.
+1. `AGENTS.md` — invariants, the gate, what is out of scope (then `.cursor/brain/READING_INDEX.md` —
+   where to look).
 2. `.cursor/brain/PROJECT_CONTEXT.md` — purpose, stack, layout.
 3. `.cursor/brain/SKELETONS.md` — danger zones. Before touching anything, not after.
 4. `.cursor/brain/MAP.md` — routes, files, responsibilities.
@@ -22,9 +23,9 @@ In this order, in full:
    subject the current task touches. `.cursor/brain/EXTENSIONS.md` is the graduation checklist for a
    fork, not reading for a task inside the template.
 
-The process is already in your context through the always-applied rules — the six phases and the
-verification-integrity checks in `.cursor/rules/agent-pipeline.mdc`, the Approval Law and the commit
-format in `.cursor/rules/workflow.mdc`. There is no separate playbook to find.
+In Cursor the process is already in context (always-applied rules). In Claude Code it is not: read
+`.cursor/rules/agent-pipeline.mdc` § 4.1a and `.cursor/rules/workflow.mdc` § The Approval Law now —
+nothing beyond `AGENTS.md` is imported.
 
 Read the conditional `.cursor/rules/*.mdc` only when a task tells you which files it touches. Reading
 all of them up front is a context tax with no gain.

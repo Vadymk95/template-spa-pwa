@@ -18,6 +18,11 @@ always runs the full chain — the phase gates only the LOCAL hook.
 | dev-server smoke (content variance) | CI `dev-smoke` job, every PR | unchanged by phases |
 | mutation score, Lighthouse | weekly CI / outside the gate | unchanged by phases |
 
+Measured here (`.gate-trace.log`, 2026-08-30 to 2026-09-11): a phase-0 push 15-20 s; the full chain
+(`GATE_PHASE=full`, or phase 1) 32-47 s over six passing runs, p90 47 s — plus ~20 % headroom that is the
+60 s `push` budget in `gate-tiers.json` (the one 131 s row is a failed run, not a measurement);
+`verify:iter` 3.9-11.5 s; `verify:measure` 5.6-6.0 s; the mutation run 2m54s (`mutation.yml`).
+
 ## The tracer — how it works (the RULES it enforces are the tier law)
 
 Every `verify*` and `test:e2e` run appends one TSV row to `.gate-trace.log` (gitignored);
@@ -133,23 +138,6 @@ If you add new scripts or CI steps, update this file and `.cursor/brain/PROJECT_
 
 ## Content variance
 
-Any component that renders authored copy must be proven against content it has not seen. The states are
-in `src/pages/DevPlayground/stressMatrix.ts`: `minimal` / `typical` / `long` / `unbroken` for text, and
-`none` / `one` / `many` for collections. `unbroken` is the one that finds a missing wrap guard — a long
-sentence wraps on its spaces and hides the defect. `npm run verify:full` is the command; `npm test`
-cannot see any of it, because jsdom has no layout.
-
-- **The RANGE a guard covers is part of its specification.** Both geometry specs sweep
-  390 / 640 / 768 / 1024 / 1440. A guard proven at one width usually just moves the defect to another.
-- **A wrap class with no red-to-green proof gets deleted.** Remove it, run the harness, and if nothing
-  goes red at any width in any state it was decoration — and decoration in a shared component is what
-  the next author copies.
-- **Do not reason about what a browser does — run it.** `CROSS_BROWSER=1` adds Firefox and WebKit to the
-  geometry specs. Measured rather than predicted: Firefox reports `clientWidth: 0` for an inline
-  `<label>` (CSSOM says an inline box has no client box) while Chromium reports a box.
-
-**Before believing a green result, name the concrete condition under which it would have been RED.**
-Three shapes here pass while measuring nothing: a page still hidden by the i18n boot gate (both geometry
-specs assert a non-empty measurement for exactly that reason), a Playwright `testMatch` that selects no
-tests, and `vitest --coverage` printing `Excluding it from coverage` for a file it could not parse and
-then exiting 0.
+The rule: `AGENTS.md` § Critical rules › Content variance. Why and what it found: `DECISIONS.md`
+§ Content variance is measured in a browser; the cross-engine measurement: `DECISIONS.md` § Cross-engine
+coverage. The "under which condition would this green have been red" shapes: `agent-pipeline.mdc` § 4.1a.

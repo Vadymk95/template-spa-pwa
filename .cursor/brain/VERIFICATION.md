@@ -57,6 +57,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 ## Minimal check by task type
 
 - **Docs only** (`*.md` in repo root / `README`, brain markdown) — `npm run format:check`
+- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly` adds past revisit dates)
 - **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check` + `npm run lint` (if CSS is in ESLint scope)
 - **i18n copy only** (value edits in `public/locales/**/*.json`) — `npm run format:check`; wrapping for
   new copy lengths is the content-variance tier's job, not a per-edit run

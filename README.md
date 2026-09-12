@@ -123,7 +123,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 - **Husky + lint-staged** — git hooks for quality gates
 - **Commitlint** — conventional commits enforcement
 - **Vitest 5** — unit testing with Testing Library
-- **Playwright 1.62** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
+- **Playwright 1.63** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
 
 ## 📲 PWA
 
@@ -296,6 +296,7 @@ VITE_ENABLE_MSW=false
 | `npm run probe -- <route>`         | LOOK: render, screenshot per width, print measured quantities         |
 | `npm run test:one -- <file>`       | One unit test file, through the tracer (not around it)                |
 | `npm run trace:report`             | Findings from `.gate-trace.log`: moments, budgets, worktrees          |
+| `npm run docs:check`               | Mechanical doc drift: paths, scripts, sentinels, versions, dead docs  |
 | `npm run fix`                      | The remedy: oxlint `--fix` -> eslint `--fix` -> prettier, repo-wide   |
 | `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist           |
 | `npm run bench:verify`             | The gate step by step with timings                                    |

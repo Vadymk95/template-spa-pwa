@@ -82,7 +82,7 @@ The template ships with a wired **TanStack Query example** (`greeting.queries.ts
 
 ## Phase 2 — Auth
 
-Template ships a placeholder `userStore` (Zustand + persist + localStorage `"user-store"`) and a `ProtectedRoute` HOC (`src/hocs/ProtectedRoute/`) gating `/dashboard`. Wire real auth on top.
+Template ships a placeholder `userStore` (Zustand + persist + localStorage `"user-store"`) and a `ProtectedRoute` HOC (`src/hocs/ProtectedRoute.tsx`) gating `/dashboard`. Wire real auth on top.
 
 ### Choose one
 
@@ -155,7 +155,7 @@ Template wires **`web-vitals`** reporting (`src/lib/vitals.ts`) with optional at
 
 ### What to wire
 
-1. Add `src/lib/analytics/` module with `track(event, payload)` API (mirror `frontend-practice-lab/src/lib/analytics/`).
+1. Add an analytics module under `src/lib/` with a `track(event, payload)` API (mirror `frontend-practice-lab/src/lib/analytics/`).
 2. Pass a custom reporter to `reportWebVitals(yourReporter)` in `main.tsx`.
 3. Wire Sentry SDK via `ErrorBoundary` — its `componentDidCatch` already exposes a hook.
 4. Add `VITE_*` env vars (DSN, write key) to `src/env.ts` and `.env.example`.
@@ -173,8 +173,8 @@ The template ships description + viewport meta only. SEO assets are product-spec
 |---|---|---|
 | Open Graph meta (`og:title`, `og:description`, `og:image`) | `index.html` | Slack / Discord / iMessage previews |
 | Twitter cards (`twitter:card`, `twitter:image`) | `index.html` | Same for Twitter / X |
-| `robots.txt` | `public/robots.txt` | Crawler rules |
-| `sitemap.xml` | `public/sitemap.xml` (or generated) | Search-engine discoverability |
+| `robots.txt` | under `public/` | Crawler rules |
+| `sitemap.xml` | under `public/` (or generated) | Search-engine discoverability |
 | JSON-LD structured data | `index.html` `<script type="application/ld+json">` | Rich snippets in Google |
 | `react-helmet-async` | `npm i react-helmet-async` | If meta tags must change per route |
 | Pre-rendering / SSG | Out-of-scope for SPA — migrate to Next.js / Remix / Astro | If SEO is critical for many routes |

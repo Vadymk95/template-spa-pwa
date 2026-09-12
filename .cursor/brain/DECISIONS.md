@@ -162,7 +162,7 @@ test for it contradicted a decision the repo had already taken.
 
 **Conditions** (Pragma + Mini /consilium): budgets in standalone `.size-limit.json` (not `package.json` `"size-limit"` key) for diff isolation. Pre-flight verified zero overlap with `verify:web-vitals-chunks.mjs` (different verification axis).
 
-**Revisit trigger (60-day, 2026-07-23)**: if a fork hits ≥3 false-positive budget bumps from legitimate feature work in 60 days, recalibrate to p75 of fork distribution OR move size-limit to PR-comment-only.
+**Revisit trigger (60-day, 2026-07-23; checked 2026-09-12, no fork data yet, re-armed 2026-12-01)**: if a fork hits ≥3 false-positive budget bumps from legitimate feature work in 60 days, recalibrate to p75 of fork distribution OR move size-limit to PR-comment-only.
 
 ## [2026-05] Playwright SW lifecycle E2E (minimal subset)
 
@@ -175,7 +175,7 @@ test for it contradicted a decision the repo had already taken.
 - `vite:preloadError` recovery flow simulated via stale-chunk SW mock.
 - Update-toast `'prompt'` mode flow (deploy new SW → `needRefresh` fires → toast → user click → `updateServiceWorker(true)` → reload).
 
-**Revisit trigger (60-day, 2026-07-23)**: if a fork experiences SW lifecycle regression that the minimal-subset would have missed (preloadError class, update-toast class), promote deferred tests with explicit flakiness mitigation (`expect.poll` + extended timeout + retry quirk).
+**Revisit trigger (60-day, 2026-07-23; checked 2026-09-12, no fork data yet, re-armed 2026-12-01)**: if a fork experiences SW lifecycle regression that the minimal-subset would have missed (preloadError class, update-toast class), promote deferred tests with explicit flakiness mitigation (`expect.poll` + extended timeout + retry quirk).
 
 ## [2026-05] REJECT list — explicit non-adoption (2026-05-23 /consilium)
 
@@ -184,22 +184,22 @@ test for it contradicted a decision the repo had already taken.
 ### React Compiler enable in template-spa-pwa (VETOED)
 
 **Status**: skip. **Why**: /consilium 2026-05-23 Item 4 (`babel-plugin-react-compiler@1.0.0` + `@rolldown/plugin-babel`) — 1 YES / 3 NO / 1 COND / 1 NO + **Adversarial killer Q VETO** ("Name one Compiler-enabled production app at >100K MAU where #35105 or #35644 reproducers have been ruled out as of 2026-05-23" — unanswerable) + Ergo "wrong tool for the observed surface" (PWA bottleneck is SW + 3-layer MSW×Workbox, NOT render thrash) + Vite team Mar 2026 blog warning Babel-in-Vite eliminates Oxc gains. Open silent-bailout bugs: [facebook/react#35105](https://github.com/facebook/react/issues/35105), [#35644](https://github.com/facebook/react/issues/35644).
-**Revisit (quarterly, 2026-08-23)**: same trigger as sibling template-1 — both bugs closed + named >100K-MAU Compiler-enabled Vite app ruling-out retro + Vite team blesses Babel-Compiler-Vite path. `eslint-plugin-react-hooks@7.1.1` already loaded in `eslint.config.js` — Compiler correctness rules already fire as lint-only signal.
+**Revisit (quarterly, 2026-08-23; checked 2026-09-12: react #35105 and #35644 both still open, hold stands, next 2026-12-01)**: same trigger as sibling template-1 — both bugs closed + named >100K-MAU Compiler-enabled Vite app ruling-out retro + Vite team blesses Babel-Compiler-Vite path. `eslint-plugin-react-hooks@7.1.1` already loaded in `eslint.config.js` — Compiler correctness rules already fire as lint-only signal.
 
 ### LHCI bump `numberOfRuns: 1 → 3` + multi-route + mobile preset (REJECTED on cost cascade)
 
 **Status**: skip. **Why**: /consilium 2026-05-23 Item 8 — 3 YES / 3 NO (Mini+Ergo+Econ trifecta). Econ math: 4 URLs × 3 runs × 2 form factors = 24 Lighthouse runs × ~30-60s = 12-24 min per `ci:local` (vs current 30-60s). Ergo: "tripling Lighthouse time in already-long `ci:local` makes the gate skip-tempt, which destroys all gate value." Note: web.dev officially says single-run assertions are flaky AND default `numberOfRuns: 3` median is correct — but nodejs.org production also uses `numberOfRuns: 1` (outlier). Cost cascade wins over theoretical correctness for solo-author forkable template context.
-**Revisit (60-day, 2026-07-23)**: if `ci:local` becomes mandatory pre-push gate AND consumer fork observes perf regression that 1-run missed in 30 days, re-evaluate scoped to 3 runs × 1 URL × desktop only (no mobile, no multi-route).
+**Revisit (60-day, 2026-07-23; checked 2026-09-12, `ci:local` is not a pre-push gate, re-armed 2026-12-01)**: if `ci:local` becomes mandatory pre-push gate AND consumer fork observes perf regression that 1-run missed in 30 days, re-evaluate scoped to 3 runs × 1 URL × desktop only (no mobile, no multi-route).
 
 ### React Doctor `lint-staged --staged --fail-on warning` PR-gate (REJECTED)
 
 **Status**: skip. **Why**: /consilium 2026-05-23 Item 1 — 0 YES / 4 NO / 2 COND. Pragma+Mini gang-of-two NO + Ergo category error + Adversarial flagged [typicode/husky#1462](https://github.com/typicode/husky/issues/1462) Windows-path issues.
-**Revisit (60-day, 2026-07-23)**: same as sibling templates — React Doctor 1.0 ship + dated bug Doctor would have caught.
+**Revisit (60-day, 2026-07-23; checked 2026-09-12: react-doctor 0.9.14, no 1.0, re-armed 2026-12-01)**: same as sibling templates — React Doctor 1.0 ship + dated bug Doctor would have caught.
 
 ### memlab (Meta heap-snapshot leak detector)
 
 **Status**: skip by default. **Why**: 158K weekly DLs (May 2026), ZERO published GitHub releases, 0 of 8 React Doctor leaderboard flagship repos use in CI.
-**Revisit (90-day, 2026-08-23)**: memlab v2.0+ formal releases + ≥1 named React app at >10K MAU memlab-CI case study.
+**Revisit (90-day, 2026-08-23; checked 2026-09-12: still zero GitHub releases, re-armed 2026-12-01)**: memlab v2.0+ formal releases + ≥1 named React app at >10K MAU memlab-CI case study.
 
 ### why-did-you-render (WDYR)
 
@@ -235,7 +235,7 @@ the plugin peers still cap below 10, but three `overrides` entries resolve that 
 
 `typescript-eslint@8.59`, `eslint-plugin-import-x@4.16`, `eslint-plugin-react-hooks@7.1`, `eslint-plugin-react-refresh@0.5`, `eslint-plugin-prettier@5.5`, `eslint-plugin-oxlint@1.63+` — all declare ESLint 10 support already. Holding back on the two laggers prevents `--legacy-peer-deps` lying to npm about resolution AND prevents runtime crashes from removed-API calls.
 
-**Revisit when**: monthly review starting 2026-07-01 (1-month buffer pre-9.x-EOL 2026-08-06). Either (a) `eslint-plugin-react` ships a release widening peer to include `^10`, OR (b) `eslint-plugin-jsx-a11y@7.x` ships, OR (c) we adopt community forks (see Plan B below).
+**Closed 2026-09-12** (superseded, ESLint 10 is installed; the monthly review planned from 2026-07-01 no longer applies). The exit conditions were: either (a) `eslint-plugin-react` ships a release widening peer to include `^10`, OR (b) `eslint-plugin-jsx-a11y@7.x` ships, OR (c) we adopt community forks (see Plan B below).
 
 **Plan B — community forks** (if upstream still blocked by 2026-07-01):
 

@@ -150,6 +150,8 @@ test for it contradicted a decision the repo had already taken.
 
 **Decision**: add `size-limit@^12.1.0` + `@size-limit/preset-app@^12.1.0` devDeps + `npm run size:check` script + `.size-limit.json` config with per-chunk brotli budgets. Wired into `ci:local` AFTER `verify:web-vitals-chunks` and BEFORE `perf:ci` (LHCI) — size-limit asserts byte budgets first, LHCI asserts runtime perf. Per /consilium 2026-05-23 APPLY Item 6 (5/6 YES, 1 COND satisfied via pre-flight overlap check).
 
+**2026-09-13**: `@size-limit/preset-app` replaced by `@size-limit/file`. The running-time plugin (`@size-limit/time` → `estimo` → `puppeteer-core`) measured nothing any budget used and cost 15–19 s per CI run (sizes identical without it); `estimo` left the tree and its override went with it; `puppeteer-core` stays (through `@lhci/cli` → `lighthouse`), so the `@puppeteer/browsers` override that closes the `extract-zip` advisories stays too.
+
 **Why**: `scripts/check-web-vitals-chunks.mjs` asserts chunk _composition_ (subscribeStandard vs subscribeAttribution), NOT chunk _size_. `lighthouserc.json` `total-byte-weight` is total page weight (warn-only ≤800 KB), NOT per-chunk. `chunkSizeWarningLimit: 600` (KB raw) in `vite.config.ts` is Vite _warning_, not CI fail. No per-vendor-chunk byte-budget gate currently exists. `size-limit` 868K weekly DLs ~10× over `bundlesize` (May 2026 npm registry direct).
 
 **Initial budgets (brotli)** — matched to template-1 for symmetry; recalibrate per fork. PWA-specific: SW (`dist/sw.js`) and workbox runtime (`dist/workbox-*.js`) NOT budgeted — vite-plugin-pwa owns their size; budget would brittlely chase workbox patch bumps.

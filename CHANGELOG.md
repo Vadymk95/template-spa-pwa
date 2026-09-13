@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.2.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.0...v3.2.1) (2026-09-13)
+
+
+### Bug fixes
+
+* **gate:** give the push budget a recency window so it can recover ([6d5eb4a](https://github.com/Vadymk95/template-spa-pwa/commit/6d5eb4a3477685160a02d27767a78074245dbb0f))
+* **gate:** let release-please own the changelog format instead of the checker ([669b361](https://github.com/Vadymk95/template-spa-pwa/commit/669b361916ca636fc10dadc0b330fe84dc8815d8))
+* **gate:** make eslint blind to an agent worktree inside the repository ([0a89774](https://github.com/Vadymk95/template-spa-pwa/commit/0a897744ca44f4b1de0e146756b1bac4247aba3e))
+* **gate:** the push budget calibrates to the machine it runs on, not to mine ([#50](https://github.com/Vadymk95/template-spa-pwa/issues/50)) ([26d1679](https://github.com/Vadymk95/template-spa-pwa/commit/26d16791e53c0b9a3ee2f4806585c152e8bf5848))
+
+
+### Documentation
+
+* **agents:** say what a fork does NOT inherit, because settings do not travel ([#51](https://github.com/Vadymk95/template-spa-pwa/issues/51)) ([e9a267d](https://github.com/Vadymk95/template-spa-pwa/commit/e9a267dc3fcaf4bf4fece6fd5b48aea5e302841e))
+
+
+### CI
+
+* **deps:** bump googleapis/release-please-action in the actions group ([#49](https://github.com/Vadymk95/template-spa-pwa/issues/49)) ([652006d](https://github.com/Vadymk95/template-spa-pwa/commit/652006df4f2f96800426cac58d9059b02a785a19))
+
 ## [3.2.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.1.0...v3.2.0) (2026-09-13)
 
 

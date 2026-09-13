@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.1...v3.2.2) (2026-09-13)
+
+
+### Bug fixes
+
+* **ci:** a fork that renames its default branch no longer loses CI and protection ([#52](https://github.com/Vadymk95/template-spa-pwa/issues/52)) ([f2534c1](https://github.com/Vadymk95/template-spa-pwa/commit/f2534c11ec6e7c524b9032c2812784e4053eee7c))
+
 ## [3.2.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.0...v3.2.1) (2026-09-13)
 
 

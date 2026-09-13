@@ -5,6 +5,10 @@ on:
         branches: [master]
     push:
         branches: [master]
+    # One COLD run a week: the lint caches below are skipped on this event, so a finding a cache
+    # could have suppressed surfaces within seven days at most.
+    schedule:
+        - cron: '30 6 * * 2'
 
 permissions:
     contents: read
@@ -50,6 +54,21 @@ jobs:
 
             - name: Install dependencies
               run: npm ci --ignore-scripts
+
+            # MEASUREMENT (consilium 2026-09-12, item 5): restore the eslint and prettier caches, keyed on
+            # the lockfile plus every config they read. `--cache-strategy content` in package.json makes the
+            # entries valid across checkouts (mtimes differ on every runner). Kept only if the job gets
+            # more than 20 s faster; skipped on the weekly scheduled run so one cold gate a week stays.
+            - name: Restore lint caches (skipped on the weekly cold run)
+              if: github.event_name != 'schedule'
+              uses: actions/cache@v6
+              with:
+                  path: |
+                      .eslintcache
+                      .prettiercache
+                  key: lint-${{ runner.os }}-${{ hashFiles('package-lock.json', 'eslint.config.js', '.oxlintrc.json', '.prettierrc.json', '.prettierignore', 'tsconfig*.json') }}-${{ github.sha }}
+                  restore-keys: |
+                      lint-${{ runner.os }}-${{ hashFiles('package-lock.json', 'eslint.config.js', '.oxlintrc.json', '.prettierrc.json', '.prettierignore', 'tsconfig*.json') }}-
 
             # Keyed on the lock file, so a @playwright/test bump invalidates the
             # cache and scripts/ensure-playwright.mjs (inside the gate) reinstalls

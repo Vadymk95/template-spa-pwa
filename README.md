@@ -600,7 +600,7 @@ Phase highlights:
 - **Phase 7 — PWA extras.** Maskable icon, screenshots, shortcuts, share_target, push notifications.
 - **Phase 8 — Deployment hardening.** Cache-policy contract per host; CSP nonces; HSTS.
 - **Phase 10 — Scale-out.** FSD architecture, monorepo, micro-frontends, migration to Next.js / Remix.
-- **Tool-by-tool alternatives** (auth providers, error monitoring, analytics, flags, data tables, deployment): [`.cursor/docs/enterprise-upgrade.md`](.cursor/docs/enterprise-upgrade.md).
+- **Tool-by-tool alternatives** (auth providers, backend, error monitoring, analytics, flags, tables, deployment hosts): the option tables inside [`.cursor/brain/EXTENSIONS.md`](.cursor/brain/EXTENSIONS.md), phase by phase.
 
 Brain docs ([`PROJECT_CONTEXT.md`](./.cursor/brain/PROJECT_CONTEXT.md), [`MAP.md`](./.cursor/brain/MAP.md), [`SKELETONS.md`](./.cursor/brain/SKELETONS.md), [`PWA.md`](./.cursor/brain/PWA.md), [`TEMPLATE_SEEDS.md`](./.cursor/brain/TEMPLATE_SEEDS.md)) stay the source of truth for stack, danger zones, and patterns — `EXTENSIONS.md` is the cross-cutting graduation checklist that points at them.
 

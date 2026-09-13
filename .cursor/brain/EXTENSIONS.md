@@ -4,6 +4,8 @@ This file is the **single source of truth** for "what to add when forking this t
 
 Companion docs: [`PWA.md`](./PWA.md) (PWA-specific extras live there, not here), [`TEMPLATE_SEEDS.md`](./TEMPLATE_SEEDS.md) (seeds that graduate at each phase), [`SKELETONS.md`](./SKELETONS.md) (danger zones to keep in mind), [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) (the stack you're extending).
 
+**Priority order when the fork becomes a real product** (the phases below are the detail): auth on the shipped `ProtectedRoute` + `userStore` (Phase 2) → error monitoring into `ErrorBoundary` + `logger.ts` (Phase 4) → Playwright specs for the critical flows (login → redirect → logout, the core journey, error states; the suite and the gate already exist) → analytics (Phase 4) → feature flags once real users see releases (Phase 4) → Storybook when the team grows past two (Phase 9) → data tables when an admin view appears (Phase 9).
+
 ---
 
 ## Phase 0 — Cosmetics & identity (before first deploy)
@@ -131,7 +133,7 @@ Document the choice in `.cursor/brain/PROJECT_CONTEXT.md` if it changes — sile
 
 ---
 
-## Phase 4 — Error monitoring + analytics + observability
+## Phase 4 — Error monitoring, analytics, feature flags
 
 Template wires **`web-vitals`** reporting (`src/lib/vitals.ts`) with optional attribution chunk gated by `VITE_WEB_VITALS_ATTRIBUTION`. `ErrorBoundary` calls `logger.error` with structured context. Bring your own transport.
 
@@ -152,6 +154,17 @@ Template wires **`web-vitals`** reporting (`src/lib/vitals.ts`) with optional at
 | **PostHog** | Product analytics + feature flags + session replays | SaaS, B2B |
 | **GA4** | Free, ubiquitous, Google ecosystem | Consumer, ads-driven |
 | **Vercel / Netlify Analytics** | Zero-config if hosted there | Quick wins |
+
+### Feature flags (when shipping to real users)
+
+Flags buy trunk-based development, gradual rollouts and kill switches; add them at the first release real users can see, not before.
+
+| Option | Strengths | When to pick |
+|---|---|---|
+| **PostHog flags** | Same SDK as the analytics above; no second vendor | If Phase 4 chose PostHog |
+| **GrowthBook / Unleash** | Open source, self-hostable, React SDKs | Privacy-strict or on-prem |
+| **LaunchDarkly** | Industry standard; best tooling; expensive | Enterprise with a budget |
+| **Vercel Flags** | Edge-evaluated, zero infra | If deployed on Vercel |
 
 ### What to wire
 

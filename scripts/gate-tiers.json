@@ -1,7 +1,7 @@
 {
     "_description": "The gate discipline as data. scripts/trace-report.mjs reads this instead of hardcoding stage names; scripts/verify-push.mjs reads `phase`. Editing THIS file is how the discipline changes; the analyser names no stage. Docs: .cursor/brain/VERIFICATION.md (phases + triggers).",
     "phase": 0,
-    "_phaseMeaning": "0 = scaffold (pre-deploy): the push gate runs audit + hooks + oxlint + format + types + lint + coverage and SKIPS build/pwa/web-vitals-chunks/size/e2e — there is no prod boundary to guard before the first deploy. 1 = deployed: the push gate runs the full verify:ci chain. Flip with a one-line commit at the FIRST DEPLOY; GATE_PHASE=full overrides per run (template maintainers push gate machinery with it).",
+    "_phaseMeaning": "0 = scaffold (pre-deploy): the push gate runs audit + hooks + oxlint + format + types + lint + coverage and SKIPS build/pwa/web-vitals-chunks/size/e2e \u2014 there is no prod boundary to guard before the first deploy. 1 = deployed: the push gate runs the full verify:ci chain. Flip with a one-line commit at the FIRST DEPLOY; GATE_PHASE=full overrides per run (template maintainers push gate machinery with it).",
     "checks": {
         "verify:iter": {
             "class": "code",
@@ -97,7 +97,7 @@
         }
     },
     "suites": {
-        "_description": "Ceilings on the browser suite. It is counted in INVARIANTS, not screens (AGENTS.md § the gate): a route earns a browser test only when it brings an invariant the existing specs do not measure. A suite over its ceiling is a finding, and so is a ceiling more than twice the measurement — that high it flags nothing. Raise a number on a measurement plus a DECISIONS.md line, like a size budget.",
+        "_description": "Ceilings on the browser suite. It is counted in INVARIANTS, not screens (AGENTS.md \u00a7 the gate): a route earns a browser test only when it brings an invariant the existing specs do not measure. A suite over its ceiling is a finding, and so is a ceiling more than twice the measurement \u2014 that high it flags nothing. Raise a number on a measurement plus a DECISIONS.md line, like a size budget.",
         "e2e": {
             "dir": "e2e",
             "match": "\\.spec\\.ts$",
@@ -154,7 +154,9 @@
             },
             "_budgetMeasured": "2026-09-13, p90 from .gate-trace.log: phase 0 25s ceiling, phase 1 45s ceiling, phase full 45s ceiling",
             "runsRegardlessOfDiff": true,
-            "requiresMainCheckout": true
+            "requiresMainCheckout": true,
+            "budgetWindow": 20,
+            "_budgetWindow": "p90 is taken over the last 20 successful runs in the phase, not over the whole log. Without a window one bad day poisons the number until enough good runs dilute it, and the tempting fix is then to raise the budget - which is exactly what a budget exists to prevent. 20 is long enough that one slow run does not swing it and short enough that the number describes the current regime."
         }
     }
 }

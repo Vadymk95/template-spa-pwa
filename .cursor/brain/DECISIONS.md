@@ -166,6 +166,8 @@ test for it contradicted a decision the repo had already taken.
 
 **Revisit trigger (60-day, 2026-07-23; checked 2026-09-12, no fork data yet, re-armed 2026-12-01)**: if a fork hits ≥3 false-positive budget bumps from legitimate feature work in 60 days, recalibrate to p75 of fork distribution OR move size-limit to PR-comment-only.
 
+**Re-measured 2026-09-13**: the `index entry` budget 26 → 28 KB. The in-range update took `zod` 4.5.4 → 4.6.4, which alone grew the entry chunk by ~1.5 kB brotli (bisected: pinning zod back restored the old size; react-hook-form, tailwind-merge, vite and lucide changed nothing). No app code changed; measured 26.56 kB against the 26 KB budget, so the number moves once with the cause named, not the rule.
+
 ## [2026-05] Playwright SW lifecycle E2E (minimal subset)
 
 **Decision**: add `e2e/sw-lifecycle.spec.ts` with 3 assertions — (a) SW registers and reaches `activated` state, (b) `/manifest.webmanifest` returns 200 with `application/manifest+json` or `application/json` MIME + valid shape, (c) icons (`192x192`, `512x512`, `apple-touch-icon`) return 200 + `image/png`. Per /consilium 2026-05-23 APPLY Item 9 (5/6 YES, 1 COND mitigated via minimal subset). **Skipped in dev mode** (`PLAYWRIGHT_USE_PREVIEW=1` required — vite-plugin-pwa `devOptions.enabled: false`).

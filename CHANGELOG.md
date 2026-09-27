@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.3](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.2...v3.2.3) (2026-09-27)
+
+
+### Maintenance
+
+* **deps:** bump the development-dependencies group with 12 updates ([#56](https://github.com/Vadymk95/template-spa-pwa/issues/56)) ([7b8018f](https://github.com/Vadymk95/template-spa-pwa/commit/7b8018f45fe860ddfebc4870f648e5fd92e31b25))
+* **deps:** bump the production-dependencies group across 1 directory with 6 updates ([#55](https://github.com/Vadymk95/template-spa-pwa/issues/55)) ([17b36f2](https://github.com/Vadymk95/template-spa-pwa/commit/17b36f2b4fac4f2861831fc2227e191c80621173))
+
 ## [3.2.2](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.1...v3.2.2) (2026-09-13)
 
 

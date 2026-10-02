@@ -1,5 +1,21 @@
 # Architectural Decisions
 
+## [2026-10] `brace-expansion` floor raised; `basic-ftp` closed with a new floor (2026-10-02)
+
+**`brace-expansion` floor raised, same entry, same cap.** `"brace-expansion": ">=5.0.9 <6"` aged into
+three new high advisories published after it was written: `GHSA-q2hr-2g5m-vwhr` (quadratic-time
+`{a},b}` expansion, fixed 5.0.12), `GHSA-qhr7-859c-m2p7` (unbounded recursion on nested brace groups,
+fixed 5.0.11), `GHSA-6j4f-fj2g-mc7p` (unbounded recursion in `parseCommaParts`, fixed 5.0.10). Raised
+to `">=5.0.12 <6"`, which clears all three.
+
+**`basic-ftp` closed with a new root floor, `">=6.2.1 <7"`.** `GHSA-c475-qrg2-pj4r` (quadratic-time
+`RE_LINE` backtracking in `Client.list()`'s Unix directory-listing parser, fixed 6.2.1) reaches this
+tree only via `@lhci/cli → proxy-agent → pac-proxy-agent → get-uri`, which pins `basic-ftp@^5.3.1`.
+6.2.1 is a major past `^5.3.1`'s range but still inside the override's own cap (`<7`), so the floor
+forces the fix without touching `get-uri`'s declared range. `npm audit --audit-level=high` and
+`audit:gate` both report zero high/critical afterward (1 low / 2 moderate remain, pre-existing
+`fast-uri`/`ip-address`/`serialize-javascript`, untouched).
+
 ## [2026-10] Playwright `maxFailures: 10` on the gate run and in CI
 
 **Decision**: `playwright.config.ts` caps `maxFailures` at 10 when `usePreview` is true (CI or

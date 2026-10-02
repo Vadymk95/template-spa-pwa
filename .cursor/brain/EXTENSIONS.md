@@ -365,7 +365,7 @@ pnpm run ci:local
 - **`.github/workflows/*.yml`**:
     - Replace `npm ci --ignore-scripts` with `pnpm install --frozen-lockfile --ignore-scripts`.
     - Replace `cache: 'npm'` in `actions/setup-node` with a separate `pnpm/action-setup@v3` step before setup-node, then `cache: 'pnpm'`.
-- **`.husky/_/`**: husky regenerates on `pnpm prepare`; should work transparently.
+- **Husky's generated helper directory** (gitignored, created by its install hook, not present in a fresh checkout): regenerates on `pnpm prepare`; should work transparently.
 - **README**: update Quick Start commands; note `corepack enable` prerequisite.
 - **CLAUDE.md / `.cursor/brain/PROJECT_CONTEXT.md`**: replace `npm run X` with `pnpm X` in examples.
 

@@ -14,7 +14,7 @@ Production-ready React 19 + Vite 8 (Rolldown) PWA template — vite-plugin-pwa (
 
 ## Stack
 
-React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 5 · vite-plugin-pwa 1.x (Workbox, generateSW + prompt-mode)
+React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 4.1 · vite-plugin-pwa 1.x (Workbox, generateSW + prompt-mode)
 
 ## Critical rules
 
@@ -253,6 +253,7 @@ The gate is **zero-warnings**: `eslint --max-warnings 0`, `oxlint --deny-warning
 - **`oxlint` tilde-tracks `eslint-plugin-oxlint`** — lockstep releases; the plugin pins `~<its version>`.
 - **`@types/node` stays 24.x** — types match `engines.node >= 24`, not the newest Node.
 - **`overrides` in `package.json` are security floors WITH major caps** (`>=fixed <next-major`; qs, serialize-javascript, tmp, uuid, ws) — do not remove them to quiet npm, and never write an uncapped floor: two of our own (`brace-expansion`, `fast-uri`) aged into their advisories' vulnerable ranges and turned the audit gate red. An uncapped floor is a delayed regression — see `DECISIONS.md`.
+- **`vitest` and `@vitest/coverage-v8` stay `^4.1.x` in this repo** — under vitest 5.0.0 the Stryker vitest runner scores near-zero mutation strength here, so `dependabot.yml` ignores `vitest >=5`. Lift trigger and the measured numbers: `DECISIONS.md` § "[2026-10] Test toolchain hold: vitest 5".
 
 ## Machine-agnostic configs
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## [3.3.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.3...v3.3.0) (2026-10-02)
+
+
+### Features
+
+* **agents:** committed limits deny force pushes, skipped hooks and env reads in every mode ([2bb9b58](https://github.com/Vadymk95/template-spa-pwa/commit/2bb9b5811a146dd8951c5930c7d8a1c001132b62))
+
+
+### Bug fixes
+
+* **deps:** raise the brace-expansion floor and floor basic-ftp past new high advisories ([348e8b5](https://github.com/Vadymk95/template-spa-pwa/commit/348e8b57e388978270c2bc55a00aade7b228ee5a))
+* **test:** hold vitest at 4.1 until the Stryker runner kills mutants under vitest 5 ([1919370](https://github.com/Vadymk95/template-spa-pwa/commit/1919370d5a2bcffec6fc6ba17e520e0c7eea5e58))
+
+
+### Maintenance
+
+* **deps:** bump the minor-and-patch group across 1 directory with 10 updates ([#63](https://github.com/Vadymk95/template-spa-pwa/issues/63)) ([39d6cca](https://github.com/Vadymk95/template-spa-pwa/commit/39d6ccafbd3bba245410951b047a6da421467f0f))
+* **gate:** cap e2e failures on the gate run and keep one last-run record per suite ([a12c2db](https://github.com/Vadymk95/template-spa-pwa/commit/a12c2dbf9cb0dbab37c7ffab5537da33bb3dfd98))
+
+
+### Documentation
+
+* **brain:** describe husky's generated helper directory without a path in the tree ([59814ec](https://github.com/Vadymk95/template-spa-pwa/commit/59814ec2de788cbd3fd6518eda1bbf3394007bc0))
+
+
+### CI
+
+* **deps:** one weekly Dependabot PR for minor and patch, so the lock file stops conflicting ([a159fd6](https://github.com/Vadymk95/template-spa-pwa/commit/a159fd65ce4c4d98e97a39fd705bbcf7cd1d6146))
+* **release:** release-please prefers a RELEASE_PLEASE_TOKEN secret when one is set ([77fa15e](https://github.com/Vadymk95/template-spa-pwa/commit/77fa15e37e743673c7e61efb82223048c58ebbb3))
+
 ## [3.2.3](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.2...v3.2.3) (2026-09-27)
 
 

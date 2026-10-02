@@ -1,5 +1,40 @@
 # Architectural Decisions
 
+## [2026-10] Test toolchain hold: vitest 5 (2026-10-02)
+
+**Decision**: hold `vitest` and `@vitest/coverage-v8` back at `^4.1.11`, matching the sibling
+`template-next-seo`, because the weekly `mutation.yml` job went red three times running under vitest
+5 — 2026-09-14, 2026-09-21 and 2026-09-28 — scoring 9.48 against `thresholds.break` 40, with files
+fully covered by tests scoring 0. The 2026-09-06 move to vitest 5 (§ "[2026-09] Test toolchain
+majors" below) had measured 42.93 on the same pair and read it as a pass; that measurement is now
+understood to have been invalid. Re-measured here on the unchanged vitest-5 tree with Stryker's
+local incremental cache deleted first (`reports/stryker-incremental.json`, gitignored, never present
+in CI's fresh checkout): **9.61**, matching the weekly job's 9.48 within normal run-to-run variance.
+With the incremental file left in place, the same tree scored 39.70 — just under the floor, close
+enough to the September figure that reusing a stale incremental report, carried over from before the
+vitest-5 move, is the likely cause of the September measurement rather than a real pass. The lesson:
+a mutation score measured with an incremental report present never represents what CI's fresh
+checkout will score.
+
+**After the hold** (`vitest@4.1.11`, `@vitest/coverage-v8@4.1.11`, `@stryker-mutator/core` and
+`@stryker-mutator/vitest-runner` unchanged at `10.0.0`, fresh run, no incremental file): **44.50**,
+above the unchanged `thresholds.break` floor of 40. The unit suite (`npm run test:coverage`) needed
+no changes to pass under vitest 4.1 — 352/352 tests green, coverage 78.6 / 68.18 / 74.19 / 79.06
+against the 65 / 48 / 60 / 65 floor; `scripts/probe.test.mjs`'s `vi.stubGlobal` usage and the
+glob-form `coverage.exclude` entries (both added for vitest 5) hold on 4.1 too.
+
+**Why hold vitest rather than ship a red weekly job**: a strength gate that cannot fail is worse than
+a test runner one minor behind — it teaches everyone to ignore the job. So vitest and
+`@vitest/coverage-v8` stay `^4.1.11` here, `.github/dependabot.yml` ignores `vitest >=5` and
+`@vitest/coverage-v8 >=5` with this reason, and the hold is listed under "Version holds" in
+`AGENTS.md`. **Lift trigger** (checked 2026-10-02: latest `@stryker-mutator/vitest-runner` is
+10.0.0, dated 2026-08-14, hold stands): a `@stryker-mutator/vitest-runner` release dated after
+2026-08-14, then `npm install -D vitest@5 @vitest/coverage-v8@5` and a one-file probe (for example
+`stryker run --mutate src/store/user/userStore.ts`, deleting the incremental file first) — take
+vitest 5 when the probe kills mutants again, in the same commit that drops the Dependabot ignore.
+
+---
+
 ## [2026-10] `brace-expansion` floor raised; `basic-ftp` closed with a new floor (2026-10-02)
 
 **`brace-expansion` floor raised, same entry, same cap.** `"brace-expansion": ">=5.0.9 <6"` aged into

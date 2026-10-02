@@ -33,6 +33,13 @@ updates:
       #
       # @types/node: aligned with `engines.node >=24` (Node 24 LTS), not the newest
       # type defs. Re-evaluate when `engines.node` bumps.
+      #
+      # vitest / @vitest/coverage-v8: under vitest 5.0.0 the Stryker vitest runner
+      # (10.0.0, 2026-08-14) scored near-zero mutation strength in this repo, so
+      # the weekly mutation gate could not fail; on 4.1.11 it scores 44.50. Lift
+      # together with a runner release dated after 2026-08-14 that passes the
+      # one-file probe in .cursor/brain/DECISIONS.md § "[2026-10] Test toolchain
+      # hold: vitest 5".
       ignore:
           - dependency-name: typescript
             versions: ['>=6.1']
@@ -42,6 +49,10 @@ updates:
             versions: ['>=11']
           - dependency-name: '@types/node'
             versions: ['>=25']
+          - dependency-name: vitest
+            versions: ['>=5']
+          - dependency-name: '@vitest/coverage-v8'
+            versions: ['>=5']
 
     - package-ecosystem: github-actions
       directory: '/'

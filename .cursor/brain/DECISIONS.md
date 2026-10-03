@@ -1,5 +1,64 @@
 # Architectural Decisions
 
+## [2026-10] guard audit fixes
+
+An audit sabotaged 73 guards in the sibling `template-1` and 53 caught the injected defect; the
+same holes exist here and close the same way (same mechanism, same evidence shape).
+
+**F1 — `docs:check` flags a CI step that bypasses the gate.** New check derives every `run:` step
+in a PR-triggered workflow — a single line or every non-empty line inside a `run: |`/`run: >`
+block scalar, each reported at its OWN line — and compares it against `gate-tiers.json` §
+`ci.allowedRunSteps`; anything else names the file:line and asks for it to move into `verify` or
+be listed with a reason. Replays the 2026-07-28 "gate lied" class (`fb36cde` in `template-1`): an
+unlisted `npm run lint:extra` step, both on its own and inside a block scalar alongside an allowed
+line, turned `docs:check` red on exactly that line; the current workflows measure clean. (Review
+finding R1, 2026-10-03: the first cut skipped block scalars outright, the most common way to write
+a multi-line step. Fixed by reading the block's own lines instead of skipping them.)
+
+**F2 — `docs:check` flags a ruleset context no workflow produces.** New check derives each job's
+required-status-check name (its `name:` or id, plus matrix values from an inline `[a, b]` list or
+a block `- value` list) from every workflow and compares it against `.github/ruleset.json`'s
+`required_status_checks`; a mismatch names the file:line and asks for the job to be renamed back
+or the context listed in `ci.rulesetContextAllowlist` with a reason. A job whose exact context
+GitHub renders only at runtime (a matrix `include:`/`exclude:` key, or a `name:` carrying a
+`${{ }}` expression) prints one loud, non-failing line instead, and only ruleset contexts starting
+with that job's static base name are exempted from the strict comparison — every other context
+still has to resolve exactly. Reproduces the class `6e47f3d` (#70) fixed: renaming the
+`cross-browser` job turned `docs:check` red; all five current contexts resolve to a real job and
+none is a block-list or `include`/`exclude` matrix or an expression name, so the exemption never
+fires on real data. (Review finding R2, 2026-10-03: the first cut read only an inline matrix and
+had no notion of either undecidable shape, so a fork using either got a false red no allowlist
+entry could fix.)
+
+**F3 — a total-JS size budget.** `.size-limit.json` budgeted only 5 named chunks, so a dynamically
+imported chunk under a different name shipped unseen. Measured total `dist/assets/*.js` (brotli)
+2026-10-03: 169.54 kB. Budget set to 187 kB (measured +10%, rounded up). Reproduced the historical
+defect: dropping the `import.meta.env.DEV &&` gate in `main.tsx` shipped a 409.60 kB
+(72.93 kB brotli) MSW chunk with the 5 old named entries still green and the new total-JS entry
+red ("exceeded by 57.38 kB"); reverting the gate brought the total back to 169.54 kB, green.
+
+**F4 — `scrollbar-gutter: stable` guard.** One assertion added inside the existing
+`e2e/layout-geometry.spec.ts` (not a new `test()`): computed `scrollbar-gutter` on `<html>` is
+`stable`. Red with the rule removed from `src/index.css`; green with it restored.
+
+**F5 — `App` error-boundary wiring.** `src/App.test.tsx` renders the real `App` behind a memory
+router with a throwing child route and asserts the fallback (`role="alert"`) renders (the
+`PwaUpdateToast` sibling, deliberately outside the boundary, is mocked via
+`virtual:pwa-register/react`, the same way `usePwaUpdateToast.test.ts` already does). Red with
+`<ErrorBoundary>` removed from `App.tsx`; green restored.
+
+**F6 — `safeFetch` contract test.** `src/lib/api/safeFetch.test.ts` covers: valid data returns
+parsed; a schema mismatch throws `SchemaValidationError`; a non-2xx response throws a plain
+`Error` carrying the status; `safeFetchQueryFn` re-throws `AbortError` unchanged. Red when the
+schema-mismatch throw was replaced with `return raw`; green restored.
+
+**F7 — dead `cross-fetch` shim removed.** `npm ls cross-fetch` is empty, and
+`i18next-http-backend`'s own 4.0.2 changelog says v4 dropped the `cross-fetch` ponyfill it used to
+bundle. Removed the `vite.config.ts` alias and the shim file, plus every reference the mutation
+gate's own drift check (`scripts/mutation-scope.test.mjs`) surfaced once the file was gone: the
+`!src/lib/cross-fetch-native.ts` mutate-negation in `stryker.config.json` and the matching
+`coverage.exclude` entry in `vitest.config.ts`. `npm run verify:measure` still builds clean.
+
 ## [2026-10] Test toolchain hold: vitest 5 (2026-10-02)
 
 **Decision**: hold `vitest` and `@vitest/coverage-v8` back at `^4.1.11`, matching the sibling

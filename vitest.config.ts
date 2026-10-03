@@ -39,8 +39,6 @@ export default mergeConfig(
                     'src/lib/pwa/installPromptCapture.ts',
                     // DEV-only MSW worker setup; never reaches prod.
                     'src/mocks/**',
-                    // 5-line cross-fetch shim, no branching logic.
-                    'src/lib/cross-fetch-native.ts',
                     '**/*.d.ts',
                     '**/*.config.{ts,js}'
                 ],

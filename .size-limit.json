@@ -28,5 +28,11 @@
         "path": "dist/assets/index.*.js",
         "limit": "28 KB",
         "brotli": true
+    },
+    {
+        "name": "total JS (brotli)",
+        "path": "dist/assets/*.js",
+        "limit": "187 KB",
+        "brotli": true
     }
 ]

@@ -40,8 +40,9 @@ const flagState = (raw: string | undefined, fallback: 'on' | 'off'): string => {
  * mode, and active env flags (MSW, web-vitals attribution). Stays under 8 lines
  * so it doesn't push useful Vite output (URLs, HMR ready) off-screen.
  *
- * Disabled in CI / non-TTY by default to keep logs clean. Set
- * `VITE_DEV_BANNER=false` to silence locally.
+ * Prints unconditionally on `configureServer` — there is no automatic CI or
+ * non-TTY detection; the caller passes `{ disabled: true }` for that. Set
+ * `VITE_DEV_BANNER=false` to silence it locally.
  */
 export const devBanner = (options: BannerOptions = {}): Plugin => {
     return {

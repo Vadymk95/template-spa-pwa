@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { STORAGE_KEYS } from '@/store/keys';
+
 import { useUserStore } from './userStore';
 
 describe('userStore', () => {
@@ -38,5 +40,16 @@ describe('userStore', () => {
         expect(typeof useUserStore.use.token).toBe('function');
         expect(typeof useUserStore.use.setUser).toBe('function');
         expect(typeof useUserStore.use.logout).toBe('function');
+    });
+
+    it('never persists the token to storage (partialize exclusion)', () => {
+        useUserStore.getState().setUser('john.doe', 'jwt-abc');
+
+        const raw = localStorage.getItem(STORAGE_KEYS.USER);
+        expect(raw).not.toBeNull();
+
+        const persisted = JSON.parse(raw!) as { state: Record<string, unknown> };
+        expect(persisted.state).not.toHaveProperty('token');
+        expect(persisted.state).toMatchObject({ isLoggedIn: true, username: 'john.doe' });
     });
 });

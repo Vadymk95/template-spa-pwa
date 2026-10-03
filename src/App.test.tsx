@@ -22,6 +22,8 @@ vi.mock('virtual:pwa-register/react', () => ({
     }))
 }));
 
+const { useRegisterSW } = await import('virtual:pwa-register/react');
+
 describe('App', () => {
     beforeEach(() => {
         // ThemeToggle (rendered inside Header) reads useTheme, which reads matchMedia; jsdom lacks it.
@@ -67,5 +69,46 @@ describe('App', () => {
         expect(screen.getByRole('heading', { name: /something went wrong/i })).toBeInTheDocument();
 
         consoleErrorSpy.mockRestore();
+    });
+
+    it('keeps the PWA update toast visible when a routed child throws', () => {
+        // The toast lives outside ErrorBoundary on purpose (see App.tsx) so a render error
+        // elsewhere never hides the only path to apply a pending update. Moving the toast
+        // inside ErrorBoundary must turn this red.
+        //
+        // `mockReturnValue` (persistent), not `...Once`: this tree re-renders PwaUpdateToast
+        // more than once per commit, and a one-shot value left the trailing render on the
+        // mock's default (false) — restored in `finally` so it doesn't leak to later tests.
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.mocked(useRegisterSW).mockReturnValue({
+            needRefresh: [true, mockSetter],
+            offlineReady: [false, mockSetter],
+            updateServiceWorker: vi.fn()
+        });
+
+        const router = createMemoryRouter(
+            [
+                {
+                    path: '/',
+                    element: <App />,
+                    children: [{ index: true, element: <Bomb /> }]
+                }
+            ],
+            { initialEntries: ['/'] }
+        );
+
+        try {
+            renderWithProviders(<RouterProvider router={router} />);
+
+            expect(screen.getByRole('alert')).toBeInTheDocument();
+            expect(screen.getByRole('status')).toBeInTheDocument();
+        } finally {
+            vi.mocked(useRegisterSW).mockReturnValue({
+                needRefresh: [false, mockSetter],
+                offlineReady: [false, mockSetter],
+                updateServiceWorker: vi.fn()
+            });
+            consoleErrorSpy.mockRestore();
+        }
     });
 });

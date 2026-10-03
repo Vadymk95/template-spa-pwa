@@ -44,7 +44,8 @@ export default defineConfig(({ command }) => ({
             jsxRuntime: 'automatic'
         }),
         // Single-print dev-server banner (project + version + node + vite + mode + flags).
-        // Disabled in CI / non-TTY by default; flip with VITE_DEV_BANNER=false locally.
+        // Prints on every `vite dev` startup; there is no automatic CI or non-TTY
+        // detection — silence it with VITE_DEV_BANNER=false.
         devBanner(),
         // Prevents FOUC by ensuring CSS loads before JavaScript
         htmlOptimize(),

@@ -28,6 +28,9 @@ describe('ProtectedRoute', () => {
 
     afterEach(() => {
         useUserStore.getState().logout();
+        // Restore the flag the hydration-gate test below forces to false, so it
+        // doesn't leak into every other test in this file.
+        useUserStore.getState()._setHasHydrated(true);
     });
 
     it('redirects to /login when not authenticated', () => {
@@ -53,6 +56,20 @@ describe('ProtectedRoute', () => {
         useUserStore.getState().setUser('alice', 'mock-token');
         render(<RouterProvider router={buildRouter('/dashboard')} />);
         expect(screen.getByText('Dashboard')).toBeInTheDocument();
+        expect(screen.queryByText('Login page')).not.toBeInTheDocument();
+    });
+
+    it('renders nothing (not a redirect) while persist has not finished hydrating', () => {
+        // Authenticated, but hydration hasn't been confirmed yet — the race this
+        // guard exists for. Removing the `!hasHydrated` check in ProtectedRoute
+        // would redirect here instead of waiting, turning this red.
+        useUserStore.getState().setUser('alice', 'mock-token');
+        useUserStore.getState()._setHasHydrated(false);
+
+        const { container } = render(<RouterProvider router={buildRouter('/')} />);
+
+        expect(container).toBeEmptyDOMElement();
+        expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
         expect(screen.queryByText('Login page')).not.toBeInTheDocument();
     });
 });

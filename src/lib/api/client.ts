@@ -27,7 +27,7 @@ const API_BASE_URL = env.VITE_API_URL ?? 'http://localhost:3001/api';
  *
  * Returning `false` means the request still fires, but without `Authorization`.
  */
-const isSafeForAuth = (resolvedUrl: URL): boolean => {
+export const isSafeForAuth = (resolvedUrl: URL): boolean => {
     if (typeof window !== 'undefined' && resolvedUrl.origin === window.location.origin) {
         return true;
     }

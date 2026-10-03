@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { useUserStore } from '@/store/user/userStore';
 import { server } from '@/test/server';
 
-import { ApiError, apiClient } from './client';
+import { ApiError, apiClient, isSafeForAuth } from './client';
 
 // `**` prefix so the base URL can vary between local and CI, matching the
 // convention in src/test/handlers.ts.
@@ -99,5 +99,26 @@ describe('apiClient request shape', () => {
         server.use(http.get(PATTERN, () => HttpResponse.json({ value: 42 })));
 
         await expect(apiClient<{ value: number }>(ENDPOINT)).resolves.toEqual({ value: 42 });
+    });
+});
+
+// Cross-origin token-leak guard (see the JSDoc on `isSafeForAuth` in `client.ts`). A stub that
+// `return true`s unconditionally must turn every one of these red except the same-origin case.
+describe('isSafeForAuth', () => {
+    it('allows same-origin requests', () => {
+        expect(isSafeForAuth(new URL(window.location.origin + '/api/probe'))).toBe(true);
+    });
+
+    it('allows https cross-origin requests', () => {
+        expect(isSafeForAuth(new URL('https://api.example.com/probe'))).toBe(true);
+    });
+
+    it('blocks http cross-origin requests to a non-loopback host', () => {
+        expect(isSafeForAuth(new URL('http://api.example.com/probe'))).toBe(false);
+    });
+
+    it('allows http requests to loopback hosts (localhost and 127.0.0.1)', () => {
+        expect(isSafeForAuth(new URL('http://localhost:3001/probe'))).toBe(true);
+        expect(isSafeForAuth(new URL('http://127.0.0.1:3001/probe'))).toBe(true);
     });
 });

@@ -1,5 +1,52 @@
 # Architectural Decisions
 
+## [2026-10] delta audit fixes
+
+A second audit round reproduced four silent holes in template-specific (not shared-harness) code and
+closed each at the cheapest static or unit-test layer, plus three real doc ↔ code contradictions.
+
+**`isSafeForAuth` (cross-origin token-leak guard, `src/lib/api/client.ts`) had zero direct coverage** —
+stubbing it to `return true` left the whole suite green. Exported it (pure function, no behaviour change)
+and added one unit test per branch (same-origin, https cross-origin, http non-loopback blocked, loopback
+http allowed) in `client.test.ts`. Proven: the `return true` stub turns the non-loopback-blocked case red;
+restoring the guard is green. `template-1`'s `client.ts` has no such guard — nothing to port there.
+
+**`ProtectedRoute`'s hydration gate and the `partialize` token exclusion (`src/store/user/userStore.ts`)
+had no regression coverage.** Added: a test that forces `_hasHydrated` false and asserts the route renders
+nothing (not a redirect); a test that reads `localStorage` after `setUser` and asserts the persisted
+snapshot carries no `token` key. Proven: removing the `!hasHydrated` early return turns the first red;
+replacing `partialize` with the identity function turns the second red. `template-1` has neither the
+hydration flag nor a `partialize` exclusion in its own `userStore`/`ProtectedRoute` — nothing to port.
+
+**The PWA update toast's placement outside `ErrorBoundary` (`src/App.tsx`) had no regression coverage** —
+a future refactor moving it inside would ship silently. Added a case to `src/App.test.tsx`: `needRefresh`
+true plus a throwing routed child still shows the toast. Proven: moving `<PwaUpdateToast />` inside
+`<ErrorBoundary>` turns it red (the toast is swallowed by the fallback along with the rest of the tree).
+
+**The a11y spec (`e2e/a11y.spec.ts`) never scanned the one authenticated route (`/dashboard`).** Added a
+fourth, explicit `test()` block (the original three are untouched) that seeds the zustand-persisted auth
+shape directly into `localStorage` before navigation (independent of the MSW-mocked login flow, which is
+DEV-only and absent under `vite preview`/CI). A loop over a route list was tried first and reverted: it
+collapses to one `test(` call site, which undercounts `docs-check.mjs`'s static `TEST_CALL` regex against
+`gate-tiers.json`'s suite ceiling (`suites.e2e.max`) — the ceiling that exists specifically so a fork
+cannot grow an unbounded browser suite unnoticed. Measured: 13 → 14 `test(`/`it(` call sites across
+`e2e/**/*.spec.ts`, against a ceiling of 18 — `docs-check`'s suite-ceiling check stays green. Proven: an
+`<img>` without `alt` on the dashboard turns the new case red (axe `image-alt`, critical); the other three
+routes stay green throughout.
+
+**Doc fixes, no behaviour change:**
+- the dev-banner's "disabled in CI / non-TTY by default" comment (`vite.config.ts`,
+  `vite-plugins/dev-banner.ts`) was never true — the plugin has no CI or TTY detection, only the
+  `VITE_DEV_BANNER=false` opt-out. Reworded to state that.
+- `.env.example` documented `VITE_ENABLE_MSW` as defaulting to off; `main.tsx` actually defaults it ON
+  (`!== 'false'` — any unset or non-`'false'` value enables the worker). Reworded to match the code.
+
+**Cost:** vitest test count 376 → 383 (+7, all unit). The a11y spec gained one accepted new e2e `test()`
+block for a real gap (the dashboard route), not zero — the static suite count across `e2e/**/*.spec.ts`
+moved 13 → 14 `test(`/`it(` call sites against `gate-tiers.json`'s ceiling of 18. `e2e:one` on the
+extended a11y spec: ~2.6s wall (4 explicit tests, chromium only) versus the pre-existing 3-test baseline;
+no change to `layout-geometry.spec.ts`'s own budget.
+
 ## [2026-10] guard audit fixes
 
 An audit sabotaged 73 guards in the sibling `template-1` and 53 caught the injected defect; the

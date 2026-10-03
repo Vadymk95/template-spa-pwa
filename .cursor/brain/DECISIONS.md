@@ -27,7 +27,7 @@ glob-form `coverage.exclude` entries (both added for vitest 5) hold on 4.1 too.
 a test runner one minor behind — it teaches everyone to ignore the job. So vitest and
 `@vitest/coverage-v8` stay `^4.1.11` here, `.github/dependabot.yml` ignores `vitest >=5` and
 `@vitest/coverage-v8 >=5` with this reason, and the hold is listed under "Version holds" in
-`AGENTS.md`. **Lift trigger** (checked 2026-10-02: latest `@stryker-mutator/vitest-runner` is
+`AGENTS.md`. **Lift trigger** (checked 2026-10-02, next check 2026-11-02: latest `@stryker-mutator/vitest-runner` is
 10.0.0, dated 2026-08-14, hold stands): a `@stryker-mutator/vitest-runner` release dated after
 2026-08-14, then `npm install -D vitest@5 @vitest/coverage-v8@5` and a one-file probe (for example
 `stryker run --mutate src/store/user/userStore.ts`, deleting the incremental file first) — take

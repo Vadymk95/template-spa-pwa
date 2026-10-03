@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.3.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.0...v3.3.1) (2026-10-03)
+
+
+### Bug fixes
+
+* **gate:** close audit holes - CI steps, ruleset, size, boundary, safeFetch, shim ([#66](https://github.com/Vadymk95/template-spa-pwa/issues/66)) ([6e44134](https://github.com/Vadymk95/template-spa-pwa/commit/6e4413460bf3067d0c83666a45d019a4756b7845))
+* **security:** test the auth-token guards, scan the dashboard for a11y, fix stale docs ([#67](https://github.com/Vadymk95/template-spa-pwa/issues/67)) ([6ba2515](https://github.com/Vadymk95/template-spa-pwa/commit/6ba25150c30e03a8233580f2b9a21476225e519b))
+
+
+### Documentation
+
+* **decisions:** date the next check of the vitest hold lift trigger ([#64](https://github.com/Vadymk95/template-spa-pwa/issues/64)) ([1e3800d](https://github.com/Vadymk95/template-spa-pwa/commit/1e3800dbfee3863ca2297b87f5ba9eb883172f7f))
+
 ## [3.3.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.3...v3.3.0) (2026-10-02)
 
 

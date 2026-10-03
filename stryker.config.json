@@ -16,7 +16,6 @@
         "!src/lib/api/_example*",
         "!src/lib/pwa/installPromptCapture.ts",
         "!src/mocks/**",
-        "!src/lib/cross-fetch-native.ts",
         "!src/**/*.d.ts"
     ],
     "ignorePatterns": [".env*", "dist", "coverage", "playwright-report", "test-results", "reports"],

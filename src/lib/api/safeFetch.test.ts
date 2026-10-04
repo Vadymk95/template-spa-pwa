@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { server } from '@/test/server';
 
+import { ApiError } from './client';
 import { safeFetch, safeFetchQueryFn, SchemaValidationError } from './safeFetch';
 
 const URL = 'https://safe-fetch.e2e-test/probe';
@@ -26,15 +27,16 @@ describe('safeFetch', () => {
         expect((error as SchemaValidationError).issues.length).toBeGreaterThan(0);
     });
 
-    it('throws a plain Error on a non-2xx response, carrying the HTTP status', async () => {
+    it('throws an ApiError carrying the HTTP status on a non-2xx response', async () => {
         server.use(
             http.get(URL, () => HttpResponse.json({}, { status: 500, statusText: 'Server Error' }))
         );
 
         const error = await safeFetch(URL, Schema).catch((caught: unknown) => caught);
 
-        expect(error).toBeInstanceOf(Error);
+        expect(error).toBeInstanceOf(ApiError);
         expect(error).not.toBeInstanceOf(SchemaValidationError);
+        expect((error as ApiError).status).toBe(500);
         expect((error as Error).message).toBe(`HTTP 500 Server Error (${URL})`);
     });
 });

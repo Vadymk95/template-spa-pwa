@@ -1,5 +1,31 @@
 # Architectural Decisions
 
+## [2026-10] `safeFetch` throws `ApiError`, so a 404 is no longer retried (2026-10-04)
+
+**Decision**: a non-2xx response in `src/lib/api/safeFetch.ts` now throws the existing `ApiError` from
+`src/lib/api/client.ts` (same message as before, plus `.status`) instead of a plain `Error` with no status.
+`shouldRetry` in `src/lib/queryClient.ts` skips 4xx only when the error carries a numeric `status`, so every
+HTTP error through `safeFetchQueryFn` (the live `greeting.queries.ts` path) used to be retried
+`QUERY_MAX_RETRIES` times, a 404 included. No second error type: the retry policy and `useLoginForm` already
+read `ApiError.status`. This replaces the "plain `Error` carrying the status" wording of F6 below.
+
+**Proof** (`src/lib/queryClient.test.ts`, `src/lib/api/safeFetch.test.ts`): a `queryClient.query` through
+`safeFetchQueryFn` against a 404 reaches the endpoint once (red before the fix: 3 requests); against a 500 it
+still reaches it `QUERY_MAX_RETRIES + 1` times; the non-2xx `safeFetch` case asserts `ApiError` with
+`status` 500. Reverting `safeFetch.ts` turns the first and the last red.
+
+**Doc fixes, no behaviour change:**
+- `src/env.ts` called `VITE_ENABLE_MSW` an opt-in; `src/main.tsx` starts the worker unless it is `'false'`
+  (as `.env.example` and the README say). The comment now states that, and that `env.VITE_ENABLE_MSW` is unused.
+- `SECURITY_REQUIREMENTS.md`: the `<meta>` CSP template carried `frame-ancestors`, which browsers ignore in
+  `<meta>` (MDN); removed, with a pointer to the header form.
+- `SECURITY_REQUIREMENTS.md` said the app keeps no in-memory token; the showcase `userStore` + `apiClient` keep
+  one in memory (never persisted, `partialize`). One sentence now says so and points to `EXTENSIONS.md` Phase 2.
+
+**Cost:** vitest +2 unit tests (+0 e2e); the gate is unchanged.
+
+---
+
 ## [2026-10] a flaky pass fails CI, and the Firefox navigation flake is fixed at its cause (2026-10-04)
 
 **Decision**: both Playwright configs set `failOnFlakyTests` to true on real `CI`, next to `retries: 2`. A

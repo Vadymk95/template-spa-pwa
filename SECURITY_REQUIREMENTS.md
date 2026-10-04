@@ -127,16 +127,17 @@ For per-request nonce generation (unique nonce per user request), implement edge
     img-src 'self' data: https:;
     font-src 'self' data:;
     connect-src 'self' https://your-api-domain.com;
-    frame-ancestors 'none';
   "
 />
 ```
+
+**`frame-ancestors` is not in this template on purpose.** Browsers ignore that directive when the policy is delivered in a `<meta>` element ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/frame-ancestors)), so a `<meta>` copy protects nothing. Send it as a response header (`Content-Security-Policy: frame-ancestors 'none'`, or `X-Frame-Options: DENY` from the headers table above) on your CDN or server.
 
 **Note:** Adjust `connect-src`, `img-src`, etc. based on your application's needs (API endpoints, CDN domains, analytics).
 
 ## 🔑 Session, tokens and money
 
-- **The session token lives in an `HttpOnly; Secure; SameSite=Lax` cookie set by the server.** The app never reads it and never stores it: no `localStorage`, no `sessionStorage`, no in-memory copy handed around. Identity comes from an endpoint (`GET /me`-shaped), never from parsing a cookie.
+- **The session token lives in an `HttpOnly; Secure; SameSite=Lax` cookie set by the server.** The app never reads it and never stores it: no `localStorage`, no `sessionStorage`, no in-memory copy handed around. Identity comes from an endpoint (`GET /me`-shaped), never from parsing a cookie. The shipped login demo (`userStore` + `apiClient`, a showcase: `examples/auth-bearer-pattern/README.md`) does not follow this yet: it keeps a bearer token in memory only, never in storage, and `apiClient` sends it as `Authorization: Bearer`; replace it with this cookie model when you wire real auth (`.cursor/brain/EXTENSIONS.md` Phase 2).
 - **Across apps the cookie is the contract, not a store.** When this app runs under a path of a larger product (one reverse proxy, `/app/*` per app), the cookie scope (`Domain`, `Path`) is all that is shared. No common Redux/Zustand store across apps; cross-app signals go through a versioned `CustomEvent` on `window`.
 - **Thin client, no client-side pricing.** The client never computes, corrects or submits a price, discount or total it derived itself; it sends an intent or an id and renders what the server returns. Money is validated on the server; the boundary adapter (`.cursor/rules/api.mdc`) parses the response once.
 - **Third-party scripts** (payments, analytics) load only from origins listed in the CSP, never with `'unsafe-inline'`.

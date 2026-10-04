@@ -342,8 +342,11 @@ hook prints the remedy: `npm run fix && git add -u`.
 `validate` is a single `npm run verify:ci` step — one step on purpose, see the gate rule above, so this
 section never has to list stages again; `dev-smoke` runs the content-variance fixture against `vite dev` (`npm run smoke:dev`); `cross-browser` re-runs the geometry specs on Firefox and WebKit.
 
-**`security.yml`** — on push, PR and a weekly cron: gitleaks over the full history and CodeQL
-`security-extended`. **`mutation.yml`** — the weekly StrykerJS strength gate (`npm run test:mutation`).
+**`security.yml`** — on push, PR and a weekly cron: gitleaks over the full history, CodeQL
+`security-extended`, and zizmor over this repository's workflow files (fails on medium and above;
+`.github/zizmor.yml` lifts a checkout that keeps its credentials to that level, so
+`persist-credentials: false` on every checkout is enforced). All three are required checks on the default
+branch (`.github/ruleset.json`). **`mutation.yml`** — the weekly StrykerJS strength gate (`npm run test:mutation`).
 
 ### Where the security workflow works
 
@@ -356,6 +359,11 @@ private ones. This template is public, so it works as shipped. In a **private fo
 fails while uploading results (`Code scanning is not enabled for this repository`, HTTP 403). A private
 fork must either enable Advanced Security for the repo or delete the `codeql` job and keep `gitleaks`.
 That is a plan boundary, not a misconfiguration — do not weaken the workflow to make it green.
+
+`zizmor` has no plan boundary: it audits only this repository's workflow files, and its online audits query
+the GitHub API about the actions they reference with the workflow's own read-only token. Run the same audit
+locally with `uvx zizmor@1.30.1 .github/workflows`: the version is the one the job pins and the command reads
+`.github/zizmor.yml`, so it reproduces the gate online or with `--offline`.
 
 **Dependabot** (weekly): proposes npm dependency updates.
 

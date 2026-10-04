@@ -1,0 +1,14 @@
+# zizmor configuration. The `Workflow audit (zizmor)` job in .github/workflows/security.yml reads it through its
+# `config:` input, and so does the local command `uvx zizmor@1.30.1 .github/workflows`: one config, one verdict.
+
+rules:
+    artipacked:
+        # Run online (the action's default, with the job's token), zizmor grades a checkout that keeps its
+        # credentials (no `persist-credentials: false`) as Low for actions/checkout v6 and later, below the medium
+        # gate; offline the same finding is Medium. The remap keeps it at the gate in both modes.
+        remap:
+            severity: medium
+    adhoc-packages:
+        # The deliberate `npm install -g npm@^11.14.0` steps; the reason is written next to them in ci.yml.
+        ignore:
+            - ci.yml

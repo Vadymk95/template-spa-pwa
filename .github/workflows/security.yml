@@ -15,6 +15,10 @@ name: Security
 # A private fork therefore has to either enable Advanced Security for the repo, or
 # delete the `codeql` job below and keep `gitleaks`. Do not "fix" a red CodeQL job
 # by weakening the workflow — it is a plan boundary, not a configuration mistake.
+#
+# `zizmor` also works anywhere: it audits only this repository's workflow files (unpinned actions, credentials
+# left in the checkout, injectable expressions). Its online audits query the GitHub API about the actions the
+# workflows reference, with the job's own read-only token, so it needs no extra permission or plan.
 
 on:
     pull_request:
@@ -46,6 +50,7 @@ jobs:
               with:
                   # gitleaks needs commit history to scan past commits, not just HEAD.
                   fetch-depth: 0
+                  persist-credentials: false
 
             - name: Run gitleaks
               # SHA-pinned — tags are mutable and have been retargeted in supply-chain
@@ -71,6 +76,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
 
             - name: Initialize CodeQL
               uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
@@ -86,3 +93,31 @@ jobs:
               uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
               with:
                   category: '/language:${{ matrix.language }}'
+
+    zizmor:
+        name: Workflow audit (zizmor)
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  # Nothing in this job pushes, so the token must not outlive the checkout.
+                  persist-credentials: false
+
+            - name: Audit workflows
+              # The action runs zizmor from a container image pinned by digest; `version` selects that pin and is
+              # an exact release on purpose. Dependabot moves the action's SHA; a newer zizmor is a deliberate edit
+              # of `version`, so a new audit rule reddens the pull request that bumps it, not a random weekly run.
+              # The same pin and config reproduce this verdict locally: `uvx zizmor@1.30.1 .github/workflows`.
+              uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+              with:
+                  version: 1.30.1
+                  inputs: .github/workflows
+                  config: .github/zizmor.yml
+                  # Fail on medium and above; `.github/zizmor.yml` lifts the one finding the online run grades lower.
+                  min-severity: medium
+                  # Annotations on the run instead of a SARIF upload, which would need `security-events: write`.
+                  advanced-security: false
+                  annotations: true

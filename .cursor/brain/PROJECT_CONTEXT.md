@@ -146,7 +146,7 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 ## Dev Tooling
 
 - **The gate, its moments and its scripts** — `AGENTS.md` § Commands / the gate is the only definition (which script belongs to which moment, the push phases, what is forbidden by hand). Stage timings and what was deliberately not added: `.cursor/brain/VERIFICATION.md`. The full script list: `package.json`. Nothing about the gate is repeated in this file.
-- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / the gate); a fresh preview per run, retries and the single worker only on real `CI`.
+- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / the gate); a fresh preview per run, retries and the single worker only on real `CI`, where a test that passes only on a retry fails the run (`failOnFlakyTests`).
 - `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
 - `npm run build` — `tsc -b` then Vite production build (Rolldown)
 - `npm run verify:pwa` — asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify (after `npm run build`). Inside `npm run verify`.

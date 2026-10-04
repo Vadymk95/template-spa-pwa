@@ -1,6 +1,10 @@
+import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
+import { safeFetchQueryFn } from '@/lib/api/safeFetch';
 import { QUERY_GC_TIME_MS, QUERY_MAX_RETRIES, QUERY_STALE_TIME_MS } from '@/lib/constants';
+import { server } from '@/test/server';
 
 import { createQueryClient } from './queryClient';
 
@@ -54,6 +58,40 @@ describe('createQueryClient', () => {
 
             expect(retry(QUERY_MAX_RETRIES - 1, error)).toBe(true);
             expect(retry(QUERY_MAX_RETRIES, error)).toBe(false);
+        });
+    });
+
+    describe('default retry through safeFetchQueryFn', () => {
+        const URL = 'https://retry.e2e-test/probe';
+        const Schema = z.object({ value: z.number() });
+
+        // Counts requests that reach the endpoint; retryDelay 0 keeps the retried case fast.
+        const runQuery = async (status: number): Promise<number> => {
+            let calls = 0;
+            server.use(
+                http.get(URL, () => {
+                    calls += 1;
+                    return HttpResponse.json({}, { status });
+                })
+            );
+
+            await expect(
+                createQueryClient().query({
+                    queryKey: ['retry-probe', status],
+                    queryFn: safeFetchQueryFn(URL, Schema),
+                    retryDelay: 0
+                })
+            ).rejects.toBeInstanceOf(Error);
+
+            return calls;
+        };
+
+        it('requests a 404 once: a client error is not retried', async () => {
+            expect(await runQuery(404)).toBe(1);
+        });
+
+        it('requests a 500 once plus QUERY_MAX_RETRIES retries', async () => {
+            expect(await runQuery(500)).toBe(QUERY_MAX_RETRIES + 1);
         });
     });
 });

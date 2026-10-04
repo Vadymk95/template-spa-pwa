@@ -37,6 +37,8 @@
 
 import type { z } from 'zod';
 
+import { ApiError } from './client';
+
 /**
  * Thrown when a fetched response fails Zod validation. Carries the URL
  * that produced the bad shape and the structured Zod issue list — useful
@@ -57,9 +59,9 @@ export class SchemaValidationError extends Error {
 
 /**
  * Fetch JSON and validate against a Zod schema. Throws `SchemaValidationError`
- * on shape drift (NOT a network/HTTP error — `response.ok` failures still
- * throw as `Error` from the caller's perspective so existing error boundaries
- * keep working).
+ * on shape drift (NOT a network/HTTP error — `response.ok` failures throw
+ * `ApiError`, an `Error` subclass carrying the HTTP `status`, so existing error
+ * boundaries keep working and the query client's no-retry-on-4xx policy applies).
  *
  * Generic param `T` is inferred from the schema — no need to specify both
  * `<T>(...)` and `schema`. Use `z.infer<typeof Schema>` for the public
@@ -78,7 +80,10 @@ export const safeFetch = async <Schema extends z.ZodType>(
     const response = await fetch(url, init);
 
     if (!response.ok) {
-        throw new Error(`HTTP ${String(response.status)} ${response.statusText} (${url})`);
+        throw new ApiError(
+            response.status,
+            `HTTP ${String(response.status)} ${response.statusText} (${url})`
+        );
     }
 
     const raw: unknown = await response.json();

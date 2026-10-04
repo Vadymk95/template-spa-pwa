@@ -13,7 +13,9 @@ export const env = createEnv({
             .string()
             .optional()
             .transform((val) => val === 'true'),
-        // Dev-only browser MSW worker. Keep false unless you intentionally mock API responses.
+        // Not what starts MSW: `src/main.tsx` reads `import.meta.env.VITE_ENABLE_MSW` directly and starts the
+        // DEV-only browser worker unless it is the literal 'false' (default on, opt out; see `.env.example`).
+        // This parsed `=== 'true'` value (unset parses to false) is unused: nothing reads `env.VITE_ENABLE_MSW`.
         VITE_ENABLE_MSW: z
             .string()
             .optional()

@@ -47,7 +47,7 @@ src/
   mocks/
     browser.ts   # DEV-only MSW `setupWorker` (handlers from `test/handlers`)
   lib/
-    api/         # client, auth; safeFetch.ts (Zod boundary validation for all API responses — see DECISIONS.md); `greeting.*` = minimal wired Query + transport (HomePage); `_example.*` = unwired pattern seeds
+    api/         # client, auth; safeFetch.ts (Zod boundary validation for all API responses — see DECISIONS.md); `greeting.queries.ts` = minimal wired Query (HomePage); `_example.*` = unwired pattern seeds
     i18n/        # i18next setup, constants, resources
     pwa/         # installPromptCapture; keys.ts (PWA storage keys + events)
     webVitals/   # subscribeStandard / subscribeAttribution (loaded from vitals.ts)
@@ -137,7 +137,7 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 
 ### A11y gate — axe-core E2E
 
-`e2e/a11y.spec.ts` injects axe via `@axe-core/playwright` against home / login / 404 routes; fails on any `serious` or `critical` violation. Add new routes here when shipping new pages — discipline ratchet, not optional.
+`e2e/a11y.spec.ts` injects axe via `@axe-core/playwright` against home / login / 404 / `/dashboard` (authenticated) routes; fails on any `serious` or `critical` violation. The shared `scan()` helper opts in axe's `target-size` rule (WCAG 2.2 SC 2.5.8), which axe-core leaves disabled by default, and every route waits for the page's `h1` before scanning, so axe sees the rendered page and not the Suspense fallback. Add new routes here when shipping new pages — discipline ratchet, not optional.
 
 ### Feature flags — pluggable provider
 

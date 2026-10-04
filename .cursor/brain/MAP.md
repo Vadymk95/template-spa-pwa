@@ -23,8 +23,8 @@
 1. New store → `src/store/<domain>/store.ts` + `store.test.ts`
 2. Hooks → `src/hooks/<domain>/useHook.ts` + `useHook.test.ts`
 3. Components → `src/components/<domain>/Component/` (tsx + hook + test)
-4. Server state → `src/lib/api/<domain>.queries.ts`: export a **key factory** + `queryOptions()` factories; `useQuery(detailOptions(id))` in UI, or a thin hook only when wrapping adds value (pattern seeds: `src/lib/api/_example.queries.ts`; minimal wired pair in app: `greeting.queries.ts` / `greeting.ts` on HomePage)
-5. API transport / client calls → `src/lib/api/<domain>.ts` (template: `src/lib/api/_example.ts`; wired transport alongside: `greeting.ts`)
+4. Server state → `src/lib/api/<domain>.queries.ts`: export a **key factory** + `queryOptions()` factories; `useQuery(detailOptions(id))` in UI, or a thin hook only when wrapping adds value (pattern seeds: `src/lib/api/_example.queries.ts`; minimal wired example in app: `greeting.queries.ts` on HomePage)
+5. API transport / client calls → `src/lib/api/<domain>.ts` (template: `src/lib/api/_example.ts`)
 
 > All files prefixed `_` under `src/lib/api/` are **template seeds** — kept as canonical pattern references, not wired into the app. See [`TEMPLATE_SEEDS.md`](./TEMPLATE_SEEDS.md) before deleting any.
 

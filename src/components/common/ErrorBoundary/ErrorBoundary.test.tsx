@@ -19,6 +19,7 @@ describe('ErrorBoundary', () => {
 
     afterEach(() => {
         consoleErrorSpy.mockRestore();
+        vi.unstubAllEnvs();
     });
 
     it('renders fallback UI when child throws', () => {
@@ -33,6 +34,20 @@ describe('ErrorBoundary', () => {
         expect(screen.getByText(/we encountered an unexpected error/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /reload page/i })).toBeInTheDocument();
+    });
+
+    it('shows no error message or stack trace in production', () => {
+        vi.stubEnv('DEV', false);
+
+        renderWithProviders(
+            <ErrorBoundary>
+                <Bomb />
+            </ErrorBoundary>
+        );
+
+        expect(screen.getByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByText(/error details/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/boom/i)).not.toBeInTheDocument();
     });
 
     it('calls window.location.reload when "Reload page" is clicked', async () => {

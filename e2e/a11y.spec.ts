@@ -3,10 +3,17 @@ import { expect, test, type Page } from '@playwright/test';
 
 const SEVERE: ('serious' | 'critical')[] = ['serious', 'critical'];
 
+// `target-size` (WCAG 2.2 SC 2.5.8) is disabled by default in axe-core, so it has to be opted in.
 const scan = async (page: Page) => {
-    const results = await new AxeBuilder({ page }).analyze();
+    const results = await new AxeBuilder({ page })
+        .options({ rules: { 'target-size': { enabled: true } } })
+        .analyze();
     return results.violations.filter((v) => SEVERE.includes(v.impact as 'serious' | 'critical'));
 };
+
+// The SPA renders after the document loads: scan only once the page's own heading is on screen.
+const waitForPageHeading = (page: Page) =>
+    expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
 /**
  * Seeds the zustand-persisted auth shape directly into localStorage, matching
@@ -28,18 +35,21 @@ const seedAuth = (page: Page) =>
 test.describe('A11y (axe-core)', () => {
     test('home: no serious or critical violations', async ({ page }) => {
         await page.goto('/');
+        await waitForPageHeading(page);
         const violations = await scan(page);
         expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
     });
 
     test('login: no serious or critical violations', async ({ page }) => {
         await page.goto('/login');
+        await waitForPageHeading(page);
         const violations = await scan(page);
         expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
     });
 
     test('404: no serious or critical violations', async ({ page }) => {
         await page.goto('/this-route-definitely-does-not-exist');
+        await waitForPageHeading(page);
         const violations = await scan(page);
         expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
     });

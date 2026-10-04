@@ -59,7 +59,7 @@ After install, run `npm run lint:oxlint && npm run lint` once — shadcn primiti
 
 ## Phase 1 — Real backend (week 1 of MVP)
 
-The template ships with a wired **TanStack Query example** (`greeting.queries.ts` + `greeting.ts`) calling a placeholder `/greeting` endpoint at `VITE_API_URL ?? 'http://localhost:3001/api'`. Replace this with a real backend.
+The template ships with a wired **TanStack Query example** (`greeting.queries.ts`) calling a placeholder `/greeting` endpoint at `VITE_API_URL ?? 'http://localhost:3001/api'`. Replace this with a real backend.
 
 ### Choose one
 
@@ -364,7 +364,7 @@ pnpm run ci:local
     - As of vite-plugin-pwa 1.3.0 (May 2026) the `vite-plugin-pwa.vite: $vite` override is no longer needed — the plugin's peer accepts `^8`. If you fork an older snapshot that still ships the override, the npm-syntax form translates to `peerDependencyRules.allowAny: ["vite"]` in pnpm.
 - **`.github/workflows/*.yml`**:
     - Replace `npm ci --ignore-scripts` with `pnpm install --frozen-lockfile --ignore-scripts`.
-    - Replace `cache: 'npm'` in `actions/setup-node` with a separate `pnpm/action-setup@v3` step before setup-node, then `cache: 'pnpm'`.
+    - Replace `cache: 'npm'` in `actions/setup-node` with a separate `pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0` step (SHA-pinned like every other action here) before setup-node, then `cache: 'pnpm'`.
 - **Husky's generated helper directory** (gitignored, created by its install hook, not present in a fresh checkout): regenerates on `pnpm prepare`; should work transparently.
 - **README**: update Quick Start commands; note `corepack enable` prerequisite.
 - **CLAUDE.md / `.cursor/brain/PROJECT_CONTEXT.md`**: replace `npm run X` with `pnpm X` in examples.

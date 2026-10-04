@@ -563,7 +563,7 @@ If none of the above applies, remove `vite-plugin-compression` from `vite.config
 
 ## 🔒 Security & Production
 
-Security headers (CSP, X-Frame-Options, etc.) must be configured on your production server/CDN. See [`SECURITY_REQUIREMENTS.md`](./SECURITY_REQUIREMENTS.md) for the complete deployment checklist.
+Security headers (CSP, X-Frame-Options, etc.) must be configured on your production server/CDN. See [`SECURITY_REQUIREMENTS.md`](./SECURITY_REQUIREMENTS.md) for the complete deployment checklist. To report a vulnerability in the template itself, see [`SECURITY.md`](./SECURITY.md).
 
 **⚠️ IMPORTANT:** `'unsafe-inline'` in CSP is NOT acceptable for production. Use CSP nonces or hashes.
 

@@ -1,5 +1,27 @@
 # Architectural Decisions
 
+## [2026-10] every GitHub Action is SHA-pinned (2026-10-04)
+
+**Decision**: every `uses:` in `.github/workflows/*.yml` is pinned to a full 40-hex commit SHA, with the
+released version as a trailing comment (`uses: actions/checkout@<sha> # v7.0.1`). Until now only
+`gitleaks` was pinned that way; `actions/*`, `github/codeql-action` and `googleapis/release-please-action`
+rode floating major tags (`@v7`, `@v6`, `@v4`, `@v5`).
+
+**Why**: GitHub's immutable releases lock only a release's own tag, and only when the publisher opts in,
+so a floating `@vN` tag stays movable and a compromised publisher can retarget it. Measured on
+2026-10-04 with `gh api repos/<owner>/<action>/releases/tags/<tag> --jq .immutable`: of the six pinned
+releases, `setup-node` v7.0.0 and `codeql-action` v4.38.2 are immutable, while `checkout` v7.0.1,
+`cache` v6.1.0, `upload-artifact` v7.0.1 and `release-please-action` v5.0.0 are not. The last one runs
+with a write token (`release.yml`).
+
+**No upgrade**: each SHA is the commit the floating tag pointed to on 2026-10-04 (annotated tags
+dereferenced to their commit). The `# vX.Y.Z` comment is the readable half of the pin; Dependabot's
+`github-actions` ecosystem (kept in `.github/dependabot.yml`) rewrites the SHA and the comment together.
+
+**Same pass**: `release.yml` now defaults to `permissions: contents: read` and grants write only to the
+`release-please` job that needs it; `security.yml` gained the same read-only default, its two jobs keep
+their own scopes. No job's effective permissions changed. `SECURITY.md` was added.
+
 ## [2026-10] delta audit fixes
 
 A second audit round reproduced four silent holes in template-specific (not shared-harness) code and

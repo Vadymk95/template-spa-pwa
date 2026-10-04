@@ -35,14 +35,25 @@ const VIEWPORT_HEIGHT = 900;
 
 for (const width of VIEWPORT_WIDTHS) {
     test(`keeps the real routes inside the layout invariants at ${String(width)}px`, async ({
-        page
+        context
     }, testInfo) => {
-        await page.setViewportSize({ width, height: VIEWPORT_HEIGHT });
-
         const violations: string[] = [];
         const results: string[] = [];
 
         for (const route of ROUTES_UNDER_TEST) {
+            /*
+             * One fresh page per route, closed once measured. Navigating a page that has only just
+             * booted can abort in Firefox (`page.goto: NS_BINDING_ABORTED`): after `load` the app is
+             * still fetching locale files and lazy chunks and registering the service worker, and the
+             * next navigation cancels that work. Probed with one page driven back to back, service
+             * workers allowed or blocked alike: 41 to 49 of 50 navigations aborted with no pause, none
+             * after 150ms, none on a fresh page. Waiting for `main` is not enough on a loaded runner
+             * (two CI runs failed this way and passed on retry); a fresh page leaves nothing in flight
+             * to cancel, and is cheaper than waiting for the network to go idle.
+             */
+            const page = await context.newPage();
+            await page.setViewportSize({ width, height: VIEWPORT_HEIGHT });
+
             /*
              * `load`, not `domcontentloaded`. Found by running Firefox: at `domcontentloaded` the
              * stylesheet is not necessarily applied yet, so the page measures with UA defaults — a submit
@@ -118,6 +129,7 @@ for (const width of VIEWPORT_WIDTHS) {
             results.push(
                 `${route.name} | ${String(width)}px | ${violations.length === violationCountBefore ? 'PASS' : 'FAIL'}`
             );
+            await page.close();
         }
 
         await testInfo.attach('layout-geometry-results', {

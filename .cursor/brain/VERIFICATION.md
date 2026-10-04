@@ -85,7 +85,7 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
 3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*`; then **repo-wide** `lint:oxlint`, `format:check` and `typecheck`; all three run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
 4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate always, plus the offline gate at phase 0 and the whole chain from phase 1.
-5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history and CodeQL `security-extended` in parallel; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
+5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
 Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named consts in `src/lib/constants.ts`), `import-x/no-restricted-paths` (layer boundaries: `components/hocs/hooks/lib/store` ⇏ `pages`), `i18next/no-literal-string` (warn; hardcoded JSX strings → `t()`).
 
@@ -100,6 +100,17 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 - **`npm run fix`** — the one remedy: `oxlint --fix` → `eslint --fix` → `prettier --write`, repo-wide. Re-run `lint` and `format:check` afterwards to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.
 
 **Do not** run `ci:local` as default for one-line fixes or copy-only brain edits.
+
+### A flaky pass fails CI
+
+CI retries a failing Playwright test twice, so the first failure leaves a trace and a video to read, and
+both configs set `failOnFlakyTests` on CI: a test that fails and then passes on a retry is reported as
+flaky and **fails the run**. Without the flag a retry turns the flake into a green line and it merges
+unseen. The desk run and the push gate never retry (`retries: 0`), so there is nothing for the flag to act
+on there. Both settings are pinned in `scripts/check-playwright-gate-config.test.mjs`.
+
+A flaky test is fixed at its cause, or quarantined with `quarantine until YYYY-MM-DD` and the reason in
+the line above it (`docs:check` fails once the date passes); it is never retried into green.
 
 ### After a red push: re-run only what failed
 

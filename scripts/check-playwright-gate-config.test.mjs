@@ -4,7 +4,8 @@
 // number of failures instead of running every remaining test into its timeouts (the gate run and
 // CI only — the desk run against the dev server stays uncapped), and the gate config and the dev
 // config must write `.last-run.json` to two different folders, or the second suite in the push
-// chain overwrites the first's last-failed record and `--last-failed` selects the wrong tests.
+// chain overwrites the first's last-failed record and `--last-failed` selects the wrong tests. It
+// also pins the flaky-test policy: where CI retries, a test that only passes on a retry fails the run.
 //
 // Both configs read `process.env` at import time, so each case needs a fresh module instance:
 // `vi.resetModules()` plus a re-import, not a single cached import reused across cases with the
@@ -69,5 +70,27 @@ describe('playwright configs outputDir', () => {
         expect(gateConfig.outputDir).toBeTruthy();
         expect(devConfig.outputDir).toBeTruthy();
         expect(gateConfig.outputDir).not.toBe(devConfig.outputDir);
+    });
+});
+
+// A retry that passes is reported by Playwright as "flaky" and counts as a GREEN run, so a test that
+// only passes on its second try merges unnoticed and keeps flaking. `failOnFlakyTests` turns that
+// outcome red. It travels with `retries`: where the runner retries (CI), the flag is on; on a desk
+// run, which never retries, it has nothing to act on and stays off.
+describe.each([
+    ['playwright.config.ts', importGateConfig],
+    ['playwright.dev.config.ts', importDevConfig]
+])('%s flaky-test policy', (_file, importConfig) => {
+    it('fails a test that only passes on a retry when CI retries', async () => {
+        process.env.CI = 'true';
+        const config = await importConfig();
+        expect(config.retries).toBe(2);
+        expect(config.failOnFlakyTests).toBe(true);
+    });
+
+    it('stays off on the desk run, which has no retry to police', async () => {
+        const config = await importConfig();
+        expect(config.retries).toBe(0);
+        expect(config.failOnFlakyTests).toBe(false);
     });
 });

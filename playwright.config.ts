@@ -35,6 +35,9 @@ export default defineConfig({
     // Retries belong to the remote runner only: a retry on the local gate turns a
     // flake into a green line, and the flake survives to bite elsewhere.
     retries: process.env.CI ? 2 : 0,
+    // A retry that passes is a green run to Playwright by default, so a flaky test would merge
+    // unnoticed. On the runner that retries, a flaky pass fails the run instead.
+    failOnFlakyTests: Boolean(process.env.CI),
     // Runner sizing is CI's concern, not preview's: a two-core runner pins one
     // worker; the local gate runs at the machine's core-count default.
     ...(process.env.CI ? { workers: 1 } : {}),

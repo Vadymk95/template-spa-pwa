@@ -1,5 +1,75 @@
 # Architectural Decisions
 
+## [2026-10] a flaky pass fails CI, and the Firefox navigation flake is fixed at its cause (2026-10-04)
+
+**Decision**: both Playwright configs set `failOnFlakyTests` to true on real `CI`, next to `retries: 2`. A
+test that fails and then passes on a retry used to be reported "flaky" and counted as a green run, so
+the flake merged unnoticed and kept flaking; now it fails the job and a person looks. On the desk run
+`retries` is 0, there is nothing to police, and the flag stays off. `scripts/check-playwright-gate-config.test.mjs`
+pins both values for both configs.
+
+**The flake it exposed**: `e2e/layout-geometry.spec.ts` in Firefox, `page.goto: NS_BINDING_ABORTED; maybe frame
+was detached?` on the second route, in the `cross-browser` job. Two of the last 23 runs on this repo
+(37147119011 at 640px, 37021754690 at 1440px), each green only because the retry passed. The same scan of the
+last 23 runs of the other two JavaScript templates found no "flaky" line (template-1 0, template-next-seo 0).
+
+**Fix, not quarantine**: the spec now opens one fresh page per route and closes it once measured, instead of
+navigating one page through three routes. Evidence, measured in Firefox against `vite preview` with one page
+driven back to back, 50 iterations each: the second navigation aborted 41 to 49 times with no pause, 45 with
+service workers blocked (so it is not the service worker), 0 after a 150ms pause, 0 after waiting for `main`,
+0 after waiting for the network to idle (580ms per navigation, hence rejected on cost), 0 on a fresh page
+(about 190ms). Navigating to `about:blank` first did not help (49 of 50). Cause: after `load` the app is still
+fetching locale files and lazy chunks and registering the service worker, and a navigation issued then
+cancels that work.
+
+**What was NOT proven**: the real spec never aborted locally in 540 Firefox runs (a plain repeat, 16 workers,
+and 12 workers beside 12 CPU burners), so the link between the probe and the two CI failures is inference from
+an identical error and a mechanism that the probe reproduces, not a red-to-green on the spec itself. The
+spec already waited for `main` and still failed on a slower runner, which is why a longer wait was not chosen.
+If the flake returns, `failOnFlakyTests` turns it red; the next step is then a dated quarantine, not another
+guess.
+
+**Cost**: chromium, 20 runs of the spec back to back: 7.6 to 7.9s before, 11.5 to 11.6s after, about 0.2s per
+test (a new page per route). No new `test()` block. Firefox 50 and WebKit 30 runs of the edited spec passed.
+
+---
+
+## [2026-10] zizmor audits the workflow files in CI (2026-10-04)
+
+**Decision**: `security.yml` gains a third job, `Workflow audit (zizmor)`, on the workflow's existing triggers
+(pull request, push to the default branch, weekly cron). One step runs `zizmorcore/zizmor-action`, SHA-pinned
+like every other action; the action runs zizmor from a container image pinned by digest, and `version: 1.30.1`
+selects that image. It audits `.github/workflows` with online audits, reads `.github/zizmor.yml`, writes
+annotations instead of a SARIF upload (which would need `security-events: write`) and fails on
+`min-severity: medium`. The job name is a required context in `.github/ruleset.json` (`docs:check` keeps the
+two consistent), so the job is a required check on the default branch. Every `actions/checkout` carries
+`persist-credentials: false`: no job pushes with the checkout credentials.
+
+**Why**: the SHA pins above are only as good as the check that notices the next unpinned `uses:`; nothing
+did, and `persist-credentials` appeared 0 times against 7 checkouts. This closes the 2026-07-17 watch item
+on zizmor, whose recorded trigger (workflows grow beyond ~2 files per repo) fired: the repo carries 5.
+
+**Online and offline grade the same finding differently** (zizmor 1.30.1, regular persona, measured
+2026-10-04). A checkout without `persist-credentials: false` (`artipacked`) is Medium offline and Low online,
+which is how the action runs. The tree before the fix: offline 7 medium and 3 low (exit 13), online 10 low
+(exit 12 with no severity filter, exit 0 with `--min-severity medium`). So a gate on `min-severity: medium`
+run online lets that finding through, while the same audit run locally with `--offline` catches it. **The
+answer is a severity remap**: `rules.artipacked.remap.severity: medium` in
+`.github/zizmor.yml`, read by both the job and the local command `uvx zizmor@1.30.1 .github/workflows`, so
+there is one pass, one config and one verdict. With the remap, one checkout that loses
+`persist-credentials: false` exits 13 online and offline; a tag-pinned `actions/setup-node@v4` exits 14
+(1 high, `unpinned-uses`) online and offline; the final tree exits 0 both ways.
+
+**Config exception**: the 3 low `adhoc-packages` findings are the deliberate `npm install -g npm@^11.14.0`
+steps in `ci.yml`, whose reason is written next to them. `.github/zizmor.yml` ignores `ci.yml` for that one
+rule, the whole file with no line numbers, so an edit above the steps cannot un-ignore them. No other entry.
+
+**Pinned version**: Dependabot moves the action's SHA, not its `version:` input. A newer zizmor is a
+deliberate edit of `version`, and the action only accepts a version its own release knows a digest for, so a
+new audit rule reddens the pull request that bumps the pin and not a random weekly run.
+
+---
+
 ## [2026-10] every GitHub Action is SHA-pinned (2026-10-04)
 
 **Decision**: every `uses:` in `.github/workflows/*.yml` is pinned to a full 40-hex commit SHA, with the

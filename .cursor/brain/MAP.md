@@ -126,7 +126,7 @@ To update after MSW upgrade: `npx msw init public/`.
 
 ## CI / Supply chain
 
-- The gate, its moments and phases: `AGENTS.md` § Commands / the gate; CI = `.github/workflows/ci.yml` (one `verify:ci` step + `dev-smoke` + `cross-browser`), `security.yml` (gitleaks + CodeQL, orthogonal to `ci.yml`), `mutation.yml`. Lighthouse (`perf:ci`) stays outside the gate, in `ci:local` only.
+- The gate, its moments and phases: `AGENTS.md` § Commands / the gate; CI = `.github/workflows/ci.yml` (one `verify:ci` step + `dev-smoke` + `cross-browser`), `security.yml` (gitleaks + CodeQL + zizmor, orthogonal to `ci.yml`), `mutation.yml`. Lighthouse (`perf:ci`) stays outside the gate, in `ci:local` only.
 - Dependencies: `.github/dependabot.yml` (weekly, cooldown, holds mirrored from `DECISIONS.md`).
 
 ## Layout invariants and content variance

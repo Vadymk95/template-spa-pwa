@@ -34,12 +34,17 @@ updates:
       # @types/node: aligned with `engines.node >=24` (Node 24 LTS), not the newest
       # type defs. Re-evaluate when `engines.node` bumps.
       #
-      # vitest / @vitest/coverage-v8: under vitest 5.0.0 the Stryker vitest runner
-      # (10.0.0, 2026-08-14) scored near-zero mutation strength in this repo, so
-      # the weekly mutation gate could not fail; on 4.1.11 it scores 44.50. Lift
-      # together with a runner release dated after 2026-08-14 that passes the
-      # one-file probe in .cursor/brain/DECISIONS.md § "[2026-10] Test toolchain
-      # hold: vitest 5".
+      # vitest / @vitest/coverage-v8: under vitest 5.0.3 the Stryker vitest runner
+      # (10.0.0, 2026-08-14) still scores far below the mutation floor in this repo
+      # (9.91 against 40, rechecked 2026-10-07), so the weekly mutation gate could
+      # not fail; on 4.1.11 it scores 48.92. Lift together with a runner release
+      # dated after 2026-08-14 that passes the one-file probe in
+      # .cursor/brain/DECISIONS.md § "[2026-10] Test toolchain hold: vitest 5".
+      #
+      # msw: `@vitest/mocker` (4.1.11 and 5.0.3) peers `msw ^2.4.9` and its browser
+      # entry imports `msw/core/http`, which msw 3.0.2 does not export (checked
+      # 2026-10-07). Lift when a vitest release ships an `@vitest/mocker` that peers
+      # msw 3: .cursor/brain/DECISIONS.md § "[2026-10] Dependency refresh".
       ignore:
           - dependency-name: typescript
             versions: ['>=6.1']
@@ -53,6 +58,8 @@ updates:
             versions: ['>=5']
           - dependency-name: '@vitest/coverage-v8'
             versions: ['>=5']
+          - dependency-name: msw
+            versions: ['>=3']
 
     - package-ecosystem: github-actions
       directory: '/'

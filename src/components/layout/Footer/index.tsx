@@ -3,10 +3,11 @@
  *
  * Why it exists:
  *   Canonical reference for surfacing build-time metadata (`__APP_VERSION__`
- *   injected by Vite from `package.json`) alongside the current year computed
- *   at render. `.cursor/brain/TEMPLATE_SEEDS.md` points here as the metadata
- *   surface; emptying it back to `<footer />` loses both the version badge and
- *   the "where do I read __APP_VERSION__" onboarding hint.
+ *   injected by Vite from `package.json`) alongside the current year, computed
+ *   once at module load because `new Date()` inside render is an impure call.
+ *   `.cursor/brain/TEMPLATE_SEEDS.md` points here as the metadata surface;
+ *   emptying it back to `<footer />` loses both the version badge and the
+ *   "where do I read __APP_VERSION__" onboarding hint.
  *
  * What it demonstrates:
  *   - consuming a Vite `define` global (`__APP_VERSION__`) with a typed
@@ -21,14 +22,15 @@
 import type { FunctionComponent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const Footer: FunctionComponent = () => {
     const { t } = useTranslation('common');
-    const year = new Date().getFullYear();
 
     return (
         <footer className="border-t bg-card">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 p-4 text-xs text-muted-foreground">
-                <span>{t('footer.copyright', { year, appName: t('appName') })}</span>
+                <span>{t('footer.copyright', { year: CURRENT_YEAR, appName: t('appName') })}</span>
                 <span className="font-mono">
                     {t('footer.version', { version: __APP_VERSION__ })}
                 </span>

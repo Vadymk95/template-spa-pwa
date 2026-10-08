@@ -14,7 +14,7 @@ Production-ready React 19 + Vite 8 (Rolldown) PWA template — vite-plugin-pwa (
 
 ## Stack
 
-React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 4.1 · vite-plugin-pwa 1.x (Workbox, generateSW + prompt-mode)
+React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadcn/ui · Zustand 5 · TanStack Query 5 · React Router 7 · i18next · Vitest 4.1 · vite-plugin-pwa 2.x (Workbox, generateSW + prompt-mode)
 
 ## Critical rules
 
@@ -248,12 +248,15 @@ The gate is **zero-warnings**: `eslint --max-warnings 0`, `oxlint --deny-warning
 
 ## Version holds (do not "fix" by bumping)
 
-- **ESLint is 10.x** — the 9.x hold was lifted ahead of the 2026-08-06 end of life. Three plugins still cap their `eslint` peer below 10 (`eslint-plugin-react` at `^9.7`, `eslint-plugin-jsx-a11y` at `^9`, and `eslint-plugin-import` transitively), so each has an `overrides` entry mapping that peer to `$eslint`. Do not remove them, and do not reach for `--legacy-peer-deps`. **`settings.react.version` must stay a literal, never `'detect'`** — see `DECISIONS.md`.
-- **TypeScript stays `~6.0.x`** — `typescript-eslint` peer is `<6.1.0`. TS 7 exists; do not bump until the peer widens.
+- **ESLint is 10.x** — the 9.x hold was lifted ahead of the 2026-08-06 end of life. Two plugins still cap their `eslint` peer below 10 (`eslint-plugin-react` at `^9.7` and `eslint-plugin-jsx-a11y` at `^9`), so each has an `overrides` entry mapping that peer to `$eslint`. Do not remove them, and do not reach for `--legacy-peer-deps`. **`settings.react.version` must stay a literal, never `'detect'`** — see `DECISIONS.md`.
+- **TypeScript stays `~6.0.x`** — `typescript-eslint` peer is `<6.1.0` (re-checked 2026-10-07 on 8.71.1). TS 7 exists; do not bump until the peer widens.
+- **`no-unsafe-enum-assignment` is off for `src/store/utils/createSelectors.ts` only** — `typescript-eslint` 8.71 puts the rule into `strictTypeChecked` and it false-fires on a computed `keyof` key there, in code with no enum (upstream typescript-eslint #12966, still open on 2026-10-07). The file-scoped block in `eslint.config.js` names the issue; delete it when the issue is closed and `npm run lint` passes without it.
 - **`oxlint` tilde-tracks `eslint-plugin-oxlint`** — lockstep releases; the plugin pins `~<its version>`.
 - **`@types/node` stays 24.x** — types match `engines.node >= 24`, not the newest Node.
+- **`msw` stays `^2.x`** — `@vitest/mocker` (4.1.11 and 5.0.3) declares the optional peer `msw ^2.4.9`, and its browser entry (`dist/browser.js`) imports `msw/core/http`, which `msw` 3.0.2 does not export (checked 2026-10-07). An `overrides` entry could hide the peer warning but not the missing export, so the major waits and `dependabot.yml` ignores `msw >=3`. Lift when a vitest release ships an `@vitest/mocker` that peers `msw` 3; `DECISIONS.md` § "[2026-10] Dependency refresh".
+- **`proxy-agent` is a root devDependency only to satisfy an optional peer** — the `@puppeteer/browsers >=3.0.2 <4` security floor brings the peer `proxy-agent >=8.0.1`, while `@lhci/cli` pins its own nested 6.x. Without the root entry `npm ls --all` exits 1 with `proxy-agent` invalid; nothing imports it from this repo.
 - **`overrides` in `package.json` are security floors WITH major caps** (`>=fixed <next-major`; qs, serialize-javascript, tmp, uuid, ws) — do not remove them to quiet npm, and never write an uncapped floor: two of our own (`brace-expansion`, `fast-uri`) aged into their advisories' vulnerable ranges and turned the audit gate red. An uncapped floor is a delayed regression — see `DECISIONS.md`.
-- **`vitest` and `@vitest/coverage-v8` stay `^4.1.x` in this repo** — under vitest 5.0.0 the Stryker vitest runner scores near-zero mutation strength here, so `dependabot.yml` ignores `vitest >=5`. Lift trigger and the measured numbers: `DECISIONS.md` § "[2026-10] Test toolchain hold: vitest 5".
+- **`vitest` and `@vitest/coverage-v8` stay `^4.1.x` in this repo** — re-checked 2026-10-07: under vitest 5.0.3 the Stryker vitest runner (still its 10.0.0 release) scores far below the mutation floor here (9.91 against 40; 48.92 on 4.1.11), so `dependabot.yml` ignores `vitest >=5`. Lift when a newer runner release scores above the floor under vitest 5; the measured numbers: `DECISIONS.md` § "[2026-10] Test toolchain hold: vitest 5" and § "[2026-10] Dependency refresh".
 
 ## Machine-agnostic configs
 

@@ -109,7 +109,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 
 ### PWA
 
-- **vite-plugin-pwa 1.x** — `generateSW` mode (Workbox under the hood), `registerType: 'prompt'`
+- **vite-plugin-pwa 2.x** — `generateSW` mode (Workbox under the hood), `registerType: 'prompt'`
 - **PwaUpdateToast** — auto-mounted i18n-aware update toast driven by `useRegisterSW`
 - **`usePwaInstall` hook** — `beforeinstallprompt` capture + manual install flow (UI is consumer's choice)
 - **Manifest** — standard W3C fields + Chromium-only `display_override` / `handle_links: 'auto'` / `launch_handler`

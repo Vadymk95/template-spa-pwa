@@ -10,9 +10,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { webfontDownload } from 'vite-plugin-webfont-dl';
 
 import pkg from './package.json' with { type: 'json' };
-import { devBanner } from './vite-plugins/dev-banner';
-import { htmlOptimize } from './vite-plugins/html-optimize';
-import { i18nHmr } from './vite-plugins/i18n-hmr';
+import { devBanner } from './vite-plugins/dev-banner.ts';
+import { htmlOptimize } from './vite-plugins/html-optimize.ts';
+import { i18nHmr } from './vite-plugins/i18n-hmr.ts';
 
 // Remove MSW service worker from production dist — it's a dev-only artifact.
 // public/mockServiceWorker.js is committed so MSW works in dev, but must not ship.
@@ -20,7 +20,7 @@ const removeMswPlugin = (): Plugin => ({
     name: 'remove-msw-sw',
     apply: 'build',
     closeBundle() {
-        const sw = path.resolve(__dirname, 'dist/mockServiceWorker.js');
+        const sw = path.resolve(import.meta.dirname, 'dist/mockServiceWorker.js');
         const swBr = sw + '.br';
         if (fs.existsSync(sw)) fs.unlinkSync(sw);
         if (fs.existsSync(swBr)) fs.unlinkSync(swBr);
@@ -199,8 +199,8 @@ export default defineConfig(({ command }) => ({
     },
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src'),
-            '@locales': path.resolve(__dirname, './public/locales')
+            '@': path.resolve(import.meta.dirname, './src'),
+            '@locales': path.resolve(import.meta.dirname, './public/locales')
         }
     }
 }));

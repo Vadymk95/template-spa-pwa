@@ -18,11 +18,11 @@ Production-ready React SPA + PWA template. Copy, rename, start building. Include
 | Routing       | React Router                                                                | 7                         |
 | Forms         | react-hook-form + zod                                                       | 7 / 4                     |
 | i18n          | i18next + react-i18next                                                     | 26 / 17                   |
-| Testing       | Vitest + Testing Library                                                    | 5                         |
+| Testing       | Vitest + Testing Library                                                    | 4.1                       |
 | Linting       | ESLint 10 flat + Oxlint (staged)                                            | 10 / 1.x                  |
 | Formatting    | Prettier                                                                    | 3                         |
 | Git hooks     | Husky + commitlint + lint-staged                                            | 9 / 21                    |
-| PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 1.x (Workbox)             |
+| PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 2.x (Workbox)             |
 | Perf gate     | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions     | 0.x                       |
 | A11y gate     | axe-core via `@axe-core/playwright` (E2E)                                   | 4.x                       |
 | Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | —                         |

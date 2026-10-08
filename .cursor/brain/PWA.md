@@ -4,7 +4,7 @@ This template ships as an installable Progressive Web App via `vite-plugin-pwa`.
 
 ## Stack
 
-- `vite-plugin-pwa` 1.x (Workbox under the hood, `generateSW` mode)
+- `vite-plugin-pwa` 2.x (Workbox under the hood, `generateSW` mode)
 - Vite 8 + Rolldown bundler — `rolldownOptions` in build config (vite-plugin-pwa is compatible via the Rollup-API compat shim)
 - CSR SPA — no SSR
 - Host-agnostic: any static host that honours the cache-policy contract below

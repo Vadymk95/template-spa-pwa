@@ -1,5 +1,83 @@
 # Architectural Decisions
 
+## [2026-10] Dependency refresh: vite-plugin-pwa 2, size-limit 14; msw 3 and vitest 5 held (2026-10-07)
+
+**Decision**: every direct dependency moves to its newest stable, compatible release. Two majors are taken, two
+compatibility holds are kept (msw, new; vitest, refreshed), and the release-age cooldown was bypassed once, for age
+only (§ Cooldown bypass). `.npmrc` still carries `min-release-age=3`; a plain `npm ci` installs the lockfile as is.
+
+**Majors taken**
+- `vite-plugin-pwa` 1.3 -> 2.0.0 (2026-10-03): no config or code change; `build`, `verify:pwa` and the PWA e2e specs
+  pass.
+- `size-limit` and `@size-limit/file` 13 -> 14.1.0 (2026-09-27): no config change; `size:check` passes.
+
+**Hold, new: `msw` stays `^2.15.0`.** msw 3.0.2 installed only through an `overrides` entry that mapped the `msw`
+peer of `@vitest/mocker` to `$msw`. That package (4.1.11 and 5.0.3) peers `msw ^2.4.9`, and its browser entry
+(`dist/browser.js`, installed 4.1.11) imports `msw/core/http`; the `exports` of msw 3.0.2 have no `./core/http`
+(2.15.0 has it), so the override silenced `npm ls` while the import stayed broken. The override and the migration
+edits (`onUnhandledFrame`, the server close in `scripts/run-on-free-port.test.mjs`, the regenerated worker) are
+reverted, and `dependabot.yml` ignores `msw >=3`. **Lift**: a vitest release whose `@vitest/mocker` peers msw 3
+(`npm view @vitest/mocker peerDependencies`).
+
+**Lint adjustments forced by minors**
+- `oxlint` 1.86 (react-compiler purity rule) flags a zero-argument `new Date()` in a component body, so `Footer`
+  takes the year from a module-level constant (the year is now read once at module load instead of on every render).
+- `typescript-eslint` 8.70 -> 8.71.1: the `~8.70.1` pin and the Dependabot ignore for 8.71.0 are gone. 8.71 puts
+  `no-unsafe-enum-assignment` into `strictTypeChecked`, and on 8.71.1 it still reports
+  `src/store/utils/createSelectors.ts:20` (a computed key typed `keyof StoreState<S>`, no enum involved; measured
+  2026-10-07 with the rule forced on). `eslint.config.js` therefore carries a file-scoped `'off'` for that one file,
+  naming the upstream issue (typescript-eslint #12966, open; fix PR #12968 unmerged on 2026-10-07). **Remove** the
+  block when the issue is closed and `npm run lint` passes without it.
+
+**Hold, refreshed: `vitest` / `@vitest/coverage-v8` stay `^4.1.11`** (re-checked 2026-10-07 against 5.0.3; the runner and vitest latest were unchanged on 2026-10-08).
+`@stryker-mutator/vitest-runner` latest is still 10.0.0 (published 2026-08-14). Fresh runs, incremental file deleted:
+- one-file probe `stryker run --mutate src/store/user/userStore.ts`: **90.00** on 4.1.11; **56.67** and **63.33** on
+  5.0.3 (two runs);
+- full run: **48.92** on 4.1.11 (above `thresholds.break` 40), **9.91** on 5.0.3 (exit 1).
+Vitest 5 still degrades the runner's per-test coverage mapping. **Lift**: a runner release newer than 10.0.0 that
+passes the one-file probe; next look 2026-11-02, with the other monthly holds.
+
+**Holds re-checked and kept**: `typescript` `~6.0.x` (`typescript-eslint` 8.71.1 still peers `<6.1.0`); `eslint` 10.x
+(the plugin peers still map to `$eslint` through `overrides`); `@types/node` 24.x (`engines.node >= 24`);
+`scripts/audit-allowlist.json` stays `[]`. After the refresh `npm outdated` lists only these holds: `msw`,
+`vitest`, `@vitest/coverage-v8`, `typescript`, `@types/node`.
+
+**Added: `proxy-agent ^8.0.2` as a root devDependency.** On master `npm ls --all` exits 1 with `proxy-agent@6.5.0`
+invalid: the `@puppeteer/browsers >=3.0.2 <4` security floor brings the optional peer `proxy-agent >=8.0.1`, while
+`@lhci/cli` 0.15.1 (the latest) pins its own `proxy-agent ^6.4.0`. The root entry only satisfies that peer; `@lhci/cli`
+keeps its nested 6.5.0 and nothing in this repo imports the package. `npm ls --all` now exits 0. **Remove** it when
+`@lhci/cli` moves to `proxy-agent` 8 or `@puppeteer/browsers` widens the peer.
+
+**Cooldown bypass (one-off, operator decision 2026-10-07).** Every version that was compatible but younger than
+`min-release-age=3` was installed with `--min-release-age=0`; `.npmrc` is unchanged. Direct dependencies:
+
+| Package | Version | Published | npm provenance |
+|---|---|---|---|
+| `@radix-ui/react-slot` | 1.4.0 | 2026-10-05 | yes |
+| `@vitejs/plugin-react` | 6.1.2 | 2026-10-05 | yes |
+| `eslint-plugin-better-tailwindcss` | 4.9.0 | 2026-10-05 | no |
+| `eslint-plugin-oxlint` | 1.87.0 | 2026-10-05 | yes |
+| `oxlint` | 1.87.0 | 2026-10-05 | yes |
+| `react-i18next` | 17.0.16 | 2026-10-06 | no |
+| `vite` | 8.3.3 | 2026-10-06 | yes |
+| `web-vitals` | 6.2.3 | 2026-10-05 | no |
+| `typescript-eslint` | 8.71.1 | 2026-10-05 | yes |
+
+`npm update --min-release-age=0` then moved 141 locked transitive versions; 67 of them were younger than three days
+(10 published 2026-10-05, 2 on 2026-10-06, 55 on 2026-10-07). All carry provenance except four:
+`@bramus/specificity` 2.4.3 (2026-10-05), `acorn` 8.19.0 (2026-10-05), `resolve` 1.22.13 (2026-10-06) and
+`regjsparser` 0.13.4 (2026-10-06). The rest, by family, all with provenance: `@babel/*` (11: seven at 8.0.7, four at 7.29.10), `@rollup/*` and
+`rollup` (26), `@rolldown/*` and `rolldown` (16), `caniuse-lite`, `electron-to-chromium`, `nanoid`, `postcss`,
+`regexpu-core`, `@napi-rs/*`, `@oxc-project/*`, `conventional-commits-parser`, `conventional-changelog-conventionalcommits`
+and `@conventional-changelog/*` (one each). The audit gate stays green on the resulting tree.
+
+**Lockfile only**: the audit gate was red on two new advisories reached through transitive packages
+(`proxy-addr` 2.0.7, `source-map-js` 1.2.1); the update above moved them to their fixed releases without touching
+`overrides`. Five moderate advisories remain, all through `@lhci/cli` (`js-yaml`, `argparse`, `sprintf-js`), whose
+only offered fix is a downgrade to 0.3.5; the gate fails on high and critical only.
+
+---
+
 ## [2026-10] `safeFetch` throws `ApiError`, so a 404 is no longer retried (2026-10-04)
 
 **Decision**: a non-2xx response in `src/lib/api/safeFetch.ts` now throws the existing `ApiError` from
@@ -251,8 +329,8 @@ glob-form `coverage.exclude` entries (both added for vitest 5) hold on 4.1 too.
 a test runner one minor behind — it teaches everyone to ignore the job. So vitest and
 `@vitest/coverage-v8` stay `^4.1.11` here, `.github/dependabot.yml` ignores `vitest >=5` and
 `@vitest/coverage-v8 >=5` with this reason, and the hold is listed under "Version holds" in
-`AGENTS.md`. **Lift trigger** (checked 2026-10-02, next check 2026-11-02: latest `@stryker-mutator/vitest-runner` is
-10.0.0, dated 2026-08-14, hold stands): a `@stryker-mutator/vitest-runner` release dated after
+`AGENTS.md`. **Lift trigger** (rechecked 2026-10-08, next check 2026-11-02: latest `@stryker-mutator/vitest-runner` is still 10.0.0,
+dated 2026-08-14, vitest latest is still 5.0.3, so the hold stands; probe numbers in § "[2026-10] Dependency refresh"): a `@stryker-mutator/vitest-runner` release dated after
 2026-08-14, then `npm install -D vitest@5 @vitest/coverage-v8@5` and a one-file probe (for example
 `stryker run --mutate src/store/user/userStore.ts`, deleting the incremental file first) — take
 vitest 5 when the probe kills mutants again, in the same commit that drops the Dependabot ignore.
@@ -384,11 +462,12 @@ out of the pre-push hook — but out of `verify` only together with the workflow
 
 ## [2026-07] ESLint 10; `settings.react.version` must be a literal
 
-**Decision.** ESLint 10, ahead of the 9.x end of life on 2026-08-06. Three plugins still cap their
-`eslint` peer below 10 — `eslint-plugin-react` at `^9.7`, `eslint-plugin-jsx-a11y` at `^9`, and
-`eslint-plugin-import` transitively — so each gets an `overrides` entry mapping its peer to `$eslint`.
-`npm install` and `npm ci` both succeed with **no `--legacy-peer-deps`**; the blanket flag was rejected
-as a permanent posture in a repo with a hardened `.npmrc`.
+**Decision.** ESLint 10, ahead of the 9.x end of life on 2026-08-06. Two plugins still cap their
+`eslint` peer below 10 — `eslint-plugin-react` at `^9.7` and `eslint-plugin-jsx-a11y` at `^9` — so each
+gets an `overrides` entry mapping its peer to `$eslint` (`eslint-plugin-import` left the tree; its
+override was removed 2026-10-07). `npm install` and `npm ci` both succeed with **no
+`--legacy-peer-deps`**; the blanket flag was rejected as a permanent posture in a repo with a hardened
+`.npmrc`.
 
 **`settings.react.version` is `'19.2'`, never `'detect'`.** `eslint-plugin-react` resolves `'detect'`
 through `detectReactVersion` -> `resolveBasedir`, which calls the `context.getFilename()` API that
@@ -887,8 +966,9 @@ same judgment behind this repo's refusing-direction specs.
 ## Override floors: fresh-advisory sweep of 2026-08-09, and the uncapped-floor class
 
 Fresh high advisories landed on the existing tree at once: `js-yaml` <4.3.1 (commitlint→cosmiconfig)
-and <3.15.1 (@lhci/utils — two majors, so two SCOPED floors, a top-level pin would force the 3.x
-consumer onto 4.x), `undici` <7.29.0 (jsdom), `nanoid` <5.1.16 / <3.3.17 (estimo / postcss, scoped
+and <3.15.1 (@lhci/utils — two majors, so two floors keyed by major (`js-yaml@^3`, `js-yaml@^4`), so
+neither consumer crosses a major; the earlier parent-scoped form made `npm ls --all` report argparse
+invalid on any used node_modules (2026-10-07)), `undici` <7.29.0 (jsdom), `nanoid` <5.1.16 / <3.3.17 (estimo / postcss, scoped
 for the same two-major reason), `ip-address` <=10.3.0 (@lhci→proxy-agent→socks), `brace-expansion`
 <5.0.9, `fast-uri` <4.1.2. Two of the failing floors were our own uncapped ones (`brace-expansion:
 ">=5.0.8"`, `fast-uri: ">=3.1.4"`) that aged into the vulnerable ranges — the override that once

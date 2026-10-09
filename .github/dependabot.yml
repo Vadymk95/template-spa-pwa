@@ -18,33 +18,10 @@ updates:
       groups:
           minor-and-patch:
               update-types: ['minor', 'patch']
-      # Every entry here mirrors a version hold in .cursor/brain/DECISIONS.md. An
-      # ignore that outlives its reason is worse than none: it silently withholds
-      # security patches. Check the reason before adding or keeping one.
-      #
-      # typescript: `typescript-eslint@8` peers `>=4.8.4 <6.1.0`. A bump to 7.x
-      # makes BOTH `npm install` and `npm ci` fail with ERESOLVE — the whole tree
-      # stops resolving, not just linting. A sibling template had that bump merged
-      # and reach master; this guard is why it cannot happen here.
-      #
-      # eslint: the repo IS on 10.x. The floor is `>=11` so patches and minors
-      # inside 10 still arrive; a major would again outrun the plugin peers that
-      # `overrides` currently map to `$eslint`.
-      #
-      # @types/node: aligned with `engines.node >=24` (Node 24 LTS), not the newest
-      # type defs. Re-evaluate when `engines.node` bumps.
-      #
-      # vitest / @vitest/coverage-v8: under vitest 5.0.3 the Stryker vitest runner
-      # (10.0.0, 2026-08-14) still scores far below the mutation floor in this repo
-      # (9.91 against 40, rechecked 2026-10-07), so the weekly mutation gate could
-      # not fail; on 4.1.11 it scores 48.92. Lift together with a runner release
-      # dated after 2026-08-14 that passes the one-file probe in
-      # .cursor/brain/DECISIONS.md § "[2026-10] Test toolchain hold: vitest 5".
-      #
-      # msw: `@vitest/mocker` (4.1.11 and 5.0.3) peers `msw ^2.4.9` and its browser
-      # entry imports `msw/core/http`, which msw 3.0.2 does not export (checked
-      # 2026-10-07). Lift when a vitest release ships an `@vitest/mocker` that peers
-      # msw 3: .cursor/brain/DECISIONS.md § "[2026-10] Dependency refresh".
+      # Every ignore below mirrors an entry in scripts/version-holds.json, which holds the reason
+      # and the lift condition; `npm run verify` (check-version-holds) fails when the two disagree.
+      # An ignore that outlives its reason silently withholds security patches: re-check the
+      # reason before adding or keeping one.
       ignore:
           - dependency-name: typescript
             versions: ['>=6.1']

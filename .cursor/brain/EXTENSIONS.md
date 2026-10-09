@@ -23,6 +23,8 @@ Mandatory — without this the deploy ships as a generic placeholder template.
 | HTML `<title>` | `index.html` | Surfaces in tab + Lighthouse SEO. |
 | Locale strings | `public/locales/en/{common,errors,home,auth}.json` | Especially `common.appName` and `common.pwa.*`. |
 | README header | `README.md` | Title + tagline reflect the real product. |
+| Decisions file | `.cursor/brain/DECISIONS.md` | Replace the template's entries with your own, starting from a first line that points to the template's history (its repository and `git log -p -- .cursor/brain/DECISIONS.md`); keep the format (decisions in force, at most 30 lines each, an index row, a superseded entry deleted). |
+| Version holds | `scripts/version-holds.json`, `.github/dependabot.yml` | Keep the file: `verify` fails on a bump past a hold or an `ignore` that disagrees. At the first Dependabot PRs, re-check every hold against the fork's own PRs; lift a hold only by editing the file and its `ignore` together, and delete an entry whose package you removed. |
 
 **Verification:** `npm run build && npm run verify:pwa` — manifest fields surface correctly.
 
@@ -385,13 +387,13 @@ git checkout -- package.json package-lock.json
 npm ci
 ```
 
-Document the failing plugin in `DECISIONS.md` so the next attempt has the receipt.
+Record the failing plugin in a `DECISIONS.md` entry (at most 30 lines) so the next attempt has the receipt.
 
 ## Cross-references — what to update when graduating
 
 When you graduate any phase, update these files in lockstep so the brain doesn't drift:
 
-- [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — stack table row + key pattern subsection.
+- [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — a key pattern subsection (and the "Also in the box" line when it is a dependency).
 - [`MAP.md`](./MAP.md) — entry points / state boundaries / route table.
 - [`SKELETONS.md`](./SKELETONS.md) — new danger zone if the addition introduces one (e.g., Sentry instrumentation must NOT live above `ErrorBoundary`).
 - [`TEMPLATE_SEEDS.md`](./TEMPLATE_SEEDS.md) — remove the registry row when a seed graduates into real code.

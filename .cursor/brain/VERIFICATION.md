@@ -46,7 +46,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
   vite/vitest config is dirty, `--changed` runs the FULL suite (force-rerun triggers); and
   `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.
 - **`npm run verify`** — every **offline** check. Stage order: the `verify:inner` script; the superset
-  rule and the push/CI split: `AGENTS.md` § the gate; why: `DECISIONS.md` [2026-07].
+  rule and the push/CI split: `AGENTS.md` § the gate; why: `DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI".
 - **`npm run verify:ci`** — `audit:gate && verify`; the audit gate needs the network, which is why it
   sits outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
   measures the content-variance fixture (mounted only under `import.meta.env.DEV`, so it is
@@ -58,7 +58,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 ## Minimal check by task type
 
 - **Docs only** (`*.md` in repo root / `README`, brain markdown) — `npm run format:check`
-- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly` adds past revisit dates; it also refuses a focused test, an unconditional skip without `quarantine until YYYY-MM-DD` + reason, and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead)
+- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly`, the scheduled Docs workflow's flag, runs the same checks so a quarantine that expires while nobody pushes still turns it red; it also refuses a focused test, an unconditional skip without `quarantine until YYYY-MM-DD` + reason, and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead)
 - **Proposing a new browser spec** — the suite is counted in invariants, not screens (`AGENTS.md` § the gate); `npm run docs:check` reports the suite against the ceiling in `scripts/gate-tiers.json` § suites
 - **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check` + `npm run lint` (if CSS is in ESLint scope)
 - **i18n copy only** (value edits in `public/locales/**/*.json`) — `npm run format:check`; wrapping for
@@ -119,7 +119,7 @@ the line above it (`docs:check` fails once the date passes); it is never retried
 ### After a red push: re-run only what failed
 
 Both Playwright configs cap failures (`maxFailures`) on the gate run and in CI, and each writes
-`.last-run.json` to its own `outputDir` — see `AGENTS.md` § the gate and `DECISIONS.md` [2026-10].
+`.last-run.json` to its own `outputDir` — see `AGENTS.md` § the gate and `DECISIONS.md` § "Playwright `maxFailures: 10` on the gate run and in CI".
 The re-run after a fix, production-mode suite (`npm run build` first in both cases):
 
 - **The red stopped at the cap**: `PLAYWRIGHT_USE_PREVIEW=1 npx playwright test <failed spec files from the red output>`
@@ -158,5 +158,5 @@ If you add or change a script, a hook or a CI step: the `AGENTS.md` command tabl
 ## Content variance
 
 The rule: `AGENTS.md` § Critical rules › Content variance. Why and what it found: `DECISIONS.md`
-§ Content variance is measured in a browser; the cross-engine measurement: `DECISIONS.md` § Cross-engine
-coverage. The "under which condition would this green have been red" shapes: `agent-pipeline.mdc` § 4.1a.
+§ "Content variance is measured in a browser, not asserted in jsdom"; the cross-engine measurement:
+`DECISIONS.md` § "Cross-engine coverage is opt-in and scoped". The "under which condition would this green have been red" shapes: `agent-pipeline.mdc` § 4.1a.

@@ -4,157 +4,79 @@
 
 Production-ready React SPA + PWA template. Copy, rename, start building. Includes all the boring setup (DX tooling, i18n, routing, state, testing, CI, **PWA**) so you don't repeat it.
 
-## Tech Stack
-
-| Layer         | Choice                                                                      | Version                   |
-| ------------- | --------------------------------------------------------------------------- | ------------------------- |
-| UI            | React                                                                       | 19                        |
-| Language      | TypeScript                                                                  | 6.0 strict                |
-| Bundler       | Vite + Rolldown (official `vite`)                                           | 8                         |
-| Styling       | Tailwind CSS                                                                | **v4** (CSS-based config) |
-| Components    | shadcn/ui (new-york)                                                        | latest                    |
-| Global State  | Zustand + devtools                                                          | 5                         |
-| Server State  | TanStack Query                                                              | 5                         |
-| Routing       | React Router                                                                | 7                         |
-| Forms         | react-hook-form + zod                                                       | 7 / 4                     |
-| i18n          | i18next + react-i18next                                                     | 26 / 17                   |
-| Testing       | Vitest + Testing Library                                                    | 4.1                       |
-| Linting       | ESLint 10 flat + Oxlint (staged)                                            | 10 / 1.x                  |
-| Formatting    | Prettier                                                                    | 3                         |
-| Git hooks     | Husky + commitlint + lint-staged                                            | 9 / 21                    |
-| PWA           | vite-plugin-pwa (generateSW + prompt)                                       | 2.x (Workbox)             |
-| Perf gate     | Lighthouse-CI (`@lhci/cli`) — Web Vitals + total-byte-weight assertions     | 0.x                       |
-| A11y gate     | axe-core via `@axe-core/playwright` (E2E)                                   | 4.x                       |
-| Feature flags | `src/lib/features/flags.ts` — pluggable provider (default: `VITE_FF_*` env) | —                         |
+Versions: `AGENTS.md` § Stack and `package.json`. Also in the box: react-hook-form + zod, Husky + commitlint + lint-staged, `@t3-oss/env-core` (`src/env.ts`), Lighthouse-CI, axe-core, a feature-flag seam (`src/lib/features/flags.ts`).
 
 ## Architecture
 
-Repo root also ships **`vite-plugins/`** — small custom Vite plugins wired from `vite.config.ts` (dev banner, i18n HMR, HTML optimize, security headers); tests where needed live alongside.
+Repo root also ships **`vite-plugins/`**: small custom Vite plugins wired from `vite.config.ts` (dev banner, i18n HMR, HTML optimize, security headers). Entry points, state boundaries and routes: `MAP.md`.
 
 ```
 src/
   components/
-    common/      # App-level: ErrorBoundary, RouteErrorBoundary, RouteSkeleton, SkipLink, I18nInitErrorFallback, PwaUpdateToast, ThemeToggle, LanguageSwitcher
+    common/      # ErrorBoundary, RouteErrorBoundary, RouteSkeleton, SkipLink, I18nInitErrorFallback, PwaUpdateToast, ThemeToggle, LanguageSwitcher
     layout/      # Header, Footer, Main (`#main` landmark + route-focus hook)
     ui/          # shadcn/ui primitives
   hocs/          # WithSuspense, ProtectedRoute (auth gate for nested routes)
-  hooks/
-    a11y/        # useRouteFocus — focus `#main` on client navigations (skips first paint)
-    i18n/        # useI18nReload (dev HMR)
-    pwa/         # usePwaInstall (add-to-homescreen; tests alongside)
-    theme/       # useTheme (light / dark / system)
-    <domain>/    # Feature hooks with tests alongside
-  mocks/
-    browser.ts   # DEV-only MSW `setupWorker` (handlers from `test/handlers`)
+  hooks/         # a11y/ (useRouteFocus), i18n/, pwa/ (usePwaInstall), theme/, <domain>/ (tests alongside)
+  mocks/         # DEV-only MSW worker (handlers from `test/handlers`)
   lib/
-    api/         # client, auth; safeFetch.ts (Zod boundary validation for all API responses — see DECISIONS.md); `greeting.queries.ts` = minimal wired Query (HomePage); `_example.*` = unwired pattern seeds
+    api/         # client, auth, safeFetch.ts (Zod validation of every API response); `greeting.queries.ts` = wired Query (HomePage); `_example.*` = unwired seeds
     i18n/        # i18next setup, constants, resources
-    pwa/         # installPromptCapture; keys.ts (PWA storage keys + events)
+    pwa/         # installPromptCapture, keys.ts (storage keys + events)
     webVitals/   # subscribeStandard / subscribeAttribution (loaded from vitals.ts)
-    queryClient.ts  # TanStack Query client factory
-    queryKeys.ts # TanStack Query key-factory registry
-    devGuards.ts # dev-only guards (AbortError noise suppression, wired from main.tsx)
-    constants.ts # centralized named constants (`no-magic-numbers` exemption)
-    vitals.ts, logger, utils  # observability + cn()
-  pages/
-    HomePage/       # Index route (not lazy); `index.ts` re-exports `HomePage.tsx`
-    LoginPage/      # Auth UI (lazy)
-    DashboardPage/  # Behind ProtectedRoute (lazy)
-    NotFoundPage/   # Catch-all (lazy)
-    DevPlayground/  # DEV-only sandbox
-  router/
-    index.tsx    # createBrowserRouter assembly
-    modules/     # base.routes.tsx (+ future route modules)
-    routes.ts    # Path constants (e.g. DevPlayground → /dev/ui)
-  store/
-    user/        # userStore + tests
-    utils/       # createSelectors
-    keys.ts      # Zustand persist/devtools key registry
-  test/
-    setup.ts, server.ts, handlers.ts, test-utils
-  env.ts         # @t3-oss/env-core validated public env
+    queryClient.ts, queryKeys.ts, devGuards.ts, constants.ts, vitals.ts, logger, utils (cn)
+  pages/         # HomePage (index, eager); LoginPage, DashboardPage (behind ProtectedRoute), NotFoundPage (lazy); DevPlayground (DEV-only)
+  router/        # index.tsx (createBrowserRouter), modules/ (route modules), routes.ts (path constants)
+  store/         # user/ (persisted userStore), utils/ (createSelectors), keys.ts
+  test/          # setup.ts, server.ts, handlers.ts, test-utils
+  env.ts         # validated public env
 ```
 
 ## Key Patterns
 
+Component, store, page and Tailwind rules: `AGENTS.md` § Critical rules.
+
 ### TanStack Query — `queryOptions()` + key factories
 
-New features add a `queries.ts` (or `*.queries.ts`) under `src/lib/api/`: a stable **key factory** and **per-query** `queryOptions()` factories. Components call `useQuery(...)` with those options directly; add a thin custom hook only when it wraps real logic (not for every fetch). Unwired pattern reference: `_example.queries.ts`; minimal wired example used on the home route: `greeting.queries.ts`.
-
-### Tailwind v4 (IMPORTANT — no tailwind.config.ts)
-
-- Config lives in `src/index.css` via `@theme inline {}`
-- Dark mode via `@custom-variant dark (&:where(.dark, .dark *))`
-- Animations via `tw-animate-css` (import in CSS, not a JS plugin)
-- Custom animations defined as `@keyframes` + `--animate-*` in `@theme`
-
-### Components: presentational + hook
-
-Feature components use a folder per component: UI in `ComponentName.tsx`, logic in `useComponentName.ts`, tests alongside. Layout and shared pieces follow the same idea where it applies.
-
-### Stores: Zustand + createSelectors
-
-`createSelectors` enables `useStore.use.field()` auto-selectors; the standard callback selector remains available. See `src/store/user/` for the persisted user store pattern.
-
-### Pages: lazy by default
-
-Non-index routes use `PageName.tsx` plus `index.ts` with `lazy(() => import('./PageName'))`; the router wraps lazy pages in `WithSuspense`. The home index route stays eager.
+New features add a `queries.ts` (or `*.queries.ts`) under `src/lib/api/`: a stable **key factory** and per-query `queryOptions()` factories. Components call `useQuery(...)` with those options directly; add a thin custom hook only when it wraps real logic. Unwired pattern reference: `_example.queries.ts`; wired example on the home route: `greeting.queries.ts`. Boundary validation: `DECISIONS.md` § "Boundary validation via Zod safeFetch wrapper".
 
 ### i18n namespace strategy
 
 - All four scaffolded namespaces (`common`, `errors`, `home`, `auth`) are **eager**: `DEFAULT_NAMESPACES` in `src/lib/i18n/constants.ts`; `LAZY_NAMESPACES` is empty.
 - Once a namespace exceeds ~5 KB or is route-bounded, move it to `LAZY_NAMESPACES` in the same file.
+- Pre-i18n shell: `index.html` `#i18n-boot` + `src/index.css` show a decorative spinner (no translated strings) while `html.i18n-loading`.
 
 ### Route focus (a11y)
 
-- `useRouteFocus` in `App` receives a ref to `Main` (`#main`, `tabIndex={-1}`); on pathname change (not initial mount) focus moves to the landmark for WCAG 2.4.1; `data-route-focus` gates focus-ring styling in CSS.
+`useRouteFocus` in `App` takes a ref to `Main` (`#main`, `tabIndex={-1}`); on a pathname change (not the initial mount) focus moves to that landmark (WCAG 2.4.1); `data-route-focus` gates focus-ring styling in CSS.
 
 ### Web Vitals
 
-- `src/lib/vitals.ts` — lazy reporting after hydration; optional `VITE_WEB_VITALS_ATTRIBUTION=true` loads `web-vitals/attribution` via `subscribeAttribution.ts` (flag also in `src/env.ts` for Zod/docs; **branch uses `import.meta.env`** so Vite drops the unused chunk). Load failures: `logger.warn` with context.
-- Custom backend: pass `reportWebVitals(yourReporter)`.
-- **Re-verify chunk split:** after `npm run build`, `node scripts/check-web-vitals-chunks.mjs` (CI runs this on `dist/`). Full regression (two builds: default + attribution): `npm run verify:web-vitals-chunks`.
-
-### Pre-i18n shell
-
-- `index.html` `#i18n-boot` + `src/index.css`: decorative spinner while `html.i18n-loading` (no translated strings — i18n not ready).
+`src/lib/vitals.ts` reports lazily after hydration; `VITE_WEB_VITALS_ATTRIBUTION=true` loads `web-vitals/attribution` via `subscribeAttribution.ts` (the branch reads `import.meta.env`, so Vite drops the unused chunk). Custom backend: `reportWebVitals(yourReporter)`. After changing vitals or env wiring: `npm run verify:web-vitals-chunks`.
 
 ### PWA — `generateSW` + prompt-mode update flow
 
-Full reference: `.cursor/brain/PWA.md`. Quick map:
+Reference: `PWA.md`. Quick map:
 
-- Manifest + Workbox config in `vite.config.ts → VitePWA({...})`. `registerType: 'prompt'`, `devOptions.enabled: false`.
-- Update UI: `src/components/common/PwaUpdateToast/` (auto-mounted in `App.tsx`, i18n via `common.pwa.*`, sessionStorage dismiss).
-- Install hook: `src/hooks/pwa/usePwaInstall.ts` — UI is consumer's choice. Eager `beforeinstallprompt` capture lives in `src/lib/pwa/installPromptCapture.ts` (side-effect imported from `main.tsx`).
-- Icons: placeholder PNGs in `public/icons/` generated by `scripts/generate-placeholder-icons.mjs`. Forks MUST replace before deploy.
-- Type surface: `src/vite-env.d.ts` triple-slash references `vite-plugin-pwa/client` + `/react`.
-- Build verification: `npm run verify:pwa` (`scripts/check-pwa.mjs`) — inside `npm run verify`.
-- Cache-policy contract for the host: documented in `PWA.md` and README. Without `max-age=0, must-revalidate` on `sw.js` / `manifest.webmanifest` / `index.html`, update toast goes invisible.
+- Manifest + Workbox config in `vite.config.ts` → `VitePWA({...})`; `registerType: 'prompt'`, `devOptions.enabled: false`.
+- Update UI: `src/components/common/PwaUpdateToast/` (auto-mounted in `App.tsx`, i18n via `common.pwa.*`).
+- Install: `src/hooks/pwa/usePwaInstall.ts` (UI is the consumer's choice); the eager `beforeinstallprompt` capture is `src/lib/pwa/installPromptCapture.ts`, imported from `main.tsx`.
+- Icons: placeholder PNGs in `public/icons/` from `scripts/generate-placeholder-icons.mjs`; forks MUST replace them before deploy.
+- Build check: `scripts/check-pwa.mjs` (`npm run verify:pwa`, inside `verify`).
+- Host contract: `max-age=0, must-revalidate` on `sw.js`, `manifest.webmanifest` and `index.html`, or the update toast goes invisible (`PWA.md`, README).
 
-### Perf gate — Lighthouse-CI
+### Perf and a11y gates
 
-`lighthouserc.json` + `npm run perf:ci` run Lighthouse against the production preview build. Gates: `categories:performance ≥ 0.9`, `categories:accessibility ≥ 0.95`, LCP ≤ 2500 ms, CLS ≤ 0.1, TBT ≤ 200 ms, total bytes ≤ 800 KB. Wired into `ci:local` and run by the CI `lighthouse` job (one run, so every budget but accessibility only warns; the job is not a required check). Bump targets via the assertions block, not by silently weakening; document in `DECISIONS.md` if a budget is intentionally relaxed.
-
-### A11y gate — axe-core E2E
-
-`e2e/a11y.spec.ts` injects axe via `@axe-core/playwright` against home / login / 404 / `/dashboard` (authenticated) routes; fails on any `serious` or `critical` violation. The shared `scan()` helper opts in axe's `target-size` rule (WCAG 2.2 SC 2.5.8), which axe-core leaves disabled by default, and every route waits for the page's `h1` before scanning, so axe sees the rendered page and not the Suspense fallback. Add new routes here when shipping new pages — discipline ratchet, not optional.
+- **Lighthouse-CI**: `lighthouserc.json` holds the assertions (the only copy of the budgets); `npm run perf:ci` runs them against the preview build, the CI `lighthouse` job runs them as one non-required run where every budget but accessibility only warns. Change a budget in the assertions block, never by silently weakening; a relaxed budget gets a `DECISIONS.md` entry.
+- **axe**: `e2e/a11y.spec.ts` scans home / login / 404 / `/dashboard` and fails on any `serious` or `critical` violation. Its `scan()` helper opts in the `target-size` rule (WCAG 2.2 SC 2.5.8) and waits for the page `h1` before scanning. A new route is added to that spec in the same change.
 
 ### Feature flags — pluggable provider
 
-`src/lib/features/flags.ts` defines the `FEATURE_FLAGS` registry + `FeatureFlagProvider` interface. Default `EnvFlagProvider` reads `VITE_FF_<NAME>` env vars (truthy: `'true'`, `'1'`, `'yes'`). Forks swap to LaunchDarkly / GrowthBook / OpenFeature via `setFeatureFlagProvider(...)` at app boot. Hook: `useFeatureFlag(flag)` from `src/hooks/features/useFeatureFlag.ts`. Always synchronous — async providers must resolve init before mounting React.
+`src/lib/features/flags.ts` defines the `FEATURE_FLAGS` registry and the `FeatureFlagProvider` interface; the default `EnvFlagProvider` reads `VITE_FF_<NAME>` (truthy: `'true'`, `'1'`, `'yes'`). Forks swap in LaunchDarkly / GrowthBook / OpenFeature with `setFeatureFlagProvider(...)` at boot. Hook: `src/hooks/features/useFeatureFlag.ts`; always synchronous, so an async provider resolves its init before React mounts.
 
-## Dev Tooling
+## Dev tooling
 
-- **The gate, its moments and its scripts** — `AGENTS.md` § Commands / the gate is the only definition (which script belongs to which moment, the push phases, what is forbidden by hand). Stage timings and what was deliberately not added: `.cursor/brain/VERIFICATION.md`. The full script list: `package.json`. Nothing about the gate is repeated in this file.
-- `npm run test:e2e:prod` — Playwright against `vite preview` (same mode as CI / the gate); a fresh preview per run, retries and the single worker only on real `CI`, where a test that passes only on a retry fails the run (`failOnFlakyTests`).
-- `npm run dev` — Vite dev server (`vite.config.ts` pins port 3000). ESLint runs via the IDE extension (recommended in `.vscode/extensions.json`) and as a pre-commit gate in `lint-staged` — no in-Vite linter.
-- `npm run build` — `tsc -b` then Vite production build (Rolldown)
-- `npm run verify:pwa` — asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify (after `npm run build`). Inside `npm run verify`.
-- `npm run icons:placeholders` — regenerates `public/icons/{192,512,apple-touch}.png` from `scripts/generate-placeholder-icons.mjs`. Forks replace these with brand assets before deploy.
-- `npm run verify:web-vitals-chunks` — asserts standard vs attribution web-vitals chunks (two production builds; use after changing `src/lib/vitals.ts` or env wiring)
-- `npm run build:analyze` — bundle visualizer (`ANALYZE=true`)
-- `npm run typecheck` — `tsc -b` only (also used in CI before lint)
-- `npm run test` — Vitest run
-- `npm run lint` — **ESLint 10** flat (`settings.react.version` pinned to a literal; `'detect'` crashes under 10, see `DECISIONS.md`): `typescript-eslint` **strict + stylistic** (type-aware), `import-x` (**order**, **no-cycle**), parent-relative imports under `src/**` restricted (use `@/` or `@locales/` for locale JSON); `vite-plugins/**` may use `../src/**` (loads before Vite resolves `@/`). `lint:oxlint` runs first in CI.
-- **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium via `ensure-playwright.mjs` in verify / `ci:local`, and CI install step. Preview runs under the shipped CSP (`vite-plugins/security-headers.ts`), and specs import `test` from `e2e/support/fixtures.ts`, which fails a test on a CSP violation (a console message or a `securitypolicyviolation` event).
-- Staged commits: Oxlint fix → ESLint fix → Prettier (see `lint-staged` in package.json)
+The gate, its moments and its scripts: `AGENTS.md` § Commands / the gate (nothing about the gate is repeated here); stage timings: `VERIFICATION.md`; every script: `package.json`.
+
+- Lint: ESLint 10 flat with `settings.react.version` a literal (`DECISIONS.md` § "ESLint 10; `settings.react.version` must be a literal"), type-aware `typescript-eslint` strict + stylistic, `import-x` order and no-cycle; parent-relative imports under `src/**` are restricted (use `@/` or `@locales/`); `vite-plugins/**` may use `../src/**` because it loads before Vite resolves `@/`.
+- E2E: Playwright (`e2e/`, `playwright.config.ts`). `npm run test:e2e` starts `vite` dev on port 3000; CI, `test:e2e:prod` and `PLAYWRIGHT_USE_PREVIEW=1` use `vite preview` on 4173 after `build`, under the shipped CSP. Specs import `test` from `e2e/support/fixtures.ts`, which fails a test on a CSP violation. On real `CI` a test that passes only on a retry fails the run (`failOnFlakyTests`).

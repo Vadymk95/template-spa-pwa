@@ -69,7 +69,7 @@ jobs:
             # pipeline at all. Adding a check HERE instead of to the script is what
             # makes a green local gate stop predicting a green CI.
             #
-            # perf:ci (Lighthouse) stays OUT: rejected on cost cascade, see DECISIONS.
+            # perf:ci (Lighthouse) is not part of `verify`: it runs as the separate `lighthouse` job below.
             - name: Verify (audit gate, types, lint, format, coverage, build, pwa, size, e2e)
               run: npm run verify:ci
 
@@ -134,6 +134,51 @@ jobs:
               with:
                   name: playwright-report-dev
                   path: playwright-report/
+                  retention-days: 7
+
+    # Lighthouse CI against the production preview build, with the budgets in `lighthouserc.json`.
+    # Its own job, parallel to the others, so it adds nothing to the push gate or to `verify`: the
+    # old objection (a slow, flaky check in every local run) never applied to a CI-only lane.
+    # Not a required status check on purpose. It is ONE run on a shared runner, so every budget
+    # except accessibility only warns (`lighthouserc.json`); the accessibility floor fails the job.
+    # `--no-sandbox` is passed here and not in `lighthouserc.json`, so a local run keeps Chrome's
+    # sandbox. The `.lighthouseci` folder is hidden, hence `include-hidden-files`.
+    lighthouse:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            HUSKY: '0'
+
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Use Node.js 24.x
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 24.x
+                  cache: 'npm'
+
+            - name: Upgrade npm to ^11.14 (cross-platform optional binaries fix)
+              run: npm install -g npm@^11.14.0
+
+            - name: Install dependencies
+              run: npm ci --ignore-scripts
+
+            - name: Build for the production preview
+              run: npm run build
+
+            - name: Lighthouse CI (production preview, budgets in lighthouserc.json)
+              run: npm run perf:ci -- --collect.settings.chromeFlags=--no-sandbox
+
+            - name: Upload Lighthouse reports
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              if: always()
+              with:
+                  name: lighthouse-reports
+                  path: .lighthouseci/
+                  include-hidden-files: true
                   retention-days: 7
 
     # Firefox and WebKit, on the geometry specs only. They are not in `verify` because three engines on

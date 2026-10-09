@@ -13,6 +13,7 @@ import pkg from './package.json' with { type: 'json' };
 import { devBanner } from './vite-plugins/dev-banner.ts';
 import { htmlOptimize } from './vite-plugins/html-optimize.ts';
 import { i18nHmr } from './vite-plugins/i18n-hmr.ts';
+import { securityHeaders } from './vite-plugins/security-headers.ts';
 
 // Remove MSW service worker from production dist — it's a dev-only artifact.
 // public/mockServiceWorker.js is committed so MSW works in dev, but must not ship.
@@ -123,6 +124,9 @@ export default defineConfig(({ command }) => ({
             ext: '.br',
             deleteOriginFile: false
         }),
+        // CSP + security headers: writes dist/_headers at build and applies the same set to
+        // `vite preview` (SECURITY_REQUIREMENTS.md). Not `apply: 'build'` — preview needs it too.
+        securityHeaders(),
         // Downloads fonts from @import in CSS and bundles them locally (0 external requests)
         webfontDownload(),
         // Bundle analyzer: only runs when ANALYZE=true env variable is set

@@ -70,7 +70,7 @@ export const devBanner = (options: BannerOptions = {}): Plugin => {
                     `${dim('flags')} msw=${mswFlag}  web-vitals-attribution=${wvFlag}`,
                     ''
                 ];
-                // eslint-disable-next-line no-console
+                // eslint-disable-next-line no-console -- Node-side dev-server plugin, the src logger is not available here
                 console.log(lines.join('\n'));
             };
 

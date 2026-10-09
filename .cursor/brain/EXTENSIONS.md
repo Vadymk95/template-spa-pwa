@@ -241,24 +241,23 @@ Defined in `PWA.md` — the **`sw.js` / `manifest.webmanifest` / `index.html` mu
 |---|---|
 | **Vercel** | `vercel.json` with `headers[]` array |
 | **Netlify** | `netlify.toml` with `[[headers]]` blocks |
-| **Cloudflare Pages** | `_headers` file |
+| **Cloudflare Pages** | `_headers` file (the build already writes `dist/_headers`) |
 | **AWS S3 + CloudFront** | Lambda@Edge / CloudFront Functions for cache rules |
 | **nginx** | `location ~ ^/(sw\.js|...)$` blocks |
 | **Firebase Hosting** | `firebase.json → hosting.headers` (see `frontend-practice-lab/firebase.json`) |
 
 ### Security headers
 
-`SECURITY_REQUIREMENTS.md` covers the full checklist. Critical:
+The template ships a default CSP and headers: `vite-plugins/security-headers.ts` is the one definition, `dist/_headers` is written at build, `vite preview` sends the same, and `SECURITY_REQUIREMENTS.md` has the Vercel and nginx recipes. What a fork does at this phase is adapt, not add:
 
-- `Content-Security-Policy` with **nonces** (NOT `'unsafe-inline'`)
-- `Strict-Transport-Security` (HSTS) at the edge
-- `X-Frame-Options: SAMEORIGIN` or CSP `frame-ancestors`
-- `X-Content-Type-Options: nosniff`
-- **NOT** `X-XSS-Protection` (deprecated, harmful)
+- Keep the CSP free of `unsafe-*`; a new third-party origin (analytics, error monitoring, fonts) is added to the matching directive in that file, and the e2e CSP guard (`e2e/support/fixtures.ts`) shows which one.
+- Set `VITE_API_URL` for the production build so `connect-src` follows the real API origin.
+- Add `preload` to HSTS only when the domain owner decides to submit the domain.
+- **NOT** `X-XSS-Protection` (deprecated, harmful).
 
-### CSP nonce
+### CSP: hashes, not nonces
 
-Template does NOT ship a nonce-injection strategy. The hosting layer (nginx, Vercel middleware, CloudFront function) generates per-request nonces and injects into both the HTML and the matching CSP header. Keep them in sync.
+The one inline script is the service-worker registration (`injectRegister: 'inline'`), allowed by a `sha256` hash computed from the built `index.html`, so the shipped policy needs no per-request nonce. If a fork adds another inline `<script>` to the page, its hash is added at build automatically; if a fork moves to a nonce strategy, the hosting layer (nginx, Vercel middleware, CloudFront function) must inject the nonce into the HTML and the matching header and keep them in sync.
 
 ---
 

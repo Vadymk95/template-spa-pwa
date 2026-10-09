@@ -22,7 +22,7 @@ const defaultReporter: WebVitalsReporter = (metric) => {
     // Sentry.captureEvent({ message: 'web-vital', extra: metric });
     // gtag('event', metric.name, { value: metric.delta, metric_id: metric.id });
     if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- dev-only default reporter; the DEV guard keeps production silent
         console.log(`[vitals] ${metric.name}`, metric);
     }
 };

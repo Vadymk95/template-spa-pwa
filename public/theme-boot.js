@@ -1,5 +1,5 @@
 /*
- * Theme boot — runs before the first paint, from <head>, as an external file so a nonce-based CSP
+ * Theme boot — runs before the first paint, from <head>, as an external file so the CSP
  * (`script-src 'self'`) allows it without `'unsafe-inline'`. It applies the same decision
  * `src/hooks/theme/useTheme.ts` makes later (localStorage `theme` → light / dark / system → OS
  * preference), so the page never paints the light tokens and then flips to dark after hydration.

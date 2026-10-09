@@ -29,7 +29,7 @@ Production-ready React SPA + PWA template. Copy, rename, start building. Include
 
 ## Architecture
 
-Repo root also ships **`vite-plugins/`** — small custom Vite plugins wired from `vite.config.ts` (dev banner, i18n HMR, HTML optimize); tests where needed live alongside.
+Repo root also ships **`vite-plugins/`** — small custom Vite plugins wired from `vite.config.ts` (dev banner, i18n HMR, HTML optimize, security headers); tests where needed live alongside.
 
 ```
 src/
@@ -133,7 +133,7 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 
 ### Perf gate — Lighthouse-CI
 
-`lighthouserc.json` + `npm run perf:ci` run Lighthouse against the production preview build. Gates: `categories:performance ≥ 0.9`, `categories:accessibility ≥ 0.95`, LCP ≤ 2500 ms, CLS ≤ 0.1, TBT ≤ 200 ms, total bytes ≤ 800 KB. Wired into `ci:local`. Bump targets via the assertions block, not by silently weakening; document in `DECISIONS.md` if a budget is intentionally relaxed.
+`lighthouserc.json` + `npm run perf:ci` run Lighthouse against the production preview build. Gates: `categories:performance ≥ 0.9`, `categories:accessibility ≥ 0.95`, LCP ≤ 2500 ms, CLS ≤ 0.1, TBT ≤ 200 ms, total bytes ≤ 800 KB. Wired into `ci:local` and run by the CI `lighthouse` job (one run, so every budget but accessibility only warns; the job is not a required check). Bump targets via the assertions block, not by silently weakening; document in `DECISIONS.md` if a budget is intentionally relaxed.
 
 ### A11y gate — axe-core E2E
 
@@ -156,5 +156,5 @@ Full reference: `.cursor/brain/PWA.md`. Quick map:
 - `npm run typecheck` — `tsc -b` only (also used in CI before lint)
 - `npm run test` — Vitest run
 - `npm run lint` — **ESLint 10** flat (`settings.react.version` pinned to a literal; `'detect'` crashes under 10, see `DECISIONS.md`): `typescript-eslint` **strict + stylistic** (type-aware), `import-x` (**order**, **no-cycle**), parent-relative imports under `src/**` restricted (use `@/` or `@locales/` for locale JSON); `vite-plugins/**` may use `../src/**` (loads before Vite resolves `@/`). `lint:oxlint` runs first in CI.
-- **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium via `ensure-playwright.mjs` in verify / `ci:local`, and CI install step.
+- **E2E** — Playwright (`e2e/`, `playwright.config.ts`): local default `npm run test:e2e` starts **`vite` dev** on port 3000; CI / `test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses **`vite preview`** on 4173 after `build`. Chromium via `ensure-playwright.mjs` in verify / `ci:local`, and CI install step. Preview runs under the shipped CSP (`vite-plugins/security-headers.ts`), and specs import `test` from `e2e/support/fixtures.ts`, which fails a test on a CSP violation (a console message or a `securitypolicyviolation` event).
 - Staged commits: Oxlint fix → ESLint fix → Prettier (see `lint-staged` in package.json)

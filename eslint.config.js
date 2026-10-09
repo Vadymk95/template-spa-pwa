@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments';
 import queryPlugin from '@tanstack/eslint-plugin-query';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import betterTailwindcss from 'eslint-plugin-better-tailwindcss';
@@ -273,6 +274,22 @@ export default defineConfig([
             'i18next/no-literal-string': ['warn', { mode: 'jsx-text-only' }]
         }
     },
+    // ─── A suppression must carry its reason ─────────────────────────────────
+    // A reasonless `eslint-disable-next-line <rule>` passed the gate untouched (sabotage run,
+    // 2026-10), and "do not sprinkle eslint-disable" in AGENTS.md is prose, not a check.
+    // `require-description` makes the reason part of the directive (`-- why`);
+    // `no-unlimited-disable` refuses a bare `eslint-disable` that silences every rule.
+    // A directive that silences nothing is already a failure: ESLint's own
+    // `reportUnusedDisableDirectives` defaults to "warn" and the gate runs `--max-warnings 0`,
+    // so the plugin's `no-unused-disable` would only duplicate it.
+    {
+        files: ['**/*.{js,mjs,cjs,ts,tsx}'],
+        plugins: { '@eslint-community/eslint-comments': eslintComments },
+        rules: {
+            '@eslint-community/eslint-comments/require-description': 'error',
+            '@eslint-community/eslint-comments/no-unlimited-disable': 'error'
+        }
+    },
     // ─── Tailwind class hygiene ───────────────────────────────────────────────
     // Reads the v4 CSS-first config (@import 'tailwindcss' + @theme) from
     // src/index.css to know the custom theme classes. classnames-order and
@@ -453,6 +470,37 @@ export default defineConfig([
                 'error',
                 {
                     trailingComma: 'none'
+                }
+            ]
+        }
+    },
+    /*
+     * Preview-run specs take `test` from `e2e/support/fixtures.ts`, whose automatic fixture fails a
+     * test when the page breaks its Content-Security-Policy. A spec that imports `test` from
+     * `@playwright/test` directly would run unguarded and still pass. `type` imports (`Page`) stay
+     * allowed, and `e2e/dev/**` is outside the glob on purpose: the dev server sends no policy.
+     * Restates the FC ban because flat config replaces a rule's options rather than merging them.
+     */
+    {
+        files: ['e2e/*.spec.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    paths: [
+                        {
+                            name: 'react',
+                            importNames: ['FC'],
+                            message:
+                                "Use 'FunctionComponent' instead: const MyComponent: FunctionComponent<Props> = ({ ... }) => { ... }"
+                        },
+                        {
+                            name: '@playwright/test',
+                            importNames: ['test'],
+                            message:
+                                "Import 'test' from './support/fixtures' so the CSP-violation guard runs."
+                        }
+                    ]
                 }
             ]
         }

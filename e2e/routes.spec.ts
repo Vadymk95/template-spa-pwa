@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 test.describe('Routes', () => {
     test('login page shows sign-in heading', async ({ page }) => {

@@ -128,6 +128,8 @@ PWA correctness depends on the host. Consumers MUST configure these headers wher
 | `/*.png`, `/*.woff2` (also content-hashed)                | `max-age=31536000, immutable`         | Same reason                                |
 | `/index.html`, `/sw.js`, `/manifest.webmanifest` | `public, max-age=0, must-revalidate` | Must reach clients on every deploy — otherwise CDN caching delays SW updates by hours; the "New version available" toast goes invisible. `registerSW.js` is NOT a separate file in this template — registration is inlined into `index.html` via `injectRegister: 'inline'` |
 
+The security headers are separate and ship with the template (`dist/_headers`, `vite-plugins/security-headers.ts`; Vercel and nginx recipes in `SECURITY_REQUIREMENTS.md`); this table is the cache half of the host contract.
+
 Without the last rule the update toast becomes load-bearing infrastructure that never fires. Verify with DevTools → Network → `sw.js` request: response `Cache-Control` must NOT be a long max-age.
 
 ## Verification checklist (after any PWA-related change)
@@ -149,6 +151,7 @@ Production reality-check (deploy + new tab):
 ## Threat model (security)
 
 - **SW scope `/`** — intercepts every fetch on the origin, including auth tokens. Consumers shipping multi-tenant or auth-sensitive flows must scope or harden requests; SW does not re-validate `Authorization` headers.
+- **CSP and the inline registration** — `injectRegister: 'inline'` puts one inline script in `index.html`; the shipped CSP allows it by a `sha256` of the built page (no `unsafe-inline`), so changing the registration changes the hash at build, not by hand. See `SKELETONS.md`.
 - **`handle_links: 'auto'`** — chosen over `'preferred'` to avoid auto-hijacking deep links into the installed PWA on Chromium. Forks shipping auth flows MUST keep this; auth deep-link hijack into a stale PWA window is a real exploit class (state leak between users on shared devices).
 - **`launch_handler.client_mode: 'navigate-existing'`** — reuses an existing PWA window. Combined with `localStorage` / `sessionStorage` user state, this can leak a previous user's view on shared devices. Consumers shipping user-scoped state must clear it on `visibilitychange` / `focus` if device-sharing is in their threat model.
 - **Supply chain** — `vite-plugin-pwa → workbox-build → @rollup/plugin-terser → serialize-javascript` had a CVE chain (high-severity RCE). Mitigation: `package.json` `overrides` pins `serialize-javascript >=7.0.5`. `scripts/audit-gate.mjs` (fail-closed on high/critical) runs in `verify:ci`. Re-check on every plugin upgrade.

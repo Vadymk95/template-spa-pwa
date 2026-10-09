@@ -8,7 +8,7 @@
 | `src/main.tsx`         | Async bootstrap: eager `installPromptCapture` import → optional DEV MSW worker → root: i18n ready gate (or `I18nInitErrorFallback`) → `I18nextProvider` → QueryClient → Router; `reportWebVitals()` after mount            |
 | `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer + auto-mounted `PwaUpdateToast`                                                                                                                                           |
 | `src/router/index.tsx` | Router assembly, merge route modules here                                                                                                                                                                                  |
-| `vite.config.ts`       | Build config + `VitePWA({...})` + local plugins in `vite-plugins/` (dev-banner, i18n-hmr, html-optimize) — manifest, Workbox precache, `registerType: 'prompt'`, `devOptions.enabled: false`, `globIgnores` for MSW worker |
+| `vite.config.ts`       | Build config + `VitePWA({...})` + local plugins in `vite-plugins/` (dev-banner, i18n-hmr, html-optimize, security-headers) — manifest, Workbox precache, `registerType: 'prompt'`, `devOptions.enabled: false`, `globIgnores` for MSW worker |
 
 ## Adding a New Page
 
@@ -126,7 +126,7 @@ To update after MSW upgrade: `npx msw init public/`.
 
 ## CI / Supply chain
 
-- The gate, its moments and phases: `AGENTS.md` § Commands / the gate; CI = `.github/workflows/ci.yml` (one `verify:ci` step + `dev-smoke` + `cross-browser`), `security.yml` (gitleaks + CodeQL + zizmor, orthogonal to `ci.yml`), `mutation.yml`. Lighthouse (`perf:ci`) stays outside the gate, in `ci:local` only.
+- The gate, its moments and phases: `AGENTS.md` § Commands / the gate; CI = `.github/workflows/ci.yml` (one `verify:ci` step + `dev-smoke` + `lighthouse` + `cross-browser`), `security.yml` (gitleaks + CodeQL + zizmor, orthogonal to `ci.yml`), `mutation.yml`. Lighthouse (`perf:ci`) is outside the gate: the `lighthouse` job runs it in CI, `ci:local` locally.
 - Dependencies: `.github/dependabot.yml` (weekly, cooldown, holds mirrored from `DECISIONS.md`).
 
 ## Layout invariants and content variance
@@ -137,6 +137,9 @@ To update after MSW upgrade: `npx msw init public/`.
 | `e2e/support/measure.ts` | The in-page measurement, one definition shared by both geometry specs. Serialised into the page by Playwright, so it references nothing from module scope. |
 | `e2e/support/control-targets.ts` | The two kit sizes accepted below the 44px touch floor, each with a reason and an exit condition. A ratchet, not an amnesty. |
 | `e2e/support/cross-browser.ts` | Which specs run on every engine, and the `CROSS_BROWSER` switch. |
+| `e2e/support/fixtures.ts` | The `test` every preview-mode spec imports: Playwright's, plus an automatic check that the page raised no Content-Security-Policy violation (console message or `securitypolicyviolation` event). ESLint bans the direct `@playwright/test` import in `e2e/*.spec.ts`. |
+| `e2e/security-headers.spec.ts` | Compares the headers `vite preview` sends with the block in `dist/_headers`, COOP included. |
+| `vite-plugins/security-headers.ts` | The one definition of the CSP and response headers: writes `dist/_headers` at build and sets the same headers on `vite preview`. Unit test beside it. |
 | `e2e/dev/content-stress.spec.ts` | Measures every primitive × content state × 5 widths against the invariants. Dev server only. |
 | `e2e/layout-geometry.spec.ts` | The same invariants over the real routes with real content — the assembled page, not the primitive. |
 | `e2e/forced-colors.spec.ts` | Proves a focus indicator survives `forced-colors: active`, where the ring is suppressed. |

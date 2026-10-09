@@ -287,7 +287,7 @@ VITE_ENABLE_MSW=false
 | `npm run test:e2e:ui`              | Playwright UI mode                                                                         |
 | `npm run verify`                   | **The gate** — every offline check (see below)                                             |
 | `npm run verify:ci`                | `audit:gate && verify` — the CI chain; the push runs it in phase 1                         |
-| `npm run ci:local`                 | `verify:ci` + `perf:ci` (Lighthouse), which stays out of the gate                          |
+| `npm run ci:local`                 | `verify:ci` + `perf:ci` (Lighthouse); CI runs Lighthouse as its own job                    |
 | `npm run verify:iter`              | Iteration tier: oxlint → tsc → vitest --changed; run per change                            |
 | `npm run verify:measure`           | MEASURE moment: build + look (`-- e2e/<f>.spec.ts` for one spec)                           |
 | `npm run verify:full`              | `verify:ci` + `smoke:dev` — adds the content-variance fixture                              |
@@ -501,7 +501,7 @@ npm run build
 ### Deployment
 
 - Output in `dist/` — works with Vercel, Netlify, AWS S3, or any static host
-- Configure security headers on your CDN/server (see [Security & Production](#-security--production))
+- Security headers ship with the template: `dist/_headers` (Netlify, Cloudflare Pages) is written at build; Vercel and nginx need the recipes in [Security & Production](#-security--production)
 - Configure the PWA cache-policy contract on your CDN/server (see below) — without it the update toast will not fire
 
 ### PWA cache-policy contract (load-bearing)
@@ -571,26 +571,13 @@ If none of the above applies, remove `vite-plugin-compression` from `vite.config
 
 ## 🔒 Security & Production
 
-Security headers (CSP, X-Frame-Options, etc.) must be configured on your production server/CDN. See [`SECURITY_REQUIREMENTS.md`](./SECURITY_REQUIREMENTS.md) for the complete deployment checklist. To report a vulnerability in the template itself, see [`SECURITY.md`](./SECURITY.md).
+The template ships a default Content-Security-Policy and the usual response headers (HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `X-Frame-Options`). One module defines them, [`vite-plugins/security-headers.ts`](./vite-plugins/security-headers.ts), and three things read it:
 
-**⚠️ IMPORTANT:** `'unsafe-inline'` in CSP is NOT acceptable for production. Use CSP nonces or hashes.
+- **`npm run build`** writes `dist/_headers`, which Netlify and Cloudflare Pages apply as is.
+- **`vite preview`** sends the same headers (the `firefox` Playwright project turns off Firefox's COOP process swap, which makes its navigations hang intermittently), so the production-mode e2e suite runs under the real policy and fails a spec on any CSP violation (a console message or a `securitypolicyviolation` event) (`e2e/support/fixtures.ts`).
+- **Vercel and nginx** do not read `_headers`; [`SECURITY_REQUIREMENTS.md`](./SECURITY_REQUIREMENTS.md) has a recipe for each, plus the deployment checklist and the decisions to review (API origin, HSTS `preload`, COOP).
 
-**Reference nginx snippet (production):**
-
-```nginx
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-add_header X-Frame-Options "DENY" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-# Generate nonce per request and inject into index.html
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'nonce-$request_id'; style-src 'self' 'nonce-$request_id';" always;
-# Note: do NOT set `X-XSS-Protection` — deprecated and harmful (see SECURITY_REQUIREMENTS.md).
-```
-
-**Template CSP Nonce Support:**
-
-This template does not ship automatic CSP nonce injection. If your production environment requires nonce-based CSP, your hosting or delivery layer must generate and inject the nonce into the delivered HTML and matching CSP header, and keep the nonce strategy in sync.
+The policy has no `unsafe-*` source. The one inline script, the service-worker registration, is allowed by a `sha256` hash computed from the built `index.html`, so no per-request nonce is needed. The dev server sends no policy on purpose (HMR needs inline scripts). To report a vulnerability in the template itself, see [`SECURITY.md`](./SECURITY.md).
 
 ### Error Monitoring
 
@@ -606,7 +593,7 @@ Phase highlights:
 - **Phase 2 — Auth.** Supabase / Firebase / Auth0 / Clerk; reshape `userStore`; extend `ProtectedRoute`.
 - **Phase 4 — Error monitoring + analytics.** Sentry + Plausible / PostHog / GA; wire `reportWebVitals(yourReporter)`.
 - **Phase 7 — PWA extras.** Maskable icon, screenshots, shortcuts, share_target, push notifications.
-- **Phase 8 — Deployment hardening.** Cache-policy contract per host; CSP nonces; HSTS.
+- **Phase 8 — Deployment hardening.** Cache-policy contract per host; tightening the shipped CSP and headers for your origins; HSTS `preload`.
 - **Phase 10 — Scale-out.** FSD architecture, monorepo, micro-frontends, migration to Next.js / Remix.
 - **Tool-by-tool alternatives** (auth providers, backend, error monitoring, analytics, flags, tables, deployment hosts): the option tables inside [`.cursor/brain/EXTENSIONS.md`](.cursor/brain/EXTENSIONS.md), phase by phase.
 

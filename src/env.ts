@@ -1,6 +1,12 @@
 import { createEnv } from '@t3-oss/env-core';
 import { z } from 'zod';
 
+// Zod 4 probes for JIT support with `new Function('')` when the first schema is built. The shipped CSP has no
+// 'unsafe-eval' (see SECURITY_REQUIREMENTS.md), so the probe is a CSP violation even though zod catches the throw.
+// `jitless` skips the probe and uses the interpreted parser. Keep this call here, in the first zod consumer:
+// a side-effect-only import is tree-shaken away (`treeshake.moduleSideEffects: false` in vite.config.ts).
+z.config({ jitless: true });
+
 // Validated at build time — missing required vars throw before the app starts.
 // Add new VITE_* vars here and document defaults in README/.env.
 // Docs: https://env.t3.gg/docs/core

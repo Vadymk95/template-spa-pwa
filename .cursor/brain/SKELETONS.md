@@ -118,6 +118,46 @@ Switching `registerType` from `'prompt'` → `'autoUpdate'` (or back) post-deplo
 
 Auto-update silently force-reloads tabs and destroys mid-session form state. The template defaults to `'prompt'` for that reason; if a fork is content-only and idempotent, flipping to `'autoUpdate'` is fine but only on day one.
 
+## The CSP hashes the inline script of the BUILT page
+
+- **Risk:** `script-src` allows the inline service-worker registration by a `sha256` of its exact text, and the text
+  changes with the `VitePWA` config (`injectRegister: 'inline'`). A policy built from source, from an earlier build or
+  with a hand-copied hash blocks the registration in production while every functional check passes.
+- **Mitigation:** `vite-plugins/security-headers.ts` hashes the final `dist/index.html` in `closeBundle` and again per
+  request under `vite preview`; keep it after the other plugins and do not give it `apply: 'build'`. Do not add an
+  inline `<script>` or move `injectRegister` without running `npm run verify:measure -- e2e/smoke.spec.ts`: the CSP
+  fixture in `e2e/support/fixtures.ts` is what turns a blocked script into a red test. Never reach for `unsafe-inline`.
+
+## The CSP has no `unsafe-eval`, so zod must run jitless
+
+- **Risk:** zod 4 probes for JIT support with `new Function('')` when the first schema is built. Under this policy
+  that is a CSP violation (Firefox writes it to the console; Chromium raises only a `securitypolicyviolation` event),
+  and the required `cross-browser` job goes red while the Chromium suite can look green.
+- **Mitigation:** keep `z.config({ jitless: true })` at the top of `src/env.ts`, the first zod consumer. Never move it
+  into a side-effect-only import (`treeshake.moduleSideEffects: false` drops it from the bundle) and never add
+  `'unsafe-eval'` to the policy.
+
+## The Firefox test project turns off Firefox's COOP process swap
+
+- **Risk:** `vite preview` sends `Cross-Origin-Opener-Policy: same-origin`, like `dist/_headers`. Firefox then swaps the
+  content process on the first navigation, and Playwright's Firefox (Playwright 1.63.0, Firefox build 1543, the one
+  `node_modules/playwright-core/browsers.json` pins) intermittently never finishes a `page.goto`: 60 s timeout "waiting
+  until load". Measured 2026-10-09, `layout-geometry.spec.ts --project=firefox --repeat-each=8 --workers=4`, three
+  rounds of 40: 2 timeouts with Firefox's default, 0 with the pref off. Whether a real Firefox is affected is not measured.
+- **Mitigation:** the `firefox` project in `playwright.config.ts` sets the pref `browser.tabs.remote.useCrossOriginOpenerPolicy`
+  to `false`. The header stays sent and `e2e/security-headers.spec.ts` asserts that preview serves it. Do not drop COOP from
+  `buildSecurityHeaders`, or skip it in preview, to make the flake go away.
+- **Lift:** remove the pref, `npm run build`, then run
+  `CROSS_BROWSER=1 PLAYWRIGHT_USE_PREVIEW=1 PORT=4173 npm run e2e:one -- e2e/layout-geometry.spec.ts --project=firefox --repeat-each=8 --workers=4 --max-failures=0`
+  three times. 40 of 40 each time = lifted; any timeout = keep the pref. Re-run it after each Playwright upgrade.
+
+## A preview-mode spec must import `test` from `e2e/support/fixtures.ts`
+
+- **Risk:** `test` from `@playwright/test` runs without the CSP check, so the spec passes while the browser blocks
+  the page's own script or request.
+- **Mitigation:** `eslint.config.js` bans the import in `e2e/*.spec.ts`; do not widen the exemption. `e2e/dev/**` is
+  the one place plain `@playwright/test` is right, because `vite dev` sends no policy.
+
 ## `playwright.config.ts` must keep `dev/**` in `testIgnore`
 
 - **Risk:** the content-variance fixture is mounted only under `import.meta.env.DEV`. If the production

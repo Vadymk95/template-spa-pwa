@@ -12,10 +12,11 @@
  */
 
 import { env } from '@/env';
+import { API_DEFAULT_URL } from '@/lib/constants';
 import { getAuthToken } from '@/store/user/userStore';
 
 // Backend API URL — configure VITE_API_URL in .env (validated by src/env.ts via t3-env + zod)
-const API_BASE_URL = env.VITE_API_URL ?? 'http://localhost:3001/api';
+const API_BASE_URL = env.VITE_API_URL ?? API_DEFAULT_URL;
 
 /**
  * Cross-origin token-leak guard. Bearer tokens must NEVER ride to:

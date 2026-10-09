@@ -36,7 +36,7 @@ if (!rootElement) {
     throw new Error('Root element not found');
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
+// eslint-disable-next-line react-refresh/only-export-components -- entry module: it mounts the app and exports nothing, so no Fast Refresh boundary exists to protect
 const RootProviders = (): ReactElement | null => {
     const [isI18nReady, setIsI18nReady] = useState(i18n.isInitialized);
     const [i18nInitError, setI18nInitError] = useState<Error | null>(null);

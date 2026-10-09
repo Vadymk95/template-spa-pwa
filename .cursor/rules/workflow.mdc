@@ -17,55 +17,21 @@ Gate by **risk, not LOC** (Surface / Reasoning / Reversibility — the highest a
 | SKELETONS/danger-zone surface, store-shape change, API/payload-contract change, or router topology | Present plan → wait for approval → implement |
 | New architecture pattern | Always present plan |
 
-**FORBIDDEN**: Starting implementation of a non-trivial task before approval.
+**FORBIDDEN**: starting implementation of a non-trivial task before approval.
 
-For a task bigger than a one-sentence diff the approval is the non-author PR review of `SPEC.md`/`PLAN.md` (`AGENTS.md` › Before code); the table above is the chat-level gate for tasks below that size.
-
-## Planning
-
-A plan is `.cursor/<feature-slug>/PLAN.md`, copied from `.cursor/templates/PLAN.md` (law: `AGENTS.md` › Before code).
+For a task bigger than a one-sentence diff the approval is the non-author PR review of `SPEC.md`/`PLAN.md` (`AGENTS.md` › Before code); the table above is the chat-level gate for tasks below that size. A plan is `.cursor/<feature-slug>/PLAN.md`, copied from `.cursor/templates/PLAN.md`.
 
 ## Implementation Workflow
 
-The steps: `agent-pipeline.mdc` (Discover → Simulate → Execute → Verify → Brain Sync → Confidence); the Approve step sits between Simulate and Execute and is § The Approval Law above.
+The steps are in `agent-pipeline.mdc` (Discover → Simulate → Execute → Verify → Brain Sync → Confidence); the Approve step sits between Simulate and Execute and is § The Approval Law above. After every change run `agent-pipeline.mdc` § 4.1 (the iteration tier).
 
-## Hook vs Utility Extraction Policy (MANDATORY)
+## Hook vs Utility Extraction (MANDATORY)
 
-- **Extract to hook** when logic requires React runtime: `useEffect` orchestration, subscriptions, timers, browser/DOM APIs, store mutations/selectors, router navigation, async UI state handling in event handlers.
-- **Extract to utility** when logic is pure and deterministic: mapping, filtering, sorting, formatting, parsing, validation, data transformation.
-- **Mandatory split rule**: if a hook contains pure computation, extract that computation to a utility first. The hook must stay a thin orchestration layer.
-- **Never keep pure business computation in hooks** when it can be unit-tested as a utility.
-
-## Post-Edit Verification
-
-After every change: `agent-pipeline.mdc` § 4.1 (the iteration tier).
+- **Hook** when the logic needs React runtime: `useEffect` orchestration, subscriptions, timers, browser/DOM APIs, store mutations/selectors, router navigation, async UI state in event handlers.
+- **Utility** when the logic is pure and deterministic (mapping, filtering, sorting, formatting, parsing, validation). If a hook contains pure computation, extract it first: the hook stays a thin orchestration layer and pure business computation is never kept in hooks.
 
 ## Git Commits
 
-### Format
+`type(scope): description` — types `feat` `fix` `chore` `docs` `style` `refactor` `perf` `test` `revert`; max 96 chars on the header; English, imperative mood ("add", not "added"); no Co-authored-by tags.
 
-```
-type(scope): description
-```
-
-- **Types**: `feat` `fix` `chore` `docs` `style` `refactor` `perf` `test` `revert`
-- **Max 96 chars** on header line.
-- **English only**, imperative mood ("add", not "added" or "adds").
-- **No Co-authored-by tags**.
-
-### Before Committing
-
-- [ ] `npm run verify:iter` green (the pre-commit hook enforces the commit moment; the push runs the chain)
-- [ ] `git diff` reviewed — no unintended changes
-- [ ] No `console.log` left in production code
-
-### Examples
-
-```
-feat(auth): add JWT token refresh on 401 response
-fix(store): prevent race condition in userStore setUser
-chore(deps): update react-router-dom to 7.13.1
-refactor(api): extract query key factory to userKeys
-perf(query): set staleTime on user queries to reduce refetches
-test(store): add edge cases for logout with expired session
-```
+Before committing: `npm run verify:iter` green (the pre-commit hook enforces the commit moment, the push runs the chain), `git diff` reviewed for unintended changes, no `console.log` in production code.

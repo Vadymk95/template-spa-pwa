@@ -6,12 +6,12 @@ job: the trigger, not the content. **It points and never restates** — a line s
 the moment that doc changes; a line naming the doc and its section does not. Where two files could
 answer, the entry says which one WINS.
 
-Why it exists: `AGENTS.md` § Entering this repo cheaply.
+Why it exists: `AGENTS.md` § Start here.
 
 ## 1. Picking this repo up cold
 
 - `AGENTS.md` — WINS: the operating contract, the invariants, the tier law (§ the gate).
-- `.cursor/brain/PROJECT_CONTEXT.md` — stack, architecture, what CI runs.
+- `.cursor/brain/PROJECT_CONTEXT.md` — purpose, the `src/` layout, key patterns.
 - `.cursor/brain/MAP.md` — entry points, how to add a page or a feature; read it INSTEAD of sweeping
   `src/`.
 
@@ -48,8 +48,9 @@ Why it exists: `AGENTS.md` § Entering this repo cheaply.
 
 ## 6. About to add a dependency, or an advisory went red
 
-- `.cursor/brain/DECISIONS.md` + `AGENTS.md` § Version holds — WINS: a floor carries a major cap, and
-  an allowance is the last resort and needs an expiry.
+- `scripts/version-holds.json` + `AGENTS.md` § Version holds — WINS for a held package (`verify` goes red
+  on a bump past it). `.cursor/brain/DECISIONS.md` § "Override floors carry a major cap" — WINS for an
+  `overrides` floor; an audit allowance is the last resort and needs an expiry.
 - `scripts/audit-allowlist.json` — the current allowances and their reasons.
 
 ## 7. Wondering whether the work is still needed

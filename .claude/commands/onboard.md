@@ -11,7 +11,7 @@ In this order, in full:
 
 1. `AGENTS.md` — invariants, the gate, what is out of scope (then `.cursor/brain/READING_INDEX.md` —
    where to look).
-2. `.cursor/brain/PROJECT_CONTEXT.md` — purpose, stack, layout.
+2. `.cursor/brain/PROJECT_CONTEXT.md` — purpose, layout, key patterns.
 3. `.cursor/brain/SKELETONS.md` — danger zones. Before touching anything, not after.
 4. `.cursor/brain/MAP.md` — routes, files, responsibilities.
 5. `.cursor/brain/TEMPLATE_SEEDS.md` — what looks like dead code and must stay.
@@ -19,8 +19,8 @@ In this order, in full:
    model. Read this before touching anything under `src/lib/pwa/`, the service-worker registration, or
    the `VitePWA` block in `vite.config.ts`.
 7. `.cursor/brain/VERIFICATION.md` — which checks to run for which kind of change.
-8. `.cursor/brain/DECISIONS.md` — why things are the way they are. Skim; read in full any entry whose
-   subject the current task touches. `.cursor/brain/EXTENSIONS.md` is the graduation checklist for a
+8. `.cursor/brain/DECISIONS.md` — the decisions in force and why. Read the index table, then in full
+   any entry whose subject the current task touches. `.cursor/brain/EXTENSIONS.md` is the graduation checklist for a
    fork, not reading for a task inside the template.
 
 In Cursor the process is already in context (always-applied rules). In Claude Code it is not: read

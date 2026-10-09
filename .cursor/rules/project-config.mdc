@@ -1,96 +1,56 @@
 ---
-description: 'Project configuration, Tailwind v4, i18n, and accessibility standards'
-alwaysApply: true
+description: 'Project configuration: Tailwind v4, i18n, accessibility, UI quality, interaction states and load-bearing PWA config'
+globs: ['src/**/*.{ts,tsx,css}', 'index.html', 'vite.config.ts', 'public/**']
+alwaysApply: false
+priority: 84
 ---
 
 # Project Configuration
 
-## Technology Stack
-
-See `AGENTS.md` § Stack; versions are `package.json`.
+Stack and versions: `AGENTS.md` § Stack and `package.json`. Path aliases (`@/` only, never `../../`): `AGENTS.md` § Critical rules.
 
 ## Tailwind v4 (CRITICAL)
 
-**There is no `tailwind.config.ts`.** All config in `src/index.css`:
+**There is no `tailwind.config.ts`.** All config is in `src/index.css`.
 
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-@custom-variant dark (&:where(.dark, .dark *));
-
-@theme inline {
-  --color-primary: hsl(var(--primary));
-  /* ... all tokens here */
-}
-
-:root { --primary: 221.2 83.2% 53.3%; }
-.dark { --primary: 217.2 91.2% 59.8%; }
-```
-
-- Dark mode via `.dark` class (NOT `darkMode: 'class'` in JS config — that file doesn't exist).
-- Animations via `tw-animate-css` package (CSS import, not a PostCSS plugin).
+- Dark mode via the `.dark` class (NOT `darkMode: 'class'` in a JS config — that file does not exist); animations via the `tw-animate-css` package (a CSS import, not a PostCSS plugin).
 - `@tailwindcss/vite` handles compilation — do NOT add tailwindcss to PostCSS.
-- Adding new color token: add HSL value to `:root`, map in `@theme inline`.
+- A new colour token: add the HSL value to `:root` and `.dark`, map it in `@theme inline`.
 
 ## i18n
 
-- Translations in `public/locales/{lng}/{ns}.json`
-- Namespaces: all four scaffolded ones are eager (`src/lib/i18n/constants.ts`); when to go lazy: `PROJECT_CONTEXT.md` § i18n namespace strategy.
-- Language detection: `localStorage` → browser → fallback `'en'`
-- HMR: auto-reload translations in dev when files in `public/locales/` change
-- No hardcoded user-visible strings — always use `t('key')`.
-
-```typescript
-const { t } = useTranslation(['common', 'home']);
-return <h1>{t('home:title')}</h1>;
-```
+- Translations in `public/locales/{lng}/{ns}.json`; all four scaffolded namespaces are eager (`src/lib/i18n/constants.ts`); when to go lazy: `PROJECT_CONTEXT.md` § i18n namespace strategy.
+- Language detection: `localStorage` → browser → fallback `'en'`. In dev, translations hot-reload when `public/locales/` changes.
+- No hardcoded user-visible strings — always `t('key')`.
 
 ## Accessibility
 
-- Semantic HTML first: prefer `<button>`, `<nav>`, `<main>` over `<div role="...">`.
-- ARIA only where semantic HTML is insufficient.
-- Loading states: `role="status"` + `aria-live="polite"`.
-- Error states: `role="alert"` + `aria-live="assertive"`.
-- Keyboard navigation: all interactive elements must be keyboard-reachable.
-- shadcn/ui components include accessibility by default — don't override without reason.
-
-## Path Aliases
-
-`@/` maps to `src/`. **Only use `@/` aliases — never relative `../../`.**
-
-```typescript
-import { useUserStore } from '@/store/user/userStore';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-```
+- Semantic HTML first (`<button>`, `<nav>`, `<main>` over `<div role="...">`); ARIA only where semantic HTML is insufficient.
+- Loading states `role="status"` + `aria-live="polite"`; error states `role="alert"` + `aria-live="assertive"`.
+- Every interactive element is keyboard-reachable. shadcn/ui components include accessibility by default — don't override without reason.
 
 ## UI Quality — avoid the AI aesthetic
 
 AI-generated UI has recognizable tells. For any UI work reject the default in favour of the tokens in `src/index.css`:
 
-- **Palette**: brand is `--primary` = **Google Blue** (`221.2 83.2% 53.3%` light / `217.2 91.2% 59.8%` dark). Never reach for the AI-default purple/indigo. Use the semantic tokens (`primary`, `secondary`, `muted`, `accent`, `destructive`) — no raw hex / `bg-violet-500`.
-- **No new ad-hoc colors**: a color needs a token. Add HSL to `:root` + `.dark`, map in `@theme inline` (see Tailwind v4 above) — don't sprinkle one-off literals.
-- **Gradients**: none are defined in the theme — keep surfaces flat. No decorative `bg-gradient-to-*` unless a real design calls for it.
-- **Radius**: respect the scale — `--radius: 0.5rem` drives `rounded-sm`/`rounded-md`/`rounded-lg` (`--radius-sm/md/lg`). Vary radius by hierarchy; don't slap `rounded-2xl`/`rounded-full` on everything.
-- **Shadows**: the theme ships no custom elevation tokens — depth is subtle. Avoid shadow-heavy cards (`shadow-2xl`); shadcn/ui new-york defaults are the ceiling unless specified.
-- **Spacing**: use the Tailwind scale, not uniform oversized padding (`p-8`/`gap-12` everywhere). Let hierarchy set the rhythm.
-- **Layout**: content-first and priority-driven over a generic template hero + uniform stock card grid. LCP-priority element first (see performance rules).
-- **Copy**: realistic content via `t()` keys, never lorem-ipsum — real strings reveal real wrapping / overflow / length (and keep i18n honest).
-- **Dark mode**: every surface must read in both themes — verify against `.dark` tokens, don't hardcode a light-only color.
-- **Charts**: use `--chart-1`…`--chart-5`, not arbitrary picked colors.
-- **Baseline only**: prefer Baseline "Widely available" Web APIs; do not introduce "Newly available" ones (e.g. `scheduler.yield()`) without a fallback.
+- **Palette**: the brand is `--primary` (Google Blue). Never reach for the AI-default purple/indigo. Use the semantic tokens (`primary`, `secondary`, `muted`, `accent`, `destructive`) — no raw hex, no `bg-violet-500`. A new colour needs a token, not a one-off literal.
+- **Gradients and shadows**: the theme defines none — keep surfaces flat, depth subtle. No decorative `bg-gradient-to-*`, no `shadow-2xl` cards; shadcn/ui new-york defaults are the ceiling unless a design specifies more.
+- **Radius and spacing**: respect the scale — `--radius` drives `rounded-sm/md/lg`; vary radius by hierarchy rather than `rounded-2xl`/`rounded-full` everywhere. Use the Tailwind spacing scale; don't apply uniform oversized padding (`p-8`/`gap-12`) everywhere.
+- **Layout and copy**: content-first and priority-driven over a generic template hero with a uniform card grid; the LCP-priority element comes first (`performance.mdc`). Realistic content via `t()` keys, never lorem-ipsum — real strings reveal real wrapping and overflow.
+- **Dark mode**: every surface reads in both themes — never hardcode a light-only colour. Charts use `--chart-1`…`--chart-5`.
+- **Baseline only**: prefer Baseline "Widely available" Web APIs; a "Newly available" one (e.g. `scheduler.yield()`) needs a fallback.
 
 ## Interaction & base-layer states (binding)
 
-- **States must be PERCEPTIBLY DISTINCT, not merely present.** A hover / active / focus / selection colour must not resolve to ≈ the element's own default or background colour — verify it is VISIBLE. Failure modes seen in the wild: a base link colour equal to its `hover:` colour (zero visible hover — only the cursor changes); a `::selection` highlight built on a near-background token (invisible selection). Chrome/nav links default to a neutral (`text-muted-foreground`) so the `hover:text-primary` shift shows.
-- **Compound states must stay COHERENT.** When two states co-occur (focus+invalid, hover+selected, disabled+focus) they must not visually fight — the more urgent state owns the shared channel (e.g. an invalid field recolours its focus ring, `aria-invalid:focus-visible:ring-destructive`, so focused+invalid reads as one error state; disabled cancels hover). Check state PAIRS, not just singles.
-- **Base-layer globals** (`::selection`, base links, `:focus-visible`) must be perceptibly distinct AND must NOT be built on quiet near-background tokens (`--muted`, or an `--accent` that is a slate-3-style near-background neutral). System feedback (selection, focus ring) is built on `--primary` / `--ring`, never the quiet hover token. If you define `::selection`, use `background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground));` — a quiet token renders the highlight invisible.
+- **States must be PERCEPTIBLY DISTINCT, not merely present.** A hover / active / focus / selection colour must not resolve to about the element's own default or background colour. Seen in the wild: a base link colour equal to its `hover:` colour (only the cursor changes); a `::selection` built on a near-background token (invisible selection). Chrome and nav links default to a neutral (`text-muted-foreground`) so the `hover:text-primary` shift shows.
+- **Compound states stay COHERENT.** When two states co-occur (focus+invalid, hover+selected, disabled+focus) the more urgent one owns the shared channel (an invalid field recolours its focus ring, `aria-invalid:focus-visible:ring-destructive`; disabled cancels hover). Check state PAIRS, not just singles.
+- **Base-layer globals** (`::selection`, base links, `:focus-visible`) are built on `--primary` / `--ring`, never on a quiet near-background token (`--muted`, or an `--accent` that is a near-background neutral). For `::selection` use `background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground));`.
 
 ## PWA — load-bearing config (CRITICAL — DO NOT TOUCH casually)
 
-This is a PWA template. The service-worker and manifest wiring is fragile and several settings are **decided once / destructive to change**. Full reference + threat model: `.cursor/brain/PWA.md`; danger zones: `.cursor/brain/SKELETONS.md`. NEVER change any of the following without explicit approval (Approval Law):
+Several service-worker and manifest settings are **decided once / destructive to change**. NEVER change one without explicit approval (Approval Law). Reference and threat model: `.cursor/brain/PWA.md`; the reasoning for each: `.cursor/brain/SKELETONS.md`.
 
-- **`registerType: 'prompt'` is decided ONCE.** It lives in `vite.config.ts` (`VitePWA(...)`). **NEVER** flip `'prompt'` → `'autoUpdate'` (or back) post-deploy — it is destructive: the toast/no-toast contract leaks into production caches, and `autoUpdate` silently force-reloads tabs and **destroys mid-session form state** (vite-pwa #228/#438). The template defaults to `'prompt'` for that reason.
-- **Ship BOTH `apple-mobile-web-app-capable` AND `mobile-web-app-capable` meta tags** in `index.html` (lines 25–26). MDN flags `apple-*` as deprecated, but iOS Safari **still** silently breaks home-screen splash screens without it. **NEVER** "clean up" the apparent duplicate (next.js #70272 / #74524).
-- **MSW × Workbox precache order is load-bearing.** In `vite.config.ts`, `removeMswPlugin()` MUST stay registered **before** `VitePWA(...)` so its `closeBundle` deletes `dist/mockServiceWorker.js` before the precache scan finalizes. **Reordering them ships MSW's worker as a dead precache entry → 404 storm on every install.** `workbox.globIgnores` is defence-in-depth; `scripts/check-pwa.mjs` fails the build if `dist/sw.js` references `mockServiceWorker.js` — NEVER bypass it.
-- **Two service workers never coexist by design**: `public/mockServiceWorker.js` (MSW, DEV-only, gated by `import.meta.env.DEV` in `src/main.tsx`) and `dist/sw.js` (vite-plugin-pwa, PROD-only, `devOptions.enabled: false`). Do not enable PWA in dev or register MSW in prod.
+- **`registerType: 'prompt'` is decided ONCE** (`VitePWA(...)` in `vite.config.ts`). Flipping it to `'autoUpdate'` (or back) post-deploy leaks the toast contract into production caches and force-reloads tabs, destroying mid-session form state.
+- **Ship BOTH `apple-mobile-web-app-capable` AND `mobile-web-app-capable`** in `index.html`. MDN flags the `apple-*` one as deprecated, but iOS Safari still breaks home-screen splash screens without it. NEVER "clean up" the apparent duplicate.
+- **MSW × Workbox precache order is load-bearing**: `removeMswPlugin()` stays registered BEFORE `VitePWA(...)` in `vite.config.ts`, so `dist/mockServiceWorker.js` is deleted before the precache scan. Reordering ships MSW's worker as a dead precache entry (a 404 storm on every install). `scripts/check-pwa.mjs` fails the build on it — never bypass it.
+- **Two service workers never coexist**: `public/mockServiceWorker.js` (MSW, DEV-only, gated by `import.meta.env.DEV` in `src/main.tsx`) and `dist/sw.js` (vite-plugin-pwa, PROD-only, `devOptions.enabled: false`). Do not enable PWA in dev or register MSW in prod.

@@ -1,0 +1,51 @@
+[
+    {
+        "package": "typescript",
+        "held": ">=6.0.0 <6.1.0",
+        "reason": "typescript-eslint 8 peers typescript below 6.1.0; a 6.1 or 7 bump makes npm install and npm ci fail with ERESOLVE, so the whole tree stops resolving.",
+        "lift": "a typescript-eslint release whose typescript peer admits 6.1 or newer (npm view typescript-eslint peerDependencies)",
+        "evidence": "https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/typescript-eslint/package.json"
+    },
+    {
+        "package": "eslint",
+        "held": ">=10.0.0 <11",
+        "reason": "eslint-plugin-react and eslint-plugin-jsx-a11y cap their eslint peer below 10 and are mapped to $eslint through overrides; a new major would outrun that mapping.",
+        "lift": "both plugins publish a release whose eslint peer admits the next major, and the overrides entries can go",
+        "evidence": "package.json:144"
+    },
+    {
+        "package": "@eslint/js",
+        "held": ">=10.0.0 <11",
+        "reason": "moves in lockstep with eslint; see the eslint entry.",
+        "lift": "the eslint hold lifts",
+        "evidence": "package.json:144"
+    },
+    {
+        "package": "@types/node",
+        "held": ">=24.0.0 <25",
+        "reason": "the types must match engines.node >= 24, so they do not promise APIs the supported runtime cannot deliver.",
+        "lift": "engines.node moves to a newer Node major (a deliberate, ask-first change)",
+        "evidence": "package.json:6"
+    },
+    {
+        "package": "vitest",
+        "held": ">=4.1.0 <5",
+        "reason": "under vitest 5.0.3 the Stryker vitest runner 10.0.0 scores 9.91 against the mutation floor of 40 (48.92 on 4.1.11), so the weekly mutation gate could not fail.",
+        "lift": "a @stryker-mutator/vitest-runner release newer than 10.0.0 passes the one-file probe (stryker run --mutate src/store/user/userStore.ts, incremental file deleted) under vitest 5",
+        "evidence": "https://github.com/Vadymk95/template-spa-pwa/pull/74"
+    },
+    {
+        "package": "@vitest/coverage-v8",
+        "held": ">=4.1.0 <5",
+        "reason": "pinned to the vitest major it runs with; see the vitest entry.",
+        "lift": "the vitest hold lifts",
+        "evidence": "https://github.com/Vadymk95/template-spa-pwa/pull/74"
+    },
+    {
+        "package": "msw",
+        "held": ">=2.0.0 <3",
+        "reason": "@vitest/mocker peers msw ^2.4.9 and its browser entry imports msw/core/http, which msw 3.0.2 does not export; an overrides entry hides the peer warning, not the missing export.",
+        "lift": "a vitest release whose @vitest/mocker peers msw 3 (npm view @vitest/mocker peerDependencies)",
+        "evidence": "https://github.com/vitest-dev/vitest/blob/main/packages/mocker/package.json"
+    }
+]

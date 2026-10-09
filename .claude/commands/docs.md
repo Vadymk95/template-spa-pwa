@@ -7,12 +7,14 @@ until the operator approves them.**
 
 ## Scope — these files only
 
-- `AGENTS.md` — invariants, stack table, the command list, version holds, out-of-scope list.
-- `.cursor/brain/PROJECT_CONTEXT.md` — purpose, stack, layout, the gate.
+- `AGENTS.md` — invariants, the stack line, the command table, one line per version hold (the data is `scripts/version-holds.json`), the out-of-scope list. It stays at or under 200 lines: a fact lives in one place and the rest point to it.
+- `.cursor/brain/PROJECT_CONTEXT.md` — purpose, layout, key patterns.
 - `.cursor/brain/MAP.md` — routes, files, responsibilities.
 - `.cursor/brain/SKELETONS.md` — danger zones, with the risk AND the mitigation.
-- `.cursor/brain/DECISIONS.md` — append an entry when a decision was made and has a rationale that
-  git history does not capture.
+- `.cursor/brain/DECISIONS.md` — decisions in force only: add one entry (at most 30 lines: context,
+  decision, consequences, status, evidence) plus its index row when a decision was made and has a
+  rationale that git history does not capture; DELETE an entry a later decision supersedes (git keeps it).
+  Dependency holds go to `scripts/version-holds.json`, not here.
 - `.cursor/brain/TEMPLATE_SEEDS.md` — what must not be deleted as dead code.
 - `.cursor/brain/PWA.md` — manifest, update flow, cache-policy contract, deployment caching.
 - `.cursor/brain/VERIFICATION.md` — mechanics, the phase table and measured timings; goes stale with every gate change.
@@ -56,7 +58,7 @@ line — that is how a wrong doc survives another five sessions.
 
 - No invented rationale. If you cannot find why something is the way it is, write what it does and
   say the reason is unrecorded.
-- No trivia. A decision with a trade-off earns a `DECISIONS.md` entry; a rename does not.
+- No trivia. A decision with a trade-off earns a `DECISIONS.md` entry; a rename does not. No archive section.
 - No dates, ticket ids, or provenance ("as discussed", "per the chat"). State the constraint itself.
 - No absolute local paths in committed files.
 

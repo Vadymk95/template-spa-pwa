@@ -51,7 +51,7 @@ export const apiOrigin = (url: string | undefined): string | undefined => {
 export const inlineScriptHashes = (html: string): string[] => {
     const hashes: string[] = [];
     for (const [, attributes = '', body = ''] of html.matchAll(
-        /<script\b([^>]*)>([\s\S]*?)<\/script>/gi
+        /<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi
     )) {
         if (/\bsrc\s*=/i.test(attributes) || body.trim() === '') continue;
         hashes.push(`'sha256-${createHash('sha256').update(body).digest('base64')}'`);

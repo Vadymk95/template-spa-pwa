@@ -45,6 +45,21 @@ describe('inlineScriptHashes', () => {
         ]);
     });
 
+    it('hashes the body only when the closing tag carries whitespace', () => {
+        const body = 'console.log("inline")';
+        expect(inlineScriptHashes(`<script>${body}</script >`)).toEqual([sha256(body)]);
+    });
+
+    it('hashes the body only when the closing tag is upper case', () => {
+        const body = 'console.log("inline")';
+        expect(inlineScriptHashes(`<SCRIPT>${body}</SCRIPT>`)).toEqual([sha256(body)]);
+    });
+
+    it('closes a script at its own end tag, however that tag is spelled', () => {
+        const html = '<script>a()</script ><script>b()</script\n><script>c()</SCRIPT>';
+        expect(inlineScriptHashes(html)).toEqual([sha256('a()'), sha256('b()'), sha256('c()')]);
+    });
+
     it('skips scripts that load from a URL and empty scripts', () => {
         const html =
             '<script src="/theme-boot.js"></script><script type="module" src="/a.js"></script><script> </script>';

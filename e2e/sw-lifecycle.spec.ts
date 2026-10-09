@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 /**
  * SW lifecycle smoke (minimal subset per /consilium 2026-05-23 APPLY Item 9 with conditions).

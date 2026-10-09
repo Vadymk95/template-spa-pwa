@@ -65,7 +65,7 @@
         }
     },
     "ci": {
-        "_description": "Data for scripts/docs-check.mjs § ciSteps/rulesetContexts. allowedRunSteps lists every `run:` step in a PR-triggered workflow that legitimately runs outside `verify` (install/tooling steps, and the cross-browser/dev-smoke lanes AGENTS.md § the gate documents as CI-only), each with the reason it is not a check that belongs in the gate. rulesetContextAllowlist is for a required status check produced by something other than this repo's own workflows (a third-party GitHub App) — empty today.",
+        "_description": "Data for scripts/docs-check.mjs § ciSteps/rulesetContexts. allowedRunSteps lists every `run:` step in a PR-triggered workflow that legitimately runs outside `verify` (install/tooling steps, and the cross-browser/dev-smoke/lighthouse lanes AGENTS.md § the gate documents as CI-only), each with the reason it is not a check that belongs in the gate. rulesetContextAllowlist is for a required status check produced by something other than this repo's own workflows (a third-party GitHub App) — empty today.",
         "allowedRunSteps": [
             {
                 "run": "npm install -g npm@^11.14.0",
@@ -82,7 +82,11 @@
             },
             {
                 "run": "npm run build",
-                "reason": "the cross-browser job's own build for the geometry spec on Firefox/WebKit; not a check"
+                "reason": "the production build the cross-browser and lighthouse jobs measure against; not a check"
+            },
+            {
+                "run": "npm run perf:ci -- --collect.settings.chromeFlags=--no-sandbox",
+                "reason": "the lighthouse lane, deliberately CI-only: one run on a shared runner, warn-only budgets except accessibility, not a required check; AGENTS.md names it"
             },
             {
                 "run": "node scripts/check-cross-browser-selection.mjs",

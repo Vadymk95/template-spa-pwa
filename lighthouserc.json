@@ -3,7 +3,7 @@
         "collect": {
             "url": ["http://127.0.0.1:4173/"],
             "startServerCommand": "npm run preview -- --host 127.0.0.1 --port 4173 --strictPort",
-            "startServerReadyPattern": "Local:",
+            "startServerReadyPattern": "Local",
             "startServerReadyTimeout": 30000,
             "numberOfRuns": 1,
             "settings": {

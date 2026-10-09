@@ -36,6 +36,8 @@ React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · sha
 
 **PWA** — manifest + Workbox config in `vite.config.ts`; update toast in `src/components/common/PwaUpdateToast/`; install hook in `src/hooks/pwa/usePwaInstall.ts`. **Do not** flip `registerType` post-deploy. **Do not** drop the `apple-mobile-web-app-capable` meta tag. **Do not** enable `devOptions.enabled`. Full reference and threat model: `.cursor/brain/PWA.md`.
 
+**Security headers ship with the template** — one definition, `vite-plugins/security-headers.ts`, feeds `dist/_headers` (written at build; Netlify and Cloudflare Pages read it as is) and the headers `vite preview` sends (the same set; the `firefox` Playwright project turns off Firefox's COOP process swap, which loses navigations: `.cursor/brain/SKELETONS.md`), so the production-mode e2e runs under the real policy. The CSP has no `unsafe-*`; the one inline script (the service-worker registration) is allowed by a hash computed from the built `index.html`. A new inline script, third-party origin or `data:` source changes the policy in that file, not in a host config; `e2e/support/fixtures.ts` fails any preview-mode spec that raises a CSP violation (a console message or a `securitypolicyviolation` event), and `eslint.config.js` bans importing `test` from `@playwright/test` in `e2e/*.spec.ts`. Vercel and nginx recipes: `SECURITY_REQUIREMENTS.md`.
+
 **Reuse first** — before creating any function/util/component/constant, search for an existing equivalent and extend it. Duplicate utilities are a violation, not a style choice.
 
 **Consistency beats preference** — match the surrounding file's style and patterns.
@@ -103,7 +105,7 @@ npm run verify        # THE gate: preflight → oxlint → format → typecheck 
 npm run verify:ci     # verify + audit:gate — the CI chain; the push runs it in phase 1 (see below)
 npm run verify:full   # verify:ci + smoke:dev — adds the content-variance fixture (needs a dev server)
 npm run smoke:dev     # the content-stress fixture alone, against `vite dev`
-npm run ci:local      # verify:ci + perf:ci (Lighthouse), which stays out of the gate
+npm run ci:local      # verify:ci + perf:ci (Lighthouse); CI runs Lighthouse as its own `lighthouse` job
 npm run fix           # oxlint --fix → eslint --fix → prettier --write, repo-wide (the one remedy)
 npm run audit:gate    # fail-closed audit with a self-expiring allowlist
 npm run bench:verify  # the gate step by step with timings
@@ -240,7 +242,7 @@ verify gate fails loudly if hooks are missing. Dependency cooldown is also on
 (`.npmrc` `min-release-age=3`, DAYS): a brand-new package or urgent patch needs
 `npm install <pkg> --min-release-age=0`.
 
-The gate is **zero-warnings**: `eslint --max-warnings 0`, `oxlint --deny-warnings`. If it fails, fix the cause — do **not** downgrade rules, silence warnings, or sprinkle `eslint-disable`. If a rule is genuinely wrong for a class of files, add a documented file-scoped override in `eslint.config.js` stating why (see the English-only-surfaces and `*.queries.ts` overrides for the pattern).
+The gate is **zero-warnings**: `eslint --max-warnings 0`, `oxlint --deny-warnings`. If it fails, fix the cause — do **not** downgrade rules, silence warnings, or sprinkle `eslint-disable`. A suppression that stays must say why on the same comment (`// eslint-disable-next-line rule -- reason`); `eslint-comments/require-description` fails a directive with no reason and `no-unlimited-disable` one that names no rule. If a rule is genuinely wrong for a class of files, add a documented file-scoped override in `eslint.config.js` stating why (see the English-only-surfaces and `*.queries.ts` overrides for the pattern).
 
 **Complexity ratchet** — `complexity` 12 / `max-depth` 3 / `max-params` 4 / `max-lines-per-function` 120 / `max-lines` 200 over `src/**`, tests and mocks exempt. Thresholds sit above the measured ceiling (see `DECISIONS.md`), so a hit means new drift: split the function first; raising a number needs a fresh measurement and a `DECISIONS.md` line.
 

@@ -16,7 +16,8 @@ always runs the full chain — the phase gates only the LOCAL hook.
 | `verify:pwa`, web-vitals chunks, `size:check` | no | same flip — they all measure a built artefact |
 | prod-mode e2e (`vite preview`) | no | same flip — a prod boundary now exists |
 | dev-server smoke (content variance) | CI `dev-smoke` job, every PR | unchanged by phases |
-| mutation score, Lighthouse | weekly CI / outside the gate | unchanged by phases |
+| mutation score | weekly CI / outside the gate | unchanged by phases |
+| Lighthouse | CI `lighthouse` job, every PR; not required | unchanged by phases |
 
 Measured here (`.gate-trace.log`, 2026-08-30 to 2026-09-11): a phase-0 push 15-20 s; the full chain
 (`GATE_PHASE=full`, or phase 1) 32-47 s over six passing runs, p90 47 s — plus ~20 % headroom that is the
@@ -50,7 +51,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
   sits outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
   measures the content-variance fixture (mounted only under `import.meta.env.DEV`, so it is
   unreachable from the `vite preview` run and needs its own server); CI runs it as the mandatory
-  `dev-smoke` job. **`npm run ci:local`** — `verify:ci` plus Lighthouse, outside the gate on cost.
+  `dev-smoke` job. **`npm run ci:local`** — `verify:ci` plus Lighthouse; CI runs Lighthouse as its own `lighthouse` job.
 
 ---
 
@@ -74,6 +75,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 - **Regressions in standard vs attribution web-vitals chunks** — `npm run verify:web-vitals-chunks:full` (two full builds — use sparingly); bare `verify:web-vitals-chunks` = single-build assert on existing `dist/`
 - **Vendor chunk byte budget** (touched `vite.config.ts` `codeSplitting.groups`, added a vendor dep, or heavier `build` output) — `npm run build && npm run size:check`
 - **PWA Service Worker lifecycle** (`vite.config.ts → VitePWA`, `removeMswPlugin`, `workbox`, icons) — `npm run verify:measure -- e2e/sw-lifecycle.spec.ts` (preview-mode only — dev disables PWA SW)
+- **Security headers / CSP** (`vite-plugins/security-headers.ts`, an inline `<script>` in `index.html`, a new third-party origin, `API_DEFAULT_URL`) — `npm run test:one -- vite-plugins/security-headers.test.ts` + `npm run verify:measure -- e2e/smoke.spec.ts e2e/security-headers.spec.ts` (preview serves the policy; any preview-mode spec fails on a CSP violation (a console message or a `securitypolicyviolation` event))
 
 ---
 
@@ -87,6 +89,8 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate always, plus the offline gate at phase 0 and the whole chain from phase 1.
 5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
+Rules added 2026-10-08: `@eslint-community/eslint-comments/require-description` + `no-unlimited-disable` (a suppression carries `-- reason` and names its rule); `no-restricted-imports` on `e2e/*.spec.ts` (import `test` from `./support/fixtures`, whose automatic fixture fails a test on a CSP violation (a console message or a `securitypolicyviolation` event)).
+
 Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named consts in `src/lib/constants.ts`), `import-x/no-restricted-paths` (layer boundaries: `components/hocs/hooks/lib/store` ⇏ `pages`), `i18next/no-literal-string` (warn; hardcoded JSX strings → `t()`).
 
 ---
@@ -95,7 +99,7 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 
 - **`npm run verify`** — the gate. Everything offline; the stage order is the `verify:inner` script.
 - **`npm run verify:ci`** — `audit:gate && verify`. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
-- **`npm run ci:local`** — `verify:ci` + `perf:ci`. Lighthouse is the only check outside the gate.
+- **`npm run ci:local`** — `verify:ci` + `perf:ci`. Lighthouse is the only check outside the gate; CI runs it as the `lighthouse` job (one run, warn-only budgets except accessibility, not a required check).
 - **`npm run bench:verify`** — the same steps with per-step timings, to attribute a slow gate.
 - **`npm run fix`** — the one remedy: `oxlint --fix` → `eslint --fix` → `prettier --write`, repo-wide. Re-run `lint` and `format:check` afterwards to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.
 

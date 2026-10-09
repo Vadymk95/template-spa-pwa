@@ -12,6 +12,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { env } from '@/env';
+import { API_DEFAULT_URL } from '@/lib/constants';
 
 import { safeFetchQueryFn } from './safeFetch';
 
@@ -21,7 +22,7 @@ const GreetingSchema = z.object({
 
 export type Greeting = z.infer<typeof GreetingSchema>;
 
-const GREETING_URL = `${env.VITE_API_URL ?? 'http://localhost:3001/api'}/greeting`;
+const GREETING_URL = `${env.VITE_API_URL ?? API_DEFAULT_URL}/greeting`;
 
 export const greetingKeys = {
     all: ['greeting'] as const,

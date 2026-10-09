@@ -13,3 +13,8 @@ export const HTTP_SERVER_ERROR_MIN = 500; // 5xx = retryable server error
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 export const MIN_PASSWORD_LENGTH = 8;
+
+// ─── API ──────────────────────────────────────────────────────────────────
+// Base URL the client calls when VITE_API_URL is unset. Shared with
+// vite-plugins/security-headers.ts so the CSP `connect-src` allows exactly this origin.
+export const API_DEFAULT_URL = 'http://localhost:3001/api';

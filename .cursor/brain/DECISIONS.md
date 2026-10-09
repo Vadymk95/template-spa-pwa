@@ -1,5 +1,82 @@
 # Architectural Decisions
 
+## [2026-10] Default CSP and security headers ship with the template (2026-10-08)
+
+**Decision**: `vite-plugins/security-headers.ts` is the one definition of the response headers. `closeBundle` writes
+`dist/_headers` from the final `dist/index.html`; `configurePreviewServer` sends the same headers on `vite preview`,
+reading `index.html` per request. The policy: `default-src 'self'`; `script-src 'self'` plus a `sha256` hash for each
+inline script of the built page (today the one `vite-plugin-pwa` registration, `injectRegister: 'inline'`; the theme
+boot stays an external file); `style-src 'self'`; `data:` only for `img-src` and `font-src` (`assetsInlineLimit`
+inlines small assets); `connect-src` `'self'` plus the origin of `VITE_API_URL`; `worker-src`, `manifest-src`,
+`base-uri`, `form-action` `'self'`; `object-src` and `frame-ancestors` `'none'`. No `unsafe-*` source, no
+`upgrade-insecure-requests` (it would break an http localhost run). Next to it: HSTS `max-age=31536000;
+includeSubDomains` WITHOUT `preload` (a preload-list submission is hard to undo, so it is the domain owner's call),
+`nosniff`, `strict-origin-when-cross-origin`, a `Permissions-Policy` that switches off camera, microphone,
+geolocation, payment and usb, COOP `same-origin`, and `X-Frame-Options: DENY` as the legacy twin of
+`frame-ancestors`. The dev server sends no policy: HMR needs inline scripts and a websocket, and a CSP loose enough
+for that would not be the one production ships.
+
+**Guards**: the default API URL moved to `API_DEFAULT_URL` in `src/lib/constants.ts`, imported by both API call sites
+and by the plugin, so `connect-src` cannot drift from the URL the client really calls.
+`vite-plugins/security-headers.test.ts` pins the header set, each directive and the `_headers` format.
+`e2e/support/fixtures.ts` is the `test` every preview-mode spec imports; its automatic fixture reads the browser
+console on the context, plus a `securitypolicyviolation` listener injected into every frame, and fails the test on a
+Content-Security-Policy violation. `eslint.config.js` bans importing
+`test` from `@playwright/test` in `e2e/*.spec.ts` (`e2e/dev/**` stays outside: no policy there), and
+`e2e/security-headers.spec.ts` compares what `vite preview` sends with the block in `dist/_headers`, COOP included.
+
+**Why**: the template told a fork to configure CSP on its host and showed an nginx snippet with a per-request nonce
+that nothing in the template injects, so a fork either shipped no policy or copied one that blocks its own page. A
+browser does not fail a page for a CSP violation (it blocks the resource and writes one console line), so without the
+fixture a new inline script or third-party origin passes every functional spec and breaks in production.
+
+**Measured**: the fixture is red when the policy is wrong. With the inline hash dropped, `smoke.spec.ts` failed with
+"Executing inline script violates the following Content Security Policy directive 'script-src 'self''"; with the API
+origin dropped from `connect-src` it failed with "Connecting to 'http://localhost:3001/api/greeting' violates ...
+connect-src 'self'". An independent `sha256` of the inline script equals the hash in `dist/_headers`. The longest
+`_headers` line is 343 characters.
+
+**Risk that remains**: `connect-src` allows the localhost API origin unless `VITE_API_URL` is set for the production
+build (SECURITY_REQUIREMENTS.md says so). Firefox exposed a violation the Chromium run could not see: zod 4 probes
+for JIT support with `new Function('')`, which the policy (no `'unsafe-eval'`) reports even though zod catches the
+throw. Chromium raised it only as a `securitypolicyviolation` event, with no console line, so the console-only fixture
+stayed green there; the fixture now also listens for the event. The probe is switched off with
+`z.config({ jitless: true })` in `src/env.ts`, never by adding `'unsafe-eval'`. Measured on the built preview: with the
+call removed, `smoke.spec.ts` (Chromium) and `layout-geometry.spec.ts` (Firefox) both fail on the violation, and the
+console-only fixture stays green in Chromium; with it, all seven preview specs pass in Chromium and the geometry
+specs in Chromium, Firefox and WebKit.
+`vite preview` sends COOP like `dist/_headers`, and Playwright 1.63.0's Firefox (build 1543, pinned in
+`node_modules/playwright-core/browsers.json`) then intermittently never finishes a `page.goto`. Measured 2026-10-09,
+`layout-geometry.spec.ts --project=firefox --repeat-each=8 --workers=4`, three rounds of 40: 2 timeouts with Firefox's
+default, 0 with `browser.tabs.remote.useCrossOriginOpenerPolicy` off, which the `firefox` project in
+`playwright.config.ts` now sets. The header stays sent; whether a real Firefox is affected is not measured. Rejected:
+dropping COOP from the shipped set or from preview (the brief and the operator want it in the defaults, and the e2e run
+would then exercise a policy unlike the shipped one). The lift condition is in SKELETONS.md.
+The 2000-character per-line cap for Cloudflare Pages `_headers` is recalled, not re-checked this session. Vercel and
+nginx get recipes in SECURITY_REQUIREMENTS.md, not generated files.
+
+## [2026-10] Lighthouse CI runs in CI as its own job (2026-10-08)
+
+**Decision**: `.github/workflows/ci.yml` has a `lighthouse` job: build, then `npm run perf:ci` against `vite preview`
+with the budgets already in `lighthouserc.json`, unchanged. It is parallel to `validate`, `dev-smoke` and
+`cross-browser`, and it is NOT a required status check (`.github/ruleset.json` is untouched). `perf:ci` stays out of
+`verify` and `verify:ci`, so the push gate pays nothing. Chrome gets `--no-sandbox` through a CLI argument in CI
+only (a local run keeps the sandbox), and `lighthouserc.json` `startServerReadyPattern` is `Local`, not `Local:`.
+
+**Why**: the script existed and ran in no pipeline, so the budgets gated nothing anywhere (the same shape as the
+`verify:pwa` hole closed in "[2026-07] The gate is `verify`"). The earlier "rejected on cost cascade" was about the
+LOCAL and push cost of a slower, flakier check ("[2026-07]" above; "LHCI bump ... REJECTED" below, which concerns
+3 runs x several URLs x 2 form factors); a separate CI job pays neither. The ready pattern: vite colours the
+`Local` label, so `Local:` never matched under CI's colour output and every run waited out the 30 s ready timeout
+(measured locally with colours forced: 67 s before, 36 s after, same budgets, same result).
+
+**Risk that remains**: one Lighthouse run on a shared runner has run-to-run variance. That is why every budget
+except accessibility is `warn` (a noisy score cannot block a PR) and why the job is not required: a red
+accessibility score is a real finding, a yellow performance number is a signal to look at the uploaded report
+(`lighthouse-reports` artifact, 7 days). Not verified here: the first real run on `ubuntu-latest` (Chrome sandbox,
+runner speed). If the accessibility assertion ever fails with no change that explains it, raise `numberOfRuns` to 3
+on one URL (see the REJECTED entry's revisit clause) before relaxing the budget.
+
 ## [2026-10] Dependency refresh: vite-plugin-pwa 2, size-limit 14; msw 3 and vitest 5 held (2026-10-07)
 
 **Decision**: every direct dependency moves to its newest stable, compatible release. Two majors are taken, two
@@ -423,7 +500,8 @@ from `verify`, while `verify:pwa` and `size:check` ran in `ci:local` only — th
 all. So a green local gate did not predict a green CI, and two gates gated nothing anywhere.
 
 **`perf:ci` (Lighthouse) stays outside both.** It was rejected on cost cascade and remains in `ci:local`
-for deliberate use. `ci:local` is now exactly `verify:ci` + `perf:ci`.
+for deliberate use. `ci:local` is now exactly `verify:ci` + `perf:ci`. (Since 2026-10 CI also runs it, as its own
+`lighthouse` job; see "[2026-10] Lighthouse CI runs in CI as its own job".)
 
 **`audit:gate` is in `verify:ci`, not `verify`,** because it needs the network. An implementer working
 offline must still be able to run the complete offline gate. It fails closed: on every high or critical

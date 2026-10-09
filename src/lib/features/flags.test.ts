@@ -18,7 +18,7 @@ describe('feature flags — EnvFlagProvider (default)', () => {
         // Restore env between cases.
         for (const key of Object.keys(import.meta.env)) {
             if (!(key in originalEnv)) {
-                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+                // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- the cleanup removes env keys a case added, so the key is only known at run time
                 delete (import.meta.env as Record<string, unknown>)[key];
             }
         }

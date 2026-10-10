@@ -34,9 +34,9 @@ Strict version pinning via `.nvmrc` and `package.json` engines.
 git clone <your-repo-url>
 cd <your-project-folder>
 
-# Activate Node.js v24+ (from .nvmrc)
+# Activate Node.js v24.15+ (from .nvmrc)
 # If `nvm use` reports "version not installed", run `nvm install` first —
-# `engines.node: ">=24"` will block `npm install` with EBADENGINE otherwise.
+# `engines.node: ">=24.15.0"` will block `npm install` with EBADENGINE otherwise.
 nvm use
 
 # Install dependencies, install git hooks once (lifecycle scripts are
@@ -231,7 +231,7 @@ src/
 | `tsconfig.json`    | TypeScript project references and path aliases  |
 | `eslint.config.js` | Linting rules (Flat Config) including jsx-a11y  |
 | `.oxlintrc.json`   | Oxlint rules for the fast pre-pass              |
-| `.nvmrc`           | Node.js version (v24)                           |
+| `.nvmrc`           | Node.js version (v24.15)                        |
 | `.env`             | Optional local environment variables            |
 
 ### TypeScript Configuration
@@ -269,7 +269,7 @@ VITE_ENABLE_MSW=false
 
 ### Available Scripts
 
-The gate and the iteration loop (`verify`, `verify:iter`, `verify:measure`, `verify:ci`, `verify:full`, `ci:local`, `e2e:one`, `probe`, `test:one`, `trace:report`, `docs:check`, `fix`, `audit:gate`, `bench:verify`, `smoke:dev`, `test:mutation`) are listed once, in `AGENTS.md` § Commands / the gate. The rest:
+The gate and the iteration loop (`verify`, `verify:iter`, `verify:measure`, `verify:ci`, `verify:full`, `ci:local`, `e2e:one`, `probe`, `test:one`, `trace:report`, `docs:check`, `fix`, `audit:gate`, `lock:age`, `bench:verify`, `smoke:dev`, `test:mutation`) are listed once, in `AGENTS.md` § Commands / the gate. The rest:
 
 | Command                            | Description                                                                                   |
 | ---------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -295,7 +295,7 @@ The gate and the iteration loop (`verify`, `verify:iter`, `verify:measure`, `ver
 
 ### The gate
 
-`npm run verify` is every offline check; `npm run verify:ci` adds the network-bound `audit:gate` and is
+`npm run verify` is every offline check; `npm run verify:ci` adds the network-bound `audit:gate` and `lock:age` and is
 what CI runs. The gate is tiered by moment (iterate, measure, commit, push, CI), and the ONLY definition of
 which script belongs to which moment, what the push runs in each phase and what is never run by hand is
 `AGENTS.md` § Commands / the gate. Stage timings: `.cursor/brain/VERIFICATION.md`. The exact stage order:
@@ -338,8 +338,9 @@ branch (`.github/ruleset.json`). **`mutation.yml`** — the weekly StrykerJS str
 ### Where the security workflow works
 
 `gitleaks` runs anywhere — it executes the scanner itself and fails the job on a finding, independent of
-any GitHub feature or plan. The action only asks for a `GITLEAKS_LICENSE` when the repository is owned by
-an **organisation**; a personal account needs nothing.
+any GitHub feature or plan. Its job grants `pull-requests: read`, which a private repository needs on a pull
+request (the action lists the PR's commits through the API). The action only asks for a `GITLEAKS_LICENSE`
+when the repository is owned by an **organisation**; a personal account needs nothing.
 
 `codeql` needs GitHub **code scanning**, which is free on **public** repositories and a paid add-on on
 private ones. This template is public, so it works as shipped. In a **private fork** the analyze step
@@ -630,7 +631,7 @@ Files travel with a fork. Settings do not. Everything the gate needs is in the f
 
 Not inherited, and each one is a switch in your own repository's settings:
 
-- **Rulesets and branch protection**, including every required status check. Until you add one, your default branch accepts any push, and the pull-request discipline this repository documents is a habit rather than a rule.
+- **Rulesets and branch protection**, including every required status check. Until you add one, your default branch accepts any push, and the pull-request discipline this repository documents is a habit rather than a rule. Rulesets need a public repository or a paid plan: in a private fork on GitHub Free the required check is a convention you keep yourself, and a private fork removes the `codeql` job and its `CodeQL (JavaScript / TypeScript) (javascript-typescript)` entry in `.github/ruleset.json` together (`docs:check` flags the entry that outlives its job).
 - **Actions permissions.** A fork starts with workflows disabled; GitHub asks you to enable them once, in the Actions tab. Until you do, the CI described here never runs, and a green screen means nobody looked.
 - **Secret scanning and push protection**, **CodeQL**, and **Dependabot alerts.** The Dependabot CONFIG file travels; the alerts it feeds are a setting.
 

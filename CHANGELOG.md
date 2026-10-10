@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.3.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.0...v3.3.1) (2026-10-10)
+
+
+### Bug fixes
+
+* **a11y:** scan target size after render, pin actions by SHA, SECURITY.md ([#68](https://github.com/Vadymk95/template-spa-pwa/issues/68)) ([3deafcd](https://github.com/Vadymk95/template-spa-pwa/commit/3deafcd313ed0b5ce646074076058942dfee7467))
+* **api:** stop retrying 4xx through safeFetch; refuse agent-memory imports in docs ([#73](https://github.com/Vadymk95/template-spa-pwa/issues/73)) ([77fdf7b](https://github.com/Vadymk95/template-spa-pwa/commit/77fdf7b5762d7d6e0088a91f10d1589d04c170d2))
+* **ci:** audit workflows with zizmor, fail CI on flaky tests, end the Firefox flake ([#69](https://github.com/Vadymk95/template-spa-pwa/issues/69)) ([c4e9c37](https://github.com/Vadymk95/template-spa-pwa/commit/c4e9c3741cfda15abf392fcb616501a889a2f0c4))
+* **gate:** close audit holes - CI steps, ruleset, size, boundary, safeFetch, shim ([#66](https://github.com/Vadymk95/template-spa-pwa/issues/66)) ([6e44134](https://github.com/Vadymk95/template-spa-pwa/commit/6e4413460bf3067d0c83666a45d019a4756b7845))
+* **harness:** lock-age and Node-floor guards, quiet green gate, fork-path fixes ([#77](https://github.com/Vadymk95/template-spa-pwa/issues/77)) ([d9df82a](https://github.com/Vadymk95/template-spa-pwa/commit/d9df82aac2ffc7be9c857c6f7d51f3d241b84eea))
+* **security:** ship default CSP and headers; suppressions need a reason; Lighthouse in CI ([#75](https://github.com/Vadymk95/template-spa-pwa/issues/75)) ([db26555](https://github.com/Vadymk95/template-spa-pwa/commit/db2655504a480cd932c39e5caaa3f7868f12aca0))
+* **security:** test the auth-token guards, scan the dashboard for a11y, fix stale docs ([#67](https://github.com/Vadymk95/template-spa-pwa/issues/67)) ([6ba2515](https://github.com/Vadymk95/template-spa-pwa/commit/6ba25150c30e03a8233580f2b9a21476225e519b))
+
+
+### Maintenance
+
+* **deps:** newest compatible versions; holds and the cooldown bypass recorded ([#74](https://github.com/Vadymk95/template-spa-pwa/issues/74)) ([d23a5ff](https://github.com/Vadymk95/template-spa-pwa/commit/d23a5ffc39920c638183937cd67edda66bc31c40))
+
+
+### Documentation
+
+* **decisions:** date the next check of the vitest hold lift trigger ([#64](https://github.com/Vadymk95/template-spa-pwa/issues/64)) ([1e3800d](https://github.com/Vadymk95/template-spa-pwa/commit/1e3800dbfee3863ca2297b87f5ba9eb883172f7f))
+* **harness:** slim agent docs, enforce version holds, resolve section pointers ([#76](https://github.com/Vadymk95/template-spa-pwa/issues/76)) ([b34a676](https://github.com/Vadymk95/template-spa-pwa/commit/b34a676be90be5cf0e422521c48d80acabc6ab2f))
+
 ## [3.3.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.3...v3.3.0) (2026-10-02)
 
 

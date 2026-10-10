@@ -11,7 +11,7 @@ always runs the full chain — the phase gates only the LOCAL hook.
 
 | Check | Runs at phase 0 (scaffold) | Added when (the trigger) |
 | --- | --- | --- |
-| audit, hooks-check, oxlint, format, tsc, lint, coverage | yes — every push, seconds | day one |
+| audit, lock-age, hooks-check, version holds, engines floor, oxlint, format, tsc, lint, coverage | yes — every push, seconds | day one |
 | production build in the gate | no | the FIRST DEPLOY: flip `"phase": 1` in its own commit |
 | `verify:pwa`, web-vitals chunks, `size:check` | no | same flip — they all measure a built artefact |
 | prod-mode e2e (`vite preview`) | no | same flip — a prod boundary now exists |
@@ -47,8 +47,8 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
   `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.
 - **`npm run verify`** — every **offline** check. Stage order: the `verify:inner` script; the superset
   rule and the push/CI split: `AGENTS.md` § the gate; why: `DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI".
-- **`npm run verify:ci`** — `audit:gate && verify`; the audit gate needs the network, which is why it
-  sits outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
+- **`npm run verify:ci`** — `audit:gate && lock:age && verify`; both need the network, which is why they
+  sit outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
   measures the content-variance fixture (mounted only under `import.meta.env.DEV`, so it is
   unreachable from the `vite preview` run and needs its own server); CI runs it as the mandatory
   `dev-smoke` job. **`npm run ci:local`** — `verify:ci` plus Lighthouse; CI runs Lighthouse as its own `lighthouse` job.
@@ -86,7 +86,7 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 1. **Session start** — Cursor `session-init.sh` + Claude `brain-loader.sh` inject this repo's brain pointers + SKELETONS danger-zones + a "read before editing" mandate into context (`~/.claude/hooks/brain-digest.sh`). Unskippable, unlike `/init`.
 2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
 3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*`; then **repo-wide** `lint:oxlint`, `format:check` and `typecheck`; all three run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
-4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate always, plus the offline gate at phase 0 and the whole chain from phase 1.
+4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate and the lock-age check always, plus the offline gate at phase 0 and the whole chain from phase 1.
 5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
 Rules added 2026-10-08: `@eslint-community/eslint-comments/require-description` + `no-unlimited-disable` (a suppression carries `-- reason` and names its rule); `no-restricted-imports` on `e2e/*.spec.ts` (import `test` from `./support/fixtures`, whose automatic fixture fails a test on a CSP violation (a console message or a `securitypolicyviolation` event)).
@@ -98,7 +98,7 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 ## Local gates (`verify` vs `ci:local`)
 
 - **`npm run verify`** — the gate. Everything offline; the stage order is the `verify:inner` script.
-- **`npm run verify:ci`** — `audit:gate && verify`. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
+- **`npm run verify:ci`** — `audit:gate && lock:age && verify`. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
 - **`npm run ci:local`** — `verify:ci` + `perf:ci`. Lighthouse is the only check outside the gate; CI runs it as the `lighthouse` job (one run, warn-only budgets except accessibility, not a required check).
 - **`npm run bench:verify`** — the same steps with per-step timings, to attribute a slow gate.
 - **`npm run fix`** — the one remedy: `oxlint --fix` → `eslint --fix` → `prettier --write`, repo-wide. Re-run `lint` and `format:check` afterwards to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.

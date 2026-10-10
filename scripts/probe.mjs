@@ -29,6 +29,17 @@ const OUT_DIR = '.probe';
 const DEFAULT_WIDTHS = [390, 768, 1440];
 const VIEWPORT_HEIGHT = 900;
 
+/**
+ * Headless Chromium launches with `--hide-scrollbars`, so a plain `launch()` measures a page on a
+ * viewport that never loses its scrollbar width. A Windows or Linux visitor with a mouse does lose it
+ * (measured here: `documentClientWidth` 390 hidden, 375 classic, same page and viewport), and
+ * `scrollbar-gutter: stable` or a `100vw` element then lays out differently. macOS and phones draw
+ * overlay scrollbars, so a layout checked only on them passes there and breaks elsewhere. The probe
+ * is the instrument that LOOKS, so it looks with the scrollbar drawn; the e2e guards keep Playwright's
+ * defaults and assert the CSS that decides the gutter instead.
+ */
+export const BROWSER_LAUNCH_OPTIONS = { ignoreDefaultArgs: ['--hide-scrollbars'] };
+
 export const parseProbeArgs = (argv) => {
     const useDev = argv.includes('--dev');
     const positional = argv.filter((argument) => !argument.startsWith('--'));
@@ -141,7 +152,7 @@ const run = async () => {
     );
 
     const baseUrl = `http://localhost:${String(port)}`;
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(BROWSER_LAUNCH_OPTIONS);
     const rows = [];
     try {
         await waitForServer(async () => {

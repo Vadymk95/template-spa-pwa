@@ -15,7 +15,7 @@
 // which stalls this file for the full XHR timeout.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const ENV_KEYS = ['CI', 'PLAYWRIGHT_USE_PREVIEW'];
+const ENV_KEYS = ['CI', 'PLAYWRIGHT_USE_PREVIEW', 'PORT', 'PLAYWRIGHT_BASE_URL'];
 const originalEnv = {};
 
 beforeEach(() => {
@@ -70,6 +70,40 @@ describe('playwright configs outputDir', () => {
         expect(gateConfig.outputDir).toBeTruthy();
         expect(devConfig.outputDir).toBeTruthy();
         expect(gateConfig.outputDir).not.toBe(devConfig.outputDir);
+    });
+});
+
+// A lane that moves off a busy port sets PORT and nothing else. Playwright must then talk to the port
+// the server binds: a baseURL taken from PLAYWRIGHT_BASE_URL alone would keep the default port while
+// the webServer command moves, and the run would measure another lane's server while looking healthy.
+describe('playwright.config.ts port', () => {
+    it.each([
+        ['preview', '1', '4173'],
+        ['dev', undefined, '3000']
+    ])('keeps the default %s port when PORT is unset', async (_mode, preview, port) => {
+        if (preview) process.env.PLAYWRIGHT_USE_PREVIEW = preview;
+        const config = await importGateConfig();
+        expect(config.use.baseURL).toBe(`http://127.0.0.1:${port}`);
+        expect(config.webServer.command).toContain(`--port ${port} `);
+    });
+
+    it.each([['1'], [undefined]])(
+        'follows PORT alone for the baseURL and the server (preview flag %s)',
+        async (preview) => {
+            if (preview) process.env.PLAYWRIGHT_USE_PREVIEW = preview;
+            process.env.PORT = '3100';
+            const config = await importGateConfig();
+            expect(config.use.baseURL).toBe('http://127.0.0.1:3100');
+            expect(config.webServer.url).toBe('http://127.0.0.1:3100');
+            expect(config.webServer.command).toContain('--port 3100 ');
+        }
+    );
+
+    it('lets PLAYWRIGHT_BASE_URL override the baseURL', async () => {
+        process.env.PORT = '3100';
+        process.env.PLAYWRIGHT_BASE_URL = 'http://localhost:3999';
+        const config = await importGateConfig();
+        expect(config.use.baseURL).toBe('http://localhost:3999');
     });
 });
 

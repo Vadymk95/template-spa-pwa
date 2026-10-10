@@ -266,8 +266,10 @@ the lift). A mutation floor is raised after a good run, never moved to fit a too
 **Consequences**:
 
 - vitest 5 makes `document` a getter-only global in jsdom, so `scripts/probe.test.mjs` uses `vi.stubGlobal`.
-- jsdom 30 needs Node `^24.15.0`; `.nvmrc` says `24`, so a machine on an older 24.x fails `engine-strict` at install.
-  That is the intended signal.
+- jsdom 30 needs Node `^24.15.0`, so `engines.node` and `.nvmrc` carry 24.15.0: a machine on an older 24.x fails
+  `engine-strict` at install, the intended signal. `scripts/check-engines-floor.mjs` (in `verify` and
+  `verify:scaffold`) fails when a lockfile bump raises a package's Node floor past `engines.node` or
+  `.nvmrc`.
 - A mutation score measured with Stryker's incremental report present never represents CI's fresh checkout: delete
   `reports/stryker-incremental.json` before any measurement that decides something.
 
@@ -294,9 +296,9 @@ minors, `zod` 4.6 alone +1.5 kB); the next unexplained growth is a hunt, not ano
 or none, so a green local gate did not predict a green CI.
 
 **Decision**: every check lives in `package.json`, never only in a workflow file. `verify` holds all offline checks,
-e2e included (preview-mode e2e catches SW and CSP regressions before CI). `verify:ci` is `audit:gate && verify`; it is
+e2e included (preview-mode e2e catches SW and CSP regressions before CI). `verify:ci` is `audit:gate && lock:age && verify`; it is
 what the CI `validate` job runs, and `.husky/pre-push` runs the phase-aware `verify:push` (`scripts/gate-tiers.json`;
-tier law in `AGENTS.md` § Commands). `audit:gate` needs the network, so it is in `verify:ci` only; it fails closed (high
+tier law in `AGENTS.md` § Commands). `audit:gate` and `lock:age` need the network, so they are in `verify:ci` only; `audit:gate` fails closed (high
 or critical advisory, expired or stale allowance, its own failure) and `scripts/audit-gate.test.mjs` covers those paths.
 
 **Consequences**:

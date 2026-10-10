@@ -28,7 +28,7 @@ React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · sha
 - **Content variance** — anything that renders authored copy is proven in a real browser against content it has NOT seen (text: minimal / typical / long / unbroken; collections: none / one / many). Add a case to `/dev/ui/content-stress` (dev-only; `e2e/dev/content-stress.spec.ts`) with every content-bearing component. The range of widths a guard covers is part of its spec, and a wrap class with no red-to-green proof is deleted. Engines disagree on intrinsic sizing, font metrics and scrollbar gutters: measure (`CROSS_BROWSER=1` adds Firefox and WebKit), never predict.
 - **Zero warnings, a complexity ratchet** — `eslint --max-warnings 0`, `oxlint --deny-warnings`. Fix the cause; never downgrade a rule or sprinkle `eslint-disable`. A suppression that stays says why on the same comment, and a rule wrong for a class of files gets a documented file-scoped override in `eslint.config.js`. The complexity limits there sit above the measured ceiling: a hit is new drift, so split the function; raising a number needs a fresh measurement and a `DECISIONS.md` update.
 - **Pre-commit is repo-scoped** — `lint-staged`, the TDD sibling gate, then `lint:oxlint`, `format:check` and `typecheck` over the whole repo; the remedy for any failure is `npm run fix && git add -u`.
-- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify` fails loudly without hooks). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`.
+- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify` fails loudly without hooks). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`. The lockfile obeys the same cooldown: `npm run lock:age` (in `verify:ci`) fails a changed `name@version` younger than `min-release-age`; a deliberate bypass bump is listed with a reason and an expiry in `scripts/lock-age-allowlist.json`.
 - **Machine-agnostic configs** — no absolute local paths (the VS Code i18next extension rewrites `i18next.i18nPaths`; keep them relative) and no DURATION measured on one machine: `scripts/gate-tiers.json` holds a ratio and a sample size, and the gate calibrates its own baseline into the gitignored `.gate-budget.json`.
 
 ## Commands / the gate
@@ -41,13 +41,13 @@ npm run verify:iter   # iteration tier: oxlint → tsc → vitest --changed (sec
 npm run verify:measure # MEASURE moment: build + look; add `-- e2e/<f>.spec.ts` for one preview-mode spec
 npm run e2e:one -- <spec> # one Playwright spec, FREE port, through the tracer (`test:e2e:prod` = all, against vite preview)
 npm run test:one -- <file> # one unit test file, through the tracer (not around it)
-npm run probe -- <route> [widths] # LOOK: render, screenshot per width, print measured quantities (an instrument, never a gate)
+npm run probe -- <route> [widths] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
 npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage
 npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports (pre-commit when docs are staged; weekly CI adds --weekly)
 npm run verify:push   # what pre-push runs: phase-aware (scripts/gate-tiers.json)
 npm run verify        # THE gate: preflight → oxlint → format → typecheck → eslint (cached) → coverage → build
-                      # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e   (preflight = hooks, version holds, gate env)
-npm run verify:ci     # verify + `audit:gate` (fail-closed audit, self-expiring allowlist): the CI chain; the push runs it in phase 1
+                      # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e   (preflight = hooks, version holds, engines floor, gate env)
+npm run verify:ci     # verify + `audit:gate` (fail-closed audit, self-expiring allowlist) + `lock:age` (lockfile vs the cooldown): the CI chain; the push runs it in phase 1
 npm run verify:full   # verify:ci + `smoke:dev` (the content-stress fixture against `vite dev`)
 npm run ci:local      # verify:ci + perf:ci (Lighthouse); CI runs Lighthouse as its own `lighthouse` job
 npm run fix           # oxlint --fix → eslint --fix → prettier --write, repo-wide (the one remedy)
@@ -74,14 +74,15 @@ that file disagree, the file wins and the prose is fixed in the same commit.
   look) or the probe, where the repo has them. Legal at any time, in any lane, never a violation.
   Measuring is not verifying: it runs no lint, no types, no tests.
 - **Commit** - the pre-commit hook owns it: staged autofix, the TDD sibling gate, then the repo-wide cheap
-  checks. Nothing to run by hand; on refusal the hook prints the remedy.
+  checks. Nothing to run by hand; on refusal the hook prints the remedy. The commit-msg hook (commitlint)
+  also rejects any body or footer line over 100 characters (the header cap is 96): wrap the body.
 - **Push** - the pre-push hook runs the gate ONCE, never shortened by what the diff touched. Where the
   repo has heavy stages (build, size, e2e), the push script is phase-aware: phase 0 (scaffold, before the
   first deploy) runs the offline checks and loudly SKIPS the heavy stages; phase 1 (from the first deploy)
   runs the full `verify:ci`. A skipped stage is printed, never silent; flip the phase in one commit at the
   first deploy. A repo whose gate has no heavy stage runs the full `verify:ci` at push and records in
   `gate-tiers.json` that a phase switch would gate nothing.
-- **CI** - phase-blind: always the full `verify:ci` (`audit:gate` + `verify`), plus what only CI can do
+- **CI** - phase-blind: always the full `verify:ci` (`audit:gate` + `lock:age` + `verify`), plus what only CI can do
   (the security workflow, the scheduled mutation job, a mandatory dev-smoke job where the repo has one).
 
 **Prohibitions, stated as such.** An implementer or a reviewer NEVER runs `verify`, `verify:ci`,
@@ -111,7 +112,7 @@ that outgrew it, so that number moves on a measurement and a `DECISIONS.md` line
 
 **`verify` is a strict superset of the offline checks CI runs**, so a green `verify` predicts a green CI.
 Keeping that true is a rule: a new check goes into the script, never only into the workflow file.
-`audit:gate` sits in `verify:ci` rather than `verify` because it needs the network, so an offline agent can
+`audit:gate` and `lock:age` sit in `verify:ci` rather than `verify` because they need the network, so an offline agent can
 still run the whole offline gate. `bench:verify` derives its step list from the `verify` script; a
 hand-written second list has already drifted once.
 

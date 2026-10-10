@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+    BROWSER_LAUNCH_OPTIONS,
     hasRenderedContent,
     measureInPage,
     parseProbeArgs,
@@ -181,5 +184,18 @@ describe('measureInPage', () => {
         );
         expect(measurement.controls).toBe(0);
         expect(measurement.headings).toBe(2);
+    });
+});
+
+describe('the probe browser', () => {
+    it('keeps classic scrollbars, which headless Chromium hides unless told otherwise', () => {
+        expect(BROWSER_LAUNCH_OPTIONS.ignoreDefaultArgs).toContain('--hide-scrollbars');
+    });
+
+    it('launches with those options, so the constant is not decoration', () => {
+        // `run` needs a build and a server, so the wiring is read from the source instead.
+        expect(readFileSync('scripts/probe.mjs', 'utf8')).toMatch(
+            /chromium\.launch\(BROWSER_LAUNCH_OPTIONS\)/
+        );
     });
 });

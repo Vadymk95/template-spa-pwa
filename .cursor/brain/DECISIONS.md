@@ -269,7 +269,8 @@ the lift). A mutation floor is raised after a good run, never moved to fit a too
 - jsdom 30 needs Node `^24.15.0`, so `engines.node` and `.nvmrc` carry 24.15.0: a machine on an older 24.x fails
   `engine-strict` at install, the intended signal. `scripts/check-engines-floor.mjs` (in `verify` and
   `verify:scaffold`) fails when a lockfile bump raises a package's Node floor past `engines.node` or
-  `.nvmrc`.
+  `.nvmrc`, and when the lockfile's root `engines` differs from `package.json` (the next `npm install`
+  rewrites it and leaves a dirty lockfile that `npm ci` never shows).
 - A mutation score measured with Stryker's incremental report present never represents CI's fresh checkout: delete
   `reports/stryker-incremental.json` before any measurement that decides something.
 
@@ -306,7 +307,7 @@ or critical advisory, expired or stale allowance, its own failure) and `scripts/
 - An audit allowance is the last resort: read the advisory's fixed range before trusting `fixAvailable`. Removing an
   allowance and adding the override that closes it are ONE commit, or the stale check fails the gate by design.
 - Pre-commit is repo-scoped: `lint-staged` restores unstaged hunks after fixing, so drift survived the commit. The hook
-  also runs the TDD sibling gate, then repo-wide `lint:oxlint`, `format:check` and `typecheck`. A hook that commits for
+  also runs the TDD sibling gate (against the index; `verify` repeats it over the branch with `--range`), then repo-wide `lint:oxlint`, `format:check` and `typecheck`. A hook that commits for
   you is not adopted: it would sweep other dirty files into the commit.
 - `scripts/ensure-playwright.mjs` parses `Install location:` from `playwright install --dry-run`, because a name check
   fails open across a Playwright bump; `scripts/ensure-playwright.test.mjs` pins the stale-cache case.

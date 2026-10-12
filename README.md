@@ -22,8 +22,9 @@ Production-ready React 19 + Vite 8 + TypeScript 6 **SPA + PWA** template — rou
 ## 📋 Prerequisites
 
 - **Node.js v24+** (use `nvm` for version management)
-- **npm** (comes with Node.js)
+- **npm 11.10+** (comes with Node.js 24.15+; `engines.npm` enforces it, because `.npmrc` `min-release-age` is ignored by older npm)
 - **Git**
+- **lsof** for the push gate, which uses it to clear a stale preview server from port 4173 (macOS ships it; Debian/Ubuntu: `apt-get install lsof`; a stock `node:*-bookworm` image has none)
 
 Strict version pinning via `.nvmrc` and `package.json` engines.
 
@@ -309,7 +310,7 @@ the `verify:inner` script in `package.json` — it is not repeated here on purpo
 **Pre-commit** (via Husky + lint-staged):
 
 1. `lint-staged` — oxlint `--fix` → ESLint `--fix` → Prettier on the **staged** files
-2. TDD gate — a staged `src` logic file with no co-located `*.test.*` blocks the commit
+2. TDD gate — a staged `src` logic file with no co-located `*.test.*` that is tracked or staged blocks the commit (the gate repeats the check over the whole branch)
 3. **Repo-wide** `lint:oxlint`, `format:check` and `typecheck`
 
 Why step 3 exists: `.cursor/brain/DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI". On failure the
@@ -634,6 +635,7 @@ Not inherited, and each one is a switch in your own repository's settings:
 - **Rulesets and branch protection**, including every required status check. Until you add one, your default branch accepts any push, and the pull-request discipline this repository documents is a habit rather than a rule. Rulesets need a public repository or a paid plan: in a private fork on GitHub Free the required check is a convention you keep yourself, and a private fork removes the `codeql` job and its `CodeQL (JavaScript / TypeScript) (javascript-typescript)` entry in `.github/ruleset.json` together (`docs:check` flags the entry that outlives its job).
 - **Actions permissions.** A fork starts with workflows disabled; GitHub asks you to enable them once, in the Actions tab. Until you do, the CI described here never runs, and a green screen means nobody looked.
 - **Secret scanning and push protection**, **CodeQL**, and **Dependabot alerts.** The Dependabot CONFIG file travels; the alerts it feeds are a setting.
+- **The `gate-change` label and code owners.** The `gate-integrity` check fails a pull request that touches a gate file listed in `scripts/gate-files.json`, a gate key of `package.json`, or adds a suppression, unless the PR carries the label `gate-change`; create the label in your fork if it is missing. A gate config that imports a helper (a setup or fixtures file) needs that helper listed too: `scripts/gate-config-coverage.test.mjs` fails until the manifest names it. The label is a request for a human read, not a bypass: CI runs the pull request's own copy of the check, so only the required check plus a reviewer holds the line. A team fork adds a `CODEOWNERS` file for the manifest's paths and turns on required code-owner review. A re-run of an old workflow run replays the label state of that run: push a commit, or add and remove the label, to start a fresh one.
 
 The decisions history is a file too, and it is the template's: start your fork's own `.cursor/brain/DECISIONS.md` with a pointer to the template's history, keep `scripts/version-holds.json`, and re-check each hold against your own Dependabot PRs (`.cursor/brain/EXTENSIONS.md` Phase 0 has the two rows).
 

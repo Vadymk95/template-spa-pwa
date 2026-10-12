@@ -50,6 +50,37 @@ describe('parseVerifySteps', () => {
         expect(labels).toContain('check-version-holds');
     });
 
+    // Each of these once ran only at commit time or after merge, so a bypassed hook or a plain
+    // branch push reached the default branch with the defect. The push gate (verify:scaffold before
+    // the first deploy, verify after it) and CI (verify:ci runs verify) now run them as well.
+    it.each([
+        ['check-test-siblings', 'every changed source file has a tracked test sibling'],
+        ['docs-check', 'doc drift, test markers (.skip, .only) and expired quarantines']
+    ])('keeps the %s check in verify and in verify:scaffold: %s', (label) => {
+        const manifest = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+        const labelsOf = (name) =>
+            parseVerifySteps(resolveScript(manifest.scripts, name)).map((step) => step.label);
+
+        expect(labelsOf('verify')).toContain(label);
+        expect(labelsOf('verify:scaffold')).toContain(label);
+    });
+
+    it('keeps the sibling-test range check inside verify and verify:scaffold, never only in the network tier', () => {
+        // The raw script, not the parsed steps: the benchmark keeps only a step's file, never its flags.
+        const manifest = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+
+        for (const name of ['verify', 'verify:scaffold']) {
+            expect(resolveScript(manifest.scripts, name), name).toContain(
+                'node scripts/check-test-siblings.mjs --range'
+            );
+        }
+        // The check is offline, so only the verify tiers carry it; the network wrappers add the registry
+        // checks on top and must not run it a second time.
+        for (const name of ['verify:ci:inner', 'verify:scaffold:push']) {
+            expect(manifest.scripts[name], name).not.toContain('check-test-siblings');
+        }
+    });
+
     it('labels an npm step by its script name and a node step by its file', () => {
         expect(parseVerifySteps('npm run typecheck && node scripts/check-hooks.mjs')).toEqual([
             { label: 'typecheck', command: 'npm', args: ['run', 'typecheck'] },

@@ -372,7 +372,7 @@ pnpm run ci:local
 
 ### Verify after switch
 
-- `pnpm run ci:local` passes end-to-end (audit, lock-age, typecheck, lint, format, test:coverage, build, verify:pwa, verify:web-vitals-chunks, **size:check**, perf:ci, e2e — incl `sw-lifecycle.spec.ts`).
+- `pnpm run ci:local` passes end-to-end (audit, lock-age, oxlint, format, typecheck, lint, test:coverage, build, verify:pwa, verify:web-vitals-chunks, **size:check**, e2e — incl `sw-lifecycle.spec.ts` — then perf:ci).
 - `pnpm-lock.yaml` is committed (deleted `package-lock.json` is staged for removal).
 - `pnpm why <package>` works for a sample dep — if it errors, the install didn't complete cleanly.
 - CI green on the conversion PR.

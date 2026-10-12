@@ -11,7 +11,7 @@ always runs the full chain — the phase gates only the LOCAL hook.
 
 | Check | Runs at phase 0 (scaffold) | Added when (the trigger) |
 | --- | --- | --- |
-| audit, lock-age, hooks-check, version holds, engines floor, oxlint, format, tsc, lint, coverage | yes — every push, seconds | day one |
+| audit, lock-age, hooks-check, version holds, engines floor, sibling-test range, docs-check, oxlint, format, tsc, lint, coverage | yes — every push, seconds | day one |
 | production build in the gate | no | the FIRST DEPLOY: flip `"phase": 1` in its own commit |
 | `verify:pwa`, web-vitals chunks, `size:check` | no | same flip — they all measure a built artefact |
 | prod-mode e2e (`vite preview`) | no | same flip — a prod boundary now exists |
@@ -58,7 +58,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 ## Minimal check by task type
 
 - **Docs only** (`*.md` in repo root / `README`, brain markdown) — `npm run format:check`
-- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly`, the scheduled Docs workflow's flag, runs the same checks so a quarantine that expires while nobody pushes still turns it red; it also refuses a focused test, an unconditional skip without `quarantine until YYYY-MM-DD` + reason, and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead)
+- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly`, the scheduled Docs workflow's flag, runs the same checks so a quarantine that expires while nobody pushes still turns it red; it also refuses a focused test, an unconditional way to switch a test off (`.skip`, `.fixme`, an expected failure such as `.fails` or `.failing`, a constant `.skipIf(true)`) without `quarantine until YYYY-MM-DD` + reason (a date more than 30 days out is red too), and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead). The same check runs inside `verify` and `verify:scaffold`, so doc drift fails a push, not only a commit
 - **Proposing a new browser spec** — the suite is counted in invariants, not screens (`AGENTS.md` § the gate); `npm run docs:check` reports the suite against the ceiling in `scripts/gate-tiers.json` § suites
 - **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check` + `npm run lint` (if CSS is in ESLint scope)
 - **i18n copy only** (value edits in `public/locales/**/*.json`) — `npm run format:check`; wrapping for
@@ -85,7 +85,7 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 
 1. **Session start** — Cursor `session-init.sh` + Claude `brain-loader.sh` inject this repo's brain pointers + SKELETONS danger-zones + a "read before editing" mandate into context (`~/.claude/hooks/brain-digest.sh`). Unskippable, unlike `/init`.
 2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
-3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*`; then **repo-wide** `lint:oxlint`, `format:check` and `typecheck`; all three run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
+3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*` that is tracked or staged (it reads the git index, not the disk, so an untracked or unstaged test does not count); the gate repeats the check over everything the branch changed (`--range`, inside `verify` and `verify:scaffold`), so a `--no-verify` commit is caught at the push; then **repo-wide** `lint:oxlint`, `format:check` and `typecheck`; all three run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
 4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate and the lock-age check always, plus the offline gate at phase 0 and the whole chain from phase 1.
 5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
@@ -114,7 +114,15 @@ unseen. The desk run and the push gate never retry (`retries: 0`), so there is n
 on there. Both settings are pinned in `scripts/check-playwright-gate-config.test.mjs`.
 
 A flaky test is fixed at its cause, or quarantined with `quarantine until YYYY-MM-DD` and the reason in
-the line above it (`docs:check` fails once the date passes); it is never retried into green.
+the line above it; it is never retried into green. The date is the first RED day, so the check fails ON
+the date (UTC), not the day after, and it may be at most 30 days from today: a quarantine is a short loan,
+so `until 2099-12-31` is red as well. A fix that is not due yet is re-dated with the reason, never
+extended by a far date. `docs:check` runs in the gate and in the weekly Docs workflow, so an expired
+quarantine turns the next push red even when nobody touches the docs.
+
+A focused test (`it.only`, `describe.only`) is refused twice: `docs:check` reads the source, and
+`vitest.config.ts` sets `allowOnly: false`, because Vitest's default permits `.only` outside CI and a
+focused suite exits 0 having run one test. To iterate on one test use `npm run test:one -- <file>` or `-t <name>`.
 
 ### After a red push: re-run only what failed
 

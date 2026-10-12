@@ -21,7 +21,7 @@ React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · sha
 - **i18n** — no hardcoded strings: every user-visible string goes through `t()`. English-only surfaces (i18n-init fallbacks, dev tooling) carry documented eslint overrides.
 - **Imports** — `@/` alias only, no `../../`; order by `eslint-plugin-import-x`; `components/hocs/hooks/lib/store` must not import `pages` (`import-x/no-restricted-paths`).
 - **No magic numbers** — named constants in `src/lib/constants.ts` (`@typescript-eslint/no-magic-numbers`, error).
-- **Testing (TDD)** — vertical slices: one test → its implementation → repeat; test behaviour through public interfaces. `scripts/check-test-siblings.mjs` (pre-commit) blocks a `src` logic file with no co-located `*.test.*`.
+- **Testing (TDD)** — vertical slices: one test → its implementation → repeat; test behaviour through public interfaces. `scripts/check-test-siblings.mjs` (pre-commit, and over the whole branch in `verify`) blocks a `src` logic file with no tracked or staged co-located `*.test.*`.
 - **PWA** — manifest and Workbox config in `vite.config.ts`; update toast in `src/components/common/PwaUpdateToast/`; install hook `src/hooks/pwa/usePwaInstall.ts`. Do not flip `registerType` post-deploy, drop the `apple-mobile-web-app-capable` meta tag or enable `devOptions.enabled`. Threat model: `.cursor/brain/PWA.md`.
 - **Security headers** come from ONE definition, `vite-plugins/security-headers.ts` (it feeds `dist/_headers` and `vite preview`). The CSP has no `unsafe-*`: a new inline script, third-party origin or `data:` source changes the policy in that file, never in a host config. A CSP violation fails a preview-mode e2e spec. Host recipes: `SECURITY_REQUIREMENTS.md`.
 - **Reuse first, consistency beats preference** — search for an existing function, util, component or constant before creating one, and extend it; match the surrounding file.
@@ -43,11 +43,11 @@ npm run e2e:one -- <spec> # one Playwright spec, FREE port, through the tracer (
 npm run test:one -- <file> # one unit test file, through the tracer (not around it)
 npm run probe -- <route> [widths] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
 npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage
-npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports (pre-commit when docs are staged; weekly CI adds --weekly)
+npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
 npm run verify:push   # what pre-push runs: phase-aware (scripts/gate-tiers.json)
-npm run verify        # THE gate: preflight → oxlint → format → typecheck → eslint (cached) → coverage → build
+npm run verify        # THE gate: preflight → sibling-test range → docs → oxlint → format → typecheck → eslint (cached) → coverage → build
                       # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e   (preflight = hooks, version holds, engines floor, gate env)
-npm run verify:ci     # verify + `audit:gate` (fail-closed audit, self-expiring allowlist) + `lock:age` (lockfile vs the cooldown): the CI chain; the push runs it in phase 1
+npm run verify:ci     # `audit:gate` (fail-closed audit, self-expiring allowlist) + `lock:age` (lockfile vs the cooldown) + verify: the CI chain; the push runs it in phase 1
 npm run verify:full   # verify:ci + `smoke:dev` (the content-stress fixture against `vite dev`)
 npm run ci:local      # verify:ci + perf:ci (Lighthouse); CI runs Lighthouse as its own `lighthouse` job
 npm run fix           # oxlint --fix → eslint --fix → prettier --write, repo-wide (the one remedy)
@@ -126,8 +126,7 @@ scripts take the next free port. Only the push gate clears its own port.
 
 ### Lanes - who runs what
 
-- **Main agent, inline.** Iterate and measure while working; the push runs the chain. Never the full gate
-  by hand.
+- **Main agent, inline.** Iterate and measure while working; the push runs the chain, never a hand-run.
 - **Implementer subagent.** Works in a hand-made `git worktree` OUTSIDE the repo directory, on its own
   port, with `node_modules` symlinked from the main checkout. Iterate and measure only; the gate never
   runs from a worktree (the tracer records it as a finding). The lead removes the worktree, checks the
@@ -141,7 +140,8 @@ scripts take the next free port. Only the push gate clears its own port.
   `.github/copilot-instructions.md`, which points here for the gate.
 - **Review, any lane.** The diff plus `verify:iter`, never a re-run of the gate. Findings are correctness,
   test strength, security, readability; style belongs to the linters. A non-author human approves; an
-  agent's own green is not an approval.
+  agent's own green is not an approval. A gate or suppression change stays red until a reviewer adds the
+  `gate-change` label, never the author (`scripts/check-gate-integrity.mjs` lists the change).
 - **Two tools, one file.** Claude Code reads `CLAUDE.md` -> `AGENTS.md` -> the brain files this guide
   points at (read on demand; nothing beyond `AGENTS.md` is `@`-imported); Cursor reads `AGENTS.md` plus
   every `alwaysApply: true` rule; Copilot reads `.github/copilot-instructions.md`. `AGENTS.md` is the only

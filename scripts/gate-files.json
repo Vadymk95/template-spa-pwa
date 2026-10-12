@@ -1,0 +1,29 @@
+{
+    "paths": [
+        "scripts/**",
+        ".husky/**",
+        ".github/**",
+        ".claude/**",
+        ".cursor/rules/**",
+        "AGENTS.md",
+        "CLAUDE.md",
+        "eslint.config.js",
+        ".oxlintrc.json",
+        ".prettierrc.json",
+        ".prettierignore",
+        "commitlint.config.mjs",
+        "tsconfig*.json",
+        "vite.config.ts",
+        "vitest.config.ts",
+        "src/test/setup.ts",
+        "e2e/support/**",
+        "playwright.config.ts",
+        "playwright.dev.config.ts",
+        "stryker.config.json",
+        ".size-limit.json",
+        "lighthouserc.json",
+        ".npmrc",
+        ".nvmrc"
+    ],
+    "packageKeys": ["overrides"]
+}

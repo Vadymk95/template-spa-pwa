@@ -29,8 +29,9 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  # Depth 2: lock:age (inside verify:ci) compares the lockfile with HEAD~1, and a
-                  # private fork's persist-credentials: false means it cannot fetch the parent itself.
+                  # Depth 2: lock:age (inside verify:ci) compares the lockfile with HEAD~1 and the sibling-test range
+                  # check (inside verify) compares the branch with it; a private fork's persist-credentials: false
+                  # means it cannot fetch the parent itself.
                   fetch-depth: 2
                   persist-credentials: false
 
@@ -81,7 +82,7 @@ jobs:
             # makes a green local gate stop predicting a green CI.
             #
             # perf:ci (Lighthouse) is not part of `verify`: it runs as the separate `lighthouse` job below.
-            - name: Verify (audit gate, lock age, types, lint, format, coverage, build, pwa, size, e2e)
+            - name: Verify (audit gate, lock age, oxlint, format, types, lint, coverage, build, pwa, chunks, size, e2e)
               run: npm run verify:ci
 
             - name: Upload coverage report

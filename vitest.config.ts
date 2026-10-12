@@ -14,6 +14,10 @@ export default mergeConfig(
     defineConfig({
         test: {
             globals: true,
+            // A focused test (`it.only`, `describe.only`) silently skips the rest of the suite and
+            // exits 0. Vitest's default allows it outside CI, so a push could carry one; refuse it
+            // everywhere. Iterate on one test with `npm run test:one -- <file>` or `-t <name>`.
+            allowOnly: false,
             environment: 'jsdom',
             setupFiles: ['./src/test/setup.ts'],
             coverage: {

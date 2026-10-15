@@ -139,7 +139,7 @@ npm run build                    # vite-plugin-pwa logs precache count + sw.js p
 npm run verify:pwa               # scripts/check-pwa.mjs — manifest fields, sw precache, meta tags
 ```
 
-`verify:pwa` runs inside `npm run verify` (so at the push in phase 1, and in CI). It catches three red-team-flagged failure modes: empty precache (Rolldown vs rollupOptions API drift), MSW worker leaking into precache, and `oxc` minifier silently stripping iOS / theme-color meta tags.
+`verify:pwa` is part of the local gate (so at the push in phase 1, and in CI). It catches three red-team-flagged failure modes: empty precache (Rolldown vs rollupOptions API drift), MSW worker leaking into precache, and `oxc` minifier silently stripping iOS / theme-color meta tags.
 
 Production reality-check (deploy + new tab):
 

@@ -29,8 +29,8 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  # Depth 2: lock:age (inside verify:ci) compares the lockfile with HEAD~1 and the sibling-test range
-                  # check (inside verify) compares the branch with it; a private fork's persist-credentials: false
+                  # Depth 2: the lock-age check compares the lockfile with HEAD~1 and the sibling-test range
+                  # check compares the branch with it; a private fork's persist-credentials: false
                   # means it cannot fetch the parent itself.
                   fetch-depth: 2
                   persist-credentials: false
@@ -76,13 +76,13 @@ jobs:
 
             # ONE step on purpose. `verify:ci` is the chain the pre-push hook runs in
             # phase 1 (`verify:push` dispatches to it), and the `verify` inside it is a strict superset of every check
-            # this job used to list separately — including verify:pwa and size:check,
+            # this job used to list separately — including the PWA and bundle-size checks,
             # which previously lived only in ci:local and therefore ran in no
             # pipeline at all. Adding a check HERE instead of to the script is what
             # makes a green local gate stop predicting a green CI.
             #
             # perf:ci (Lighthouse) is not part of `verify`: it runs as the separate `lighthouse` job below.
-            - name: Verify (audit gate, lock age, oxlint, format, types, lint, coverage, build, pwa, chunks, size, e2e)
+            - name: Verify (the CI gate chain, stages in scripts/gate-tiers.json)
               run: npm run verify:ci
 
             - name: Upload coverage report

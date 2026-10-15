@@ -20,6 +20,7 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Test toolchain: Stryker 10 and jsdom 30, vitest held                                     | 2026-09 | in force |
 | `size-limit` per-chunk brotli budget                                                     | 2026-09 | in force |
 | The gate is `verify`; `verify` is a superset of CI                                       | 2026-07 | in force |
+| The gate chain has one readable home                                                     | 2026-10 | in force |
 | ESLint 10; `settings.react.version` must be a literal                                    | 2026-07 | in force |
 | Tailwind class hygiene and the raw-hex ban                                               | 2026-07 | in force |
 | Content variance is measured in a browser, not asserted in jsdom                         | 2026-08 | in force |
@@ -283,7 +284,7 @@ the lift). A mutation floor is raised after a good run, never moved to fit a too
 
 **Decision**: `size-limit` with `@size-limit/file` only (the time plugin cost 15 to 19 s per CI run and measured nothing
 a budget used) and budgets in `.size-limit.json`, brotli: react-vendor 90 KB, i18n-vendor 22 KB, state-vendor 15 KB,
-ui-vendor 12 KB, index entry 28 KB, total JS 187 KB. `npm run size:check` runs inside `verify`. The service worker and
+ui-vendor 12 KB, index entry 28 KB, total JS 187 KB. `npm run size:check` is part of the local gate. The service worker and
 the workbox runtime are not budgeted: `vite-plugin-pwa` owns their size.
 
 **Consequences**: a budget moves once, with the cause named (the entry chunk went 25 to 26 to 28 KB on dependency
@@ -293,13 +294,13 @@ minors, `zod` 4.6 alone +1.5 kB); the next unexplained growth is a hunt, not ano
 
 ## [2026-07] The gate is `verify`; `verify` is a superset of CI
 
-**Context**: CI listed its own steps, and `verify:pwa`, `size:check` and the chunk check each sat in only one pipeline
-or none, so a green local gate did not predict a green CI.
+**Context**: CI listed its own steps, and the PWA check, the bundle-size check and the chunk check each sat in only one
+pipeline or none, so a green local gate did not predict a green CI.
 
 **Decision**: every check lives in `package.json`, never only in a workflow file. `verify` holds all offline checks,
-e2e included (preview-mode e2e catches SW and CSP regressions before CI). `verify:ci` is `audit:gate && lock:age && verify`; it is
+e2e included (preview-mode e2e catches SW and CSP regressions before CI). `verify:ci` is
 what the CI `validate` job runs, and `.husky/pre-push` runs the phase-aware `verify:push` (`scripts/gate-tiers.json`;
-tier law in `AGENTS.md` § Commands). `audit:gate` and `lock:age` need the network, so they are in `verify:ci` only; `audit:gate` fails closed (high
+tier law in `AGENTS.md` § Commands). The network-bound checks need the network, so they are in `verify:ci` only; `audit:gate` fails closed (high
 or critical advisory, expired or stale allowance, its own failure) and `scripts/audit-gate.test.mjs` covers those paths.
 
 **Consequences**:
@@ -307,12 +308,43 @@ or critical advisory, expired or stale allowance, its own failure) and `scripts/
 - An audit allowance is the last resort: read the advisory's fixed range before trusting `fixAvailable`. Removing an
   allowance and adding the override that closes it are ONE commit, or the stale check fails the gate by design.
 - Pre-commit is repo-scoped: `lint-staged` restores unstaged hunks after fixing, so drift survived the commit. The hook
-  also runs the TDD sibling gate (against the index; `verify` repeats it over the branch with `--range`), then repo-wide `lint:oxlint`, `format:check` and `typecheck`. A hook that commits for
+  also runs the TDD sibling gate (against the index; `verify` repeats it over the branch with `--range`), then the repo-wide cheap checks (the list is `.husky/pre-commit`). A hook that commits for
   you is not adopted: it would sweep other dirty files into the commit.
 - `scripts/ensure-playwright.mjs` parses `Install location:` from `playwright install --dry-run`, because a name check
   fails open across a Playwright bump; `scripts/ensure-playwright.test.mjs` pins the stale-cache case.
 
 **Status**: in force. **Evidence**: bbe22b6 (PR #25), bb485c6; `package.json` `verify` scripts.
+
+## [2026-10] The gate chain has one readable home
+
+**Context**: the stage order was retold by hand in 32 places, unchecked: a comment dropped a stage.
+
+**Decision**: `checks.<name>.chain` is derived from the script and `docs:check` fails on any difference
+(deleting the view left pointers without a page). Elsewhere a file names a script and its purpose and points
+at the view. A line outside it also fails when it names 3 or more distinct stages, or composes a script
+whatever the count (a count of 3 never saw a pair): two of its parts (`a then b`, `x = a && b`) at most 2
+words apart, or the script and one part (`x runs a`) at most 4, in one sentence. Names come from the repo
+(multi-step scripts, their steps, `docs.stageWords`). The script is read by its own name, never by a word
+filed under it, and must be strong; of two parts, one must be, unless `&&` or an arrow joins them. Strong: in
+code or after `npm run`; spelled with a separator; a stage word no script or step spells (`eslint`, also a
+step, stays ordinary until it is in code); adjacent names are one unit, strong when any is. Read: docs
+(fences, tables, this file), workflow names and comments, `.husky/*` comments, `gate-tiers.json` prose.
+
+**Consequences**: a false positive costs a reword, never an allowance; the windows and `RETELLING_MIN_STAGES`
+move only on a measurement (places of the old tree caught, lines flagged on the rewritten tree):
+
+| rule                                                 | caught of 32 | flagged |
+| ---------------------------------------------------- | ------------ | ------- |
+| 3+ stages (before)                                   | 25           | 0       |
+| 2+ stages                                            | 31           | 40      |
+| two stages and a connector (`&&`, `->`, `+`, `then`) | 17           | 0       |
+| shipped                                              | 32           | 39      |
+
+Of the 39, 21 state what a script is made of; 18 are ordinary (lists, prohibitions, history). Not caught: a
+spread beyond the windows in words, lines or sentences, two bare words with no mark, script comments, code,
+issue templates, app copy, a one-name statement in a `gate-tiers.json` description (read without its key).
+
+**Status**: in force. **Evidence**: `scripts/docs-check.mjs` and its test, `scripts/gate-tiers.json`.
 
 ## [2026-07] ESLint 10; `settings.react.version` must be a literal
 
@@ -343,7 +375,7 @@ hand-written CSS class a fork adds. A raw-hex ban (`no-restricted-syntax`) cover
 - Rejected, do not re-propose: `no-custom-classname` (crashes on `cva` callees and `tw-animate-css`) and
   `no-arbitrary-value` (bans the Radix `data-[state=…]` selectors the design system requires).
 - One carve-out: `I18nInitErrorFallback` keeps raw hex in inline styles, because it renders when `index.css` may not
-  have loaded. `src/pages/DevPlayground/` is exempt from the TDD sibling gate (coverage already excludes it).
+  have loaded. `src/pages/DevPlayground/` is exempt from the TDD sibling gate. Coverage already excludes it.
 
 **Status**: in force. **Evidence**: bb485c6; `eslint.config.js`.
 

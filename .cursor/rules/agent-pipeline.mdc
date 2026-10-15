@@ -44,7 +44,7 @@ priority: 100
 ### 4.1 Automated checks
 
 ```bash
-npm run verify:iter                   # per change: oxlint → tsc (incremental) → vitest --changed (seconds)
+npm run verify:iter                   # per change: the seconds-long check
 npm run e2e:one -- e2e/<file>.spec.ts # only the spec the change affects — free port, traced
 npm run verify:measure                # need to LOOK at a built result? legal at any time
 ```

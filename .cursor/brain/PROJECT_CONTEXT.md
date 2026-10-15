@@ -62,7 +62,7 @@ Reference: `PWA.md`. Quick map:
 - Update UI: `src/components/common/PwaUpdateToast/` (auto-mounted in `App.tsx`, i18n via `common.pwa.*`).
 - Install: `src/hooks/pwa/usePwaInstall.ts` (UI is the consumer's choice); the eager `beforeinstallprompt` capture is `src/lib/pwa/installPromptCapture.ts`, imported from `main.tsx`.
 - Icons: placeholder PNGs in `public/icons/` from `scripts/generate-placeholder-icons.mjs`; forks MUST replace them before deploy.
-- Build check: `scripts/check-pwa.mjs` (`npm run verify:pwa`, inside `verify`).
+- Build check: `scripts/check-pwa.mjs` (`npm run verify:pwa`, part of the local gate).
 - Host contract: `max-age=0, must-revalidate` on `sw.js`, `manifest.webmanifest` and `index.html`, or the update toast goes invisible (`PWA.md`, README).
 
 ### Perf and a11y gates
@@ -79,4 +79,4 @@ Reference: `PWA.md`. Quick map:
 The gate, its moments and its scripts: `AGENTS.md` § Commands / the gate (nothing about the gate is repeated here); stage timings: `VERIFICATION.md`; every script: `package.json`.
 
 - Lint: ESLint 10 flat with `settings.react.version` a literal (`DECISIONS.md` § "ESLint 10; `settings.react.version` must be a literal"), type-aware `typescript-eslint` strict + stylistic, `import-x` order and no-cycle; parent-relative imports under `src/**` are restricted (use `@/` or `@locales/`); `vite-plugins/**` may use `../src/**` because it loads before Vite resolves `@/`.
-- E2E: Playwright (`e2e/`, `playwright.config.ts`). `npm run test:e2e` starts `vite` dev on port 3000; CI, `test:e2e:prod` and `PLAYWRIGHT_USE_PREVIEW=1` use `vite preview` on 4173 after `build`, under the shipped CSP. Specs import `test` from `e2e/support/fixtures.ts`, which fails a test on a CSP violation. On real `CI` a test that passes only on a retry fails the run (`failOnFlakyTests`).
+- E2E: Playwright (`e2e/`, `playwright.config.ts`). `npm run test:e2e` starts `vite` dev on port 3000; CI, `test:e2e:prod` and `PLAYWRIGHT_USE_PREVIEW=1` use `vite preview` on 4173 against a fresh production build, under the shipped CSP. Specs import `test` from `e2e/support/fixtures.ts`, which fails a test on a CSP violation. On real `CI` a test that passes only on a retry fails the run (`failOnFlakyTests`).

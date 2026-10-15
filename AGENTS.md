@@ -27,43 +27,43 @@ React 19 · TypeScript 6.0 strict · Vite 8 (Rolldown) · Tailwind **v4** · sha
 - **Reuse first, consistency beats preference** — search for an existing function, util, component or constant before creating one, and extend it; match the surrounding file.
 - **Content variance** — anything that renders authored copy is proven in a real browser against content it has NOT seen (text: minimal / typical / long / unbroken; collections: none / one / many). Add a case to `/dev/ui/content-stress` (dev-only; `e2e/dev/content-stress.spec.ts`) with every content-bearing component. The range of widths a guard covers is part of its spec, and a wrap class with no red-to-green proof is deleted. Engines disagree on intrinsic sizing, font metrics and scrollbar gutters: measure (`CROSS_BROWSER=1` adds Firefox and WebKit), never predict.
 - **Zero warnings, a complexity ratchet** — `eslint --max-warnings 0`, `oxlint --deny-warnings`. Fix the cause; never downgrade a rule or sprinkle `eslint-disable`. A suppression that stays says why on the same comment, and a rule wrong for a class of files gets a documented file-scoped override in `eslint.config.js`. The complexity limits there sit above the measured ceiling: a hit is new drift, so split the function; raising a number needs a fresh measurement and a `DECISIONS.md` update.
-- **Pre-commit is repo-scoped** — `lint-staged`, the TDD sibling gate, then `lint:oxlint`, `format:check` and `typecheck` over the whole repo; the remedy for any failure is `npm run fix && git add -u`.
-- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify` fails loudly without hooks). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`. The lockfile obeys the same cooldown: `npm run lock:age` (in `verify:ci`) fails a changed `name@version` younger than `min-release-age`; a deliberate bypass bump is listed with a reason and an expiry in `scripts/lock-age-allowlist.json`.
+- **Pre-commit is repo-scoped** — `lint-staged`, the TDD sibling gate, then the cheap checks (the list is `.husky/pre-commit`) over the whole repo; the remedy for any failure is `npm run fix && git add -u`.
+- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify` fails loudly without hooks). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`. The lockfile obeys the same cooldown: `npm run lock:age` (a network-bound check) fails a changed `name@version` younger than `min-release-age`; a deliberate bypass bump is listed with a reason and an expiry in `scripts/lock-age-allowlist.json`.
 - **Machine-agnostic configs** — no absolute local paths (the VS Code i18next extension rewrites `i18next.i18nPaths`; keep them relative) and no DURATION measured on one machine: `scripts/gate-tiers.json` holds a ratio and a sample size, and the gate calibrates its own baseline into the gitignored `.gate-budget.json`.
 
 ## Commands / the gate
 
-The gate and iteration commands (`README.md` lists the rest). Agent commands `/onboard` `/feat` `/test` `/review` `/docs` live in `.claude/commands/`, mirrored by shims in `.cursor/commands/`.
+The gate and iteration commands (`README.md` lists the rest; the stages each gate script runs: `scripts/gate-tiers.json`, `checks.<name>.chain`). Agent commands `/onboard` `/feat` `/test` `/review` `/docs` live in `.claude/commands/`, mirrored by shims in `.cursor/commands/`.
 
 ```bash
 npm run dev           # Vite dev server
-npm run verify:iter   # iteration tier: oxlint → tsc → vitest --changed (seconds; run per change)
+npm run verify:iter   # iteration tier: the seconds-long check, run per change
 npm run verify:measure # MEASURE moment: build + look; add `-- e2e/<f>.spec.ts` for one preview-mode spec
 npm run e2e:one -- <spec> # one Playwright spec, FREE port, through the tracer (`test:e2e:prod` = all, against vite preview)
 npm run test:one -- <file> # one unit test file, through the tracer (not around it)
 npm run probe -- <route> [widths] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
 npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage
-npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
+npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports, the gate chain view and any retelling or composition of it (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
 npm run verify:push   # what pre-push runs: phase-aware (scripts/gate-tiers.json)
-npm run verify        # THE gate: preflight → sibling-test range → docs → oxlint → format → typecheck → eslint (cached) → coverage → build
-                      # → verify:pwa → web-vitals chunks → size-limit → playwright → e2e   (preflight = hooks, version holds, engines floor, gate env)
-npm run verify:ci     # `audit:gate` (fail-closed audit, self-expiring allowlist) + `lock:age` (lockfile vs the cooldown) + verify: the CI chain; the push runs it in phase 1
-npm run verify:full   # verify:ci + `smoke:dev` (the content-stress fixture against `vite dev`)
-npm run ci:local      # verify:ci + perf:ci (Lighthouse); CI runs Lighthouse as its own `lighthouse` job
-npm run fix           # oxlint --fix → eslint --fix → prettier --write, repo-wide (the one remedy)
+npm run verify        # THE gate: every offline check; the push/CI chain, not a desk tool
+npm run verify:ci     # the CI gate; the push runs it in phase 1
+npm run verify:full   # predicts the whole CI pipeline, the dev-smoke job included (the content-stress fixture against `vite dev`)
+npm run ci:local      # a local dry run of CI, Lighthouse included; CI runs Lighthouse as its own `lighthouse` job
+npm run fix           # the one remedy: repo-wide autofix, then format
 npm run test:mutation # StrykerJS strength gate, weekly `mutation.yml`, NOT in verify; `thresholds.break` is a measured floor: raise it, never lower it
 ```
 
 <!-- shared-harness:begin -->
-<!-- This block is byte-identical in all four templates (template-1, template-spa-pwa, template-next-seo, template-rn). Change it in every template in the same commit, or not at all. Stack-specific facts (which stages `verify` runs, ports, what is skipped and why, timings) live OUTSIDE this block: in the command table above and in `.cursor/brain/VERIFICATION.md`. -->
+<!-- This block is byte-identical in all four templates (template-1, template-spa-pwa, template-next-seo, template-rn). Change it in every template in the same commit, or not at all. Stack-specific facts (ports, what is skipped and why, timings) live OUTSIDE this block: in the command table above and in `.cursor/brain/VERIFICATION.md`; the stages each gate script runs live in `scripts/gate-tiers.json`. -->
 
 ### The tier law - this section is the ONLY place it lives
 
 Every other file (rules, commands, brain, README, Copilot instructions) points here and restates nothing.
 A restated pipeline rule goes stale in place; a stale copy cost a sibling repo a day of 40-minute rounds
 because five copies still demanded the full chain before the first report. `scripts/gate-tiers.json` is
-the machine-readable form (expected and forbidden scripts per moment, budgets, phase); when this prose and
-that file disagree, the file wins and the prose is fixed in the same commit.
+the machine-readable form (expected and forbidden scripts per moment, budgets, phase) and the one readable
+list of the stages each gate script runs (`checks.<name>.chain`, checked against `package.json` by
+`docs:check`); when this prose and that file disagree, the file wins and the prose is fixed in the same commit.
 
 **Four moments, and one that is not a gate.**
 
@@ -77,19 +77,19 @@ that file disagree, the file wins and the prose is fixed in the same commit.
   checks. Nothing to run by hand; on refusal the hook prints the remedy. The commit-msg hook (commitlint)
   also rejects any body or footer line over 100 characters (the header cap is 96): wrap the body.
 - **Push** - the pre-push hook runs the gate ONCE, never shortened by what the diff touched. Where the
-  repo has heavy stages (build, size, e2e), the push script is phase-aware: phase 0 (scaffold, before the
-  first deploy) runs the offline checks and loudly SKIPS the heavy stages; phase 1 (from the first deploy)
-  runs the full `verify:ci`. A skipped stage is printed, never silent; flip the phase in one commit at the
-  first deploy. A repo whose gate has no heavy stage runs the full `verify:ci` at push and records in
-  `gate-tiers.json` that a phase switch would gate nothing.
-- **CI** - phase-blind: always the full `verify:ci` (`audit:gate` + `lock:age` + `verify`), plus what only CI can do
-  (the security workflow, the scheduled mutation job, a mandatory dev-smoke job where the repo has one).
+  repo has heavy stages (the ones that need a build), the push script is phase-aware: phase 0 (scaffold,
+  before the first deploy) runs the offline checks and loudly SKIPS the heavy stages; phase 1 (from the
+  first deploy) runs the full `verify:ci`. A skipped stage is printed, never silent; flip the phase in one
+  commit at the first deploy. A repo whose gate has no heavy stage runs the full `verify:ci` at push and
+  records in `gate-tiers.json` that a phase switch would gate nothing.
+- **CI** - phase-blind: always the full `verify:ci`, plus what only CI can do (the security workflow, the
+  scheduled mutation job, a mandatory dev-smoke job where the repo has one).
 
-**Prohibitions, stated as such.** An implementer or a reviewer NEVER runs `verify`, `verify:ci`,
-the fuller `verify:*` variants, `build` or the e2e suite by hand: the full chain belongs to the push hook and CI, and a
+**Prohibitions, stated as such.** An implementer or a reviewer NEVER runs `verify`, the fuller `verify:*`
+variants, a production build or a browser suite by hand: the full chain belongs to the push hook and CI, and a
 result an agent cannot act on is not worth its minutes. A review round gets the diff plus `verify:iter`;
 acceptance does not re-run the gate, the push does. Parallel lanes never run heavy stages (one machine,
-shared caches): heavy work serialises at the push. Individual scripts (`typecheck`, `lint`, `test`, `fix`)
+shared caches): heavy work serialises at the push. Individual scripts (`typecheck`, `test`, `fix`)
 are drill-downs on a specific failure; none of them is a moment.
 
 **A red push costs one fix, not another round of the whole gate.** Where the repo has a browser suite, it
@@ -112,7 +112,7 @@ that outgrew it, so that number moves on a measurement and a `DECISIONS.md` line
 
 **`verify` is a strict superset of the offline checks CI runs**, so a green `verify` predicts a green CI.
 Keeping that true is a rule: a new check goes into the script, never only into the workflow file.
-`audit:gate` and `lock:age` sit in `verify:ci` rather than `verify` because they need the network, so an offline agent can
+The network-bound checks sit in the CI chain rather than in `verify` because they need the network, so an offline agent can
 still run the whole offline gate. `bench:verify` derives its step list from the `verify` script; a
 hand-written second list has already drifted once.
 
@@ -151,12 +151,12 @@ scripts take the next free port. Only the push gate clears its own port.
   included: reading .env files other than the example, editing `.claude/settings.json` itself, a force
   push (a `+branch` refspec too), `--no-verify` or `-n` on a commit, `--no-verify` on a push,
   `git reset --hard`, `git clean -f`. Asked before every edit of the gate files, the documented edits
-  included (the phase flip, a raised mutation threshold): `.husky/`, `.github/workflows/`,
-  `.github/ruleset.json`, `scripts/gate-tiers.json`, `stryker.config.json`, `.npmrc`. A rule matches the
-  command or path as an agent usually writes it and is not a security boundary: `sh -c`, a full binary
-  path, a `git -C` or `git -c` prefix, a bundled flag such as `-uf`, or a command that reads a file
-  without naming it (`grep -r`) walks past it. The boundary is the required CI check on the default
-  branch. To change a guarded file, edit it yourself or change the rule in a reviewed commit.
+  included (the phase flip, a raised mutation threshold); the list lives in `permissions.ask` of
+  `.claude/settings.json`. A rule matches the command or path as an agent usually writes it and is not a
+  security boundary: `sh -c`, a full binary path, a `git -C` or `git -c` prefix, a bundled flag such as
+  `-uf`, or a command that reads a file without naming it (`grep -r`) walks past it. The boundary is the
+  required CI check on the default branch. To change a guarded file, edit it yourself or change the rule
+  in a reviewed commit.
 
 ### Before code - spec and plan
 
@@ -186,7 +186,7 @@ Range, reason, lift condition and evidence per package live in `scripts/version-
 
 ## Out of scope (ask before touching)
 
-- Weakening the verify gate, lint severities or coverage thresholds to get green; a Node engine bump (`engines.node`).
+- Weakening the verify gate, a lint severity or a coverage threshold to get green; a Node engine bump (`engines.node`).
 - PWA update flow (`registerType`, update toast semantics): read `.cursor/brain/PWA.md` first.
 - Removing template scaffolding listed in `.cursor/brain/TEMPLATE_SEEDS.md`.
 

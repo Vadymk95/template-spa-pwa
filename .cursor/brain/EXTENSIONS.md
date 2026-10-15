@@ -26,7 +26,7 @@ Mandatory — without this the deploy ships as a generic placeholder template.
 | Decisions file | `.cursor/brain/DECISIONS.md` | Replace the template's entries with your own, starting from a first line that points to the template's history (its repository and `git log -p -- .cursor/brain/DECISIONS.md`); keep the format (decisions in force, at most 30 lines each, an index row, a superseded entry deleted). |
 | Version holds | `scripts/version-holds.json`, `.github/dependabot.yml` | Keep the file: `verify` fails on a bump past a hold or an `ignore` that disagrees. At the first Dependabot PRs, re-check every hold against the fork's own PRs; lift a hold only by editing the file and its `ignore` together, and delete an entry whose package you removed. |
 
-**Verification:** `npm run build && npm run verify:pwa` — manifest fields surface correctly.
+**Verification:** `npm run verify:pwa` on a fresh `dist/` — manifest fields surface correctly.
 
 ### Day-1 shadcn batch (recommended)
 
@@ -55,7 +55,7 @@ Recommended payload by purpose:
 
 Skip what your domain doesn't need (e.g. drop `calendar` if you have no date inputs). Re-running the command later to add more is safe — shadcn writes idempotently into `src/components/ui/`.
 
-After install, run `npm run lint:oxlint && npm run lint` once — shadcn primitives ship with their own conventions and the `src/components/ui/**` lint exemption (see `eslint.config.js`) lets `func-style` differences pass without edits.
+After install, run `npm run lint:oxlint`; then `npm run lint`, once — shadcn primitives ship with their own conventions and the `src/components/ui/**` lint exemption (see `eslint.config.js`) lets `func-style` differences pass without edits.
 
 ---
 
@@ -372,7 +372,7 @@ pnpm run ci:local
 
 ### Verify after switch
 
-- `pnpm run ci:local` passes end-to-end (audit, lock-age, oxlint, format, typecheck, lint, test:coverage, build, verify:pwa, verify:web-vitals-chunks, **size:check**, e2e — incl `sw-lifecycle.spec.ts` — then perf:ci).
+- `pnpm run ci:local` passes end-to-end, the `size:check` budget and `sw-lifecycle.spec.ts` included.
 - `pnpm-lock.yaml` is committed (deleted `package-lock.json` is staged for removal).
 - `pnpm why <package>` works for a sample dep — if it errors, the install didn't complete cleanly.
 - CI green on the conversion PR.

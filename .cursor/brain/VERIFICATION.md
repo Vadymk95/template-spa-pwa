@@ -1,7 +1,8 @@
 # Verification — when to run what (agents & humans)
 
 **Goal:** match checks to the MOMENT. The tier law itself lives in `AGENTS.md` § Commands / the gate —
-one place, everything else points. This file holds the mechanics, the phase table, and the tracer.
+one place, everything else points. This file holds the mechanics, the phase table, and the tracer. The stages
+each gate script runs: `scripts/gate-tiers.json` (`checks.<name>.chain`), not repeated here.
 
 ## Phases — what a push proves, and the trigger that adds more
 
@@ -11,9 +12,9 @@ always runs the full chain — the phase gates only the LOCAL hook.
 
 | Check | Runs at phase 0 (scaffold) | Added when (the trigger) |
 | --- | --- | --- |
-| audit, lock-age, hooks-check, version holds, engines floor, sibling-test range, docs-check, oxlint, format, tsc, lint, coverage | yes — every push, seconds | day one |
+| the phase-0 push gate (`verify:scaffold:push`) | yes — every push, seconds | day one |
 | production build in the gate | no | the FIRST DEPLOY: flip `"phase": 1` in its own commit |
-| `verify:pwa`, web-vitals chunks, `size:check` | no | same flip — they all measure a built artefact |
+| the checks that read the built artefact | no | same flip — they all measure a built artefact |
 | prod-mode e2e (`vite preview`) | no | same flip — a prod boundary now exists |
 | dev-server smoke (content variance) | CI `dev-smoke` job, every PR | unchanged by phases |
 | mutation score | weekly CI / outside the gate | unchanged by phases |
@@ -41,39 +42,39 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 
 ## What each chain contains (mechanics — WHEN to run them is the tier law)
 
-- **`npm run verify:iter`** — `lint:oxlint` → `typecheck` (incremental via `tsc -b`) →
-  `vitest run --changed --passWithNoTests`. Two deliberate properties: while `package.json` or a
+- **`npm run verify:iter`** — the cheap static checks (the type check is incremental), then only the tests reachable from the uncommitted
+  diff (stages: `scripts/gate-tiers.json`). Two deliberate properties: while `package.json` or a
   vite/vitest config is dirty, `--changed` runs the FULL suite (force-rerun triggers); and
   `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.
-- **`npm run verify`** — every **offline** check. Stage order: the `verify:inner` script; the superset
+- **`npm run verify`** — every **offline** check. Stage order: `scripts/gate-tiers.json`; the superset
   rule and the push/CI split: `AGENTS.md` § the gate; why: `DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI".
-- **`npm run verify:ci`** — `audit:gate && lock:age && verify`; both need the network, which is why they
-  sit outside `verify`. **`npm run verify:full`** — `verify:ci && smoke:dev`, where `smoke:dev`
+- **`npm run verify:ci`** — the CI gate. Its network-bound checks need the network, which is why they
+  sit outside `verify`. **`npm run verify:full`** — predicts the whole CI pipeline, the dev-smoke job included. `smoke:dev`
   measures the content-variance fixture (mounted only under `import.meta.env.DEV`, so it is
   unreachable from the `vite preview` run and needs its own server); CI runs it as the mandatory
-  `dev-smoke` job. **`npm run ci:local`** — `verify:ci` plus Lighthouse; CI runs Lighthouse as its own `lighthouse` job.
+  `dev-smoke` job. **`npm run ci:local`** — a local dry run of CI, Lighthouse included; CI runs Lighthouse as its own `lighthouse` job.
 
 ---
 
 ## Minimal check by task type
 
 - **Docs only** (`*.md` in repo root / `README`, brain markdown) — `npm run format:check`
-- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly`, the scheduled Docs workflow's flag, runs the same checks so a quarantine that expires while nobody pushes still turns it red; it also refuses a focused test, an unconditional way to switch a test off (`.skip`, `.fixme`, an expected failure such as `.fails` or `.failing`, a constant `.skipIf(true)`) without `quarantine until YYYY-MM-DD` + reason (a date more than 30 days out is red too), and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead). The same check runs inside `verify` and `verify:scaffold`, so doc drift fails a push, not only a commit
+- **Docs, rules, commands, brain, tier data** (`*.md`, `*.mdc`, `scripts/gate-tiers.json`) — `npm run docs:check` (the pre-commit hook runs it when such files are staged; `--weekly`, the scheduled Docs workflow's flag, runs the same checks so a quarantine that expires while nobody pushes still turns it red; it also refuses a focused test, an unconditional way to switch a test off (`.skip`, `.fixme`, an expected failure such as `.fails` or `.failing`, a constant `.skipIf(true)`) without `quarantine until YYYY-MM-DD` + reason (a date more than 30 days out is red too), a gate chain view in `scripts/gate-tiers.json` that differs from `package.json`, a hand-written retelling or composition of the chain (a line naming three or more of its stages, or two parts of one script), and an agent-memory import: an `@` pointer in `CLAUDE.md` or `AGENTS.md` that names a file, which Claude Code would load into every session; write it as a backticked path instead). The same check runs inside `verify` and `verify:scaffold`, so doc drift fails a push, not only a commit
 - **Proposing a new browser spec** — the suite is counted in invariants, not screens (`AGENTS.md` § the gate); `npm run docs:check` reports the suite against the ceiling in `scripts/gate-tiers.json` § suites
-- **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check` + `npm run lint` (if CSS is in ESLint scope)
+- **Styling only** (`*.css`, `*.scss`, `*.styled.*`) — `npm run format:check`; `npm run lint` too if CSS is in ESLint scope
 - **i18n copy only** (value edits in `public/locales/**/*.json`) — `npm run format:check`; wrapping for
   new copy lengths is the content-variance tier's job, not a per-edit run
 - **TS/TSX / tests** (logic, components, hooks, stores) — `npm run verify:iter`
 - **E2E / Playwright** (`e2e/**`, `playwright.config.ts`, routing/flows) — `npm run e2e:one -- <spec>` (free port, traced); the whole suite runs at the push, never by hand
-- **Touches `src/env.ts`, `vite.config.ts`, `src/lib/vitals.ts`, `src/lib/webVitals/`** — Above + `npm run build && node scripts/check-web-vitals-chunks.mjs`
-- **PWA** (`vite.config.ts → VitePWA`, `index.html` PWA meta, `public/icons/**`, `src/components/common/PwaUpdateToast/**`, `src/hooks/pwa/**`, `src/lib/pwa/**`) — `npm run verify:iter && npm run build && npm run verify:pwa`
-- **Perf budget** (any change that could move LCP/CLS/TBT — vendor chunks, fonts, route-loaded code, third-party deps) — `npm run build && npm run perf:ci` (Lighthouse vs `vite preview`; `lighthouserc.json`)
+- **Touches `src/env.ts`, `vite.config.ts`, `src/lib/vitals.ts`, `src/lib/webVitals/`** — Above + `node scripts/check-web-vitals-chunks.mjs` on a fresh `dist/`
+- **PWA** (`vite.config.ts → VitePWA`, `index.html` PWA meta, `public/icons/**`, `src/components/common/PwaUpdateToast/**`, `src/hooks/pwa/**`, `src/lib/pwa/**`) — `npm run verify:iter`, then `npm run verify:pwa` on a fresh `dist/`
+- **Perf budget** (any change that could move LCP/CLS/TBT — vendor chunks, fonts, route-loaded code, third-party deps) — `npm run perf:ci` on a fresh `dist/` (Lighthouse vs `vite preview`; `lighthouserc.json`)
 - **A11y** (`src/components/common/**`, `src/components/ui/**`, `src/pages/**` UI, `index.html` semantics) — Above + `npm run verify:measure -- e2e/a11y.spec.ts` (axe scan, preview mode)
 - **Feature flag wiring** (`src/lib/features/**`, `src/hooks/features/**`, provider swap in `main.tsx`) — `npm run verify:iter`
 - **MSW** (`src/mocks/**`, `test/handlers.ts`, MSW wiring in `main.tsx`) — `npm run verify:iter` (smoke dev manually if handlers changed)
 - **Suspected bundle size / duplicate deps** — `npm run build:analyze` → open `dist/bundle-analysis.html` (do not commit HTML)
 - **Regressions in standard vs attribution web-vitals chunks** — `npm run verify:web-vitals-chunks:full` (two full builds — use sparingly); bare `verify:web-vitals-chunks` = single-build assert on existing `dist/`
-- **Vendor chunk byte budget** (touched `vite.config.ts` `codeSplitting.groups`, added a vendor dep, or heavier `build` output) — `npm run build && npm run size:check`
+- **Vendor chunk byte budget** (touched `vite.config.ts` `codeSplitting.groups`, added a vendor dep, or heavier `build` output) — `npm run size:check` on a fresh `dist/`
 - **PWA Service Worker lifecycle** (`vite.config.ts → VitePWA`, `removeMswPlugin`, `workbox`, icons) — `npm run verify:measure -- e2e/sw-lifecycle.spec.ts` (preview-mode only — dev disables PWA SW)
 - **Security headers / CSP** (`vite-plugins/security-headers.ts`, an inline `<script>` in `index.html`, a new third-party origin, `API_DEFAULT_URL`) — `npm run test:one -- vite-plugins/security-headers.test.ts` + `npm run verify:measure -- e2e/smoke.spec.ts e2e/security-headers.spec.ts` (preview serves the policy; any preview-mode spec fails on a CSP violation (a console message or a `securitypolicyviolation` event))
 
@@ -85,8 +86,8 @@ Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor
 
 1. **Session start** — Cursor `session-init.sh` + Claude `brain-loader.sh` inject this repo's brain pointers + SKELETONS danger-zones + a "read before editing" mandate into context (`~/.claude/hooks/brain-digest.sh`). Unskippable, unlike `/init`.
 2. **On edit (Cursor)** — `auto-format.sh` (prettier) + `lint-surface.sh` (postToolUse) run `eslint --fix` and inject remaining errors back into context immediately.
-3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (oxlint → eslint → prettier) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*` that is tracked or staged (it reads the git index, not the disk, so an untracked or unstaged test does not count); the gate repeats the check over everything the branch changed (`--range`, inside `verify` and `verify:scaffold`), so a `--no-verify` commit is caught at the push; then **repo-wide** `lint:oxlint`, `format:check` and `typecheck`; all three run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
-4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the audit gate and the lock-age check always, plus the offline gate at phase 0 and the whole chain from phase 1.
+3. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (the tools it runs: `package.json`) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*` that is tracked or staged (it reads the git index, not the disk, so an untracked or unstaged test does not count); the gate repeats the check over everything the branch changed (`--range`, inside `verify` and `verify:scaffold`), so a `--no-verify` commit is caught at the push; then the **repo-wide** cheap checks (the list is `.husky/pre-commit`); all of them run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
+4. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the phase-0 push gate before the first deploy, `verify:ci` from phase 1.
 5. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
 Rules added 2026-10-08: `@eslint-community/eslint-comments/require-description` + `no-unlimited-disable` (a suppression carries `-- reason` and names its rule); `no-restricted-imports` on `e2e/*.spec.ts` (import `test` from `./support/fixtures`, whose automatic fixture fails a test on a CSP violation (a console message or a `securitypolicyviolation` event)).
@@ -95,13 +96,13 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 
 ---
 
-## Local gates (`verify` vs `ci:local`)
+## Local gates: the offline gate and `ci:local`
 
-- **`npm run verify`** — the gate. Everything offline; the stage order is the `verify:inner` script.
-- **`npm run verify:ci`** — `audit:gate && lock:age && verify`. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
-- **`npm run ci:local`** — `verify:ci` + `perf:ci`. Lighthouse is the only check outside the gate; CI runs it as the `lighthouse` job (one run, warn-only budgets except accessibility, not a required check).
+- **`npm run verify`** — the gate. Everything offline; the stages, in order: `scripts/gate-tiers.json`.
+- **`npm run verify:ci`** — the CI gate. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
+- **`npm run ci:local`** — a local dry run of CI, Lighthouse included. Lighthouse is the only check outside the gate; CI runs it as the `lighthouse` job (one run, warn-only budgets except accessibility, not a required check).
 - **`npm run bench:verify`** — the same steps with per-step timings, to attribute a slow gate.
-- **`npm run fix`** — the one remedy: `oxlint --fix` → `eslint --fix` → `prettier --write`, repo-wide. Re-run `lint` and `format:check` afterwards to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.
+- **`npm run fix`** — the one remedy: the autofix of every linter and the formatter (the `fix` script in `package.json`), repo-wide. Re-run the checks that flagged the file to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.
 
 **Do not** run `ci:local` as default for one-line fixes or copy-only brain edits.
 

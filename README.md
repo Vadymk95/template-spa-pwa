@@ -270,12 +270,12 @@ VITE_ENABLE_MSW=false
 
 ### Available Scripts
 
-The gate and the iteration loop (`verify`, `verify:iter`, `verify:measure`, `verify:ci`, `verify:full`, `ci:local`, `e2e:one`, `probe`, `test:one`, `trace:report`, `docs:check`, `fix`, `audit:gate`, `lock:age`, `bench:verify`, `smoke:dev`, `test:mutation`) are listed once, in `AGENTS.md` § Commands / the gate. The rest:
+The gate scripts (`verify` and its variants; `ci:local`) and the iteration loop (`e2e:one`, `probe`, `test:one`, `trace:report`, `docs:check`, `fix`, `bench:verify`, `smoke:dev`, `test:mutation`) are listed once, in `AGENTS.md` § Commands / the gate. The rest:
 
 | Command                            | Description                                                                                   |
 | ---------------------------------- | --------------------------------------------------------------------------------------------- |
 | `npm run dev`                      | Start Vite dev server (port 3000)                                                             |
-| `npm run build`                    | `tsc -b` + Vite production build (Oxc + Brotli)                                               |
+| `npm run build`                    | Type-checked production build (Oxc + Brotli)                                                  |
 | `npm run preview`                  | Serve production build locally                                                                |
 | `npm run typecheck`                | Runs `tsc -b` (no emit)                                                                       |
 | `npm run lint`                     | Run ESLint                                                                                    |
@@ -293,14 +293,17 @@ The gate and the iteration loop (`verify`, `verify:iter`, `verify:measure`, `ver
 | `npm run verify:web-vitals-chunks` | Assert standard vs attribution web-vitals chunks                                              |
 | `npm run build:analyze`            | Bundle visualizer (`ANALYZE=true`)                                                            |
 | `npm run perf:ci`                  | Lighthouse budgets (`lighthouserc.json`) against the preview build; CI runs it as its own job |
+| `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist                                   |
+| `npm run lock:age`                 | Fails a lockfile version younger than `min-release-age` unless allowed (reason + expiry)      |
+| `npm run gate:integrity`           | Lists the gate files and suppressions this branch changes vs `origin/master` (CI: PR base)    |
 
 ### The gate
 
-`npm run verify` is every offline check; `npm run verify:ci` adds the network-bound `audit:gate` and `lock:age` and is
+`npm run verify` is every offline check; `npm run verify:ci` is
 what CI runs. The gate is tiered by moment (iterate, measure, commit, push, CI), and the ONLY definition of
 which script belongs to which moment, what the push runs in each phase and what is never run by hand is
-`AGENTS.md` § Commands / the gate. Stage timings: `.cursor/brain/VERIFICATION.md`. The exact stage order:
-the `verify:inner` script in `package.json` — it is not repeated here on purpose.
+`AGENTS.md` § Commands / the gate. Stage timings: `.cursor/brain/VERIFICATION.md`. The stages of each gate
+script, in order: `scripts/gate-tiers.json` (`checks.<name>.chain`, checked against `package.json` by `docs:check`) — not repeated here on purpose.
 
 `npm test` deliberately does not enforce coverage — the thresholds in `vitest.config.ts` only apply with
 `--coverage`, which is why the gate uses `test:coverage`.
@@ -309,9 +312,9 @@ the `verify:inner` script in `package.json` — it is not repeated here on purpo
 
 **Pre-commit** (via Husky + lint-staged):
 
-1. `lint-staged` — oxlint `--fix` → ESLint `--fix` → Prettier on the **staged** files
+1. `lint-staged` — autofix of the **staged** files (the tools it runs: `lint-staged` in `package.json`)
 2. TDD gate — a staged `src` logic file with no co-located `*.test.*` that is tracked or staged blocks the commit (the gate repeats the check over the whole branch)
-3. **Repo-wide** `lint:oxlint`, `format:check` and `typecheck`
+3. **Repo-wide** cheap checks (the list is `.husky/pre-commit`)
 
 Why step 3 exists: `.cursor/brain/DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI". On failure the
 hook prints the remedy: `npm run fix && git add -u`.
@@ -322,7 +325,7 @@ hook prints the remedy: `npm run fix && git add -u`.
 
 **Pre-push:**
 
-- `npm run verify:push` — phase-aware (`scripts/gate-tiers.json`): phase 0 skips build, PWA/web-vitals checks, `size:check` and e2e until the first deploy; phase 1 runs the full `verify:ci`.
+- `npm run verify:push` — phase-aware (`scripts/gate-tiers.json`): phase 0 skips the stages that need a build until the first deploy; phase 1 runs the full `verify:ci`.
 
 ### CI (GitHub Actions)
 
@@ -464,7 +467,7 @@ describe('Component', () => {
 
 ### E2E
 
-Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `npm run test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173 after `build`. The local **`npm run verify`** gate runs `test:e2e:prod` (after `ensure-playwright.mjs`); the push runs it only in phase 1 (§ Git Hooks).
+Playwright specs in `e2e/` run against Chromium. Local default: `npm run test:e2e` starts `vite dev` on port 3000. CI / `npm run test:e2e:prod` / `PLAYWRIGHT_USE_PREVIEW=1` uses `vite preview` on 4173, serving the production bundle. That production-mode run is part of the local gate (after `ensure-playwright.mjs`); the push runs it only in phase 1 (§ Git Hooks).
 
 ## 🏗️ Build & Deployment
 
@@ -485,7 +488,7 @@ npm run build
 
 ### Bundle Analysis
 
-`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. A chunk over 600 kB raises a Vite build **warning** (`chunkSizeWarningLimit`); the enforced per-chunk budgets are the brotli limits in `.size-limit.json`, checked by `npm run size:check` (inside `npm run verify`).
+`ANALYZE=true npm run build` writes `dist/bundle-analysis.html`. A chunk over 600 kB raises a Vite build **warning** (`chunkSizeWarningLimit`); the enforced per-chunk budgets are the brotli limits in `.size-limit.json`, checked by `npm run size:check` (part of the local gate).
 
 ### Deployment
 

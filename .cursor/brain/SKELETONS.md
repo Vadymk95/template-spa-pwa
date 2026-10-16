@@ -140,8 +140,8 @@ Auto-update silently force-reloads tabs and destroys mid-session form state. The
 ## The Firefox test project turns off Firefox's COOP process swap
 
 - **Risk:** `vite preview` sends `Cross-Origin-Opener-Policy: same-origin`, like `dist/_headers`. Firefox then swaps the
-  content process on the first navigation, and Playwright's Firefox (Playwright 1.63.0, Firefox build 1543, the one
-  `node_modules/playwright-core/browsers.json` pins) intermittently never finishes a `page.goto`: 60 s timeout "waiting
+  content process on the first navigation, and Playwright's Firefox (Firefox build 1543, the build
+  `node_modules/playwright-core/browsers.json` pinned when this was measured) intermittently never finishes a `page.goto`: 60 s timeout "waiting
   until load". Measured 2026-10-09, `layout-geometry.spec.ts --project=firefox --repeat-each=8 --workers=4`, three
   rounds of 40: 2 timeouts with Firefox's default, 0 with the pref off. Whether a real Firefox is affected is not measured.
 - **Mitigation:** the `firefox` project in `playwright.config.ts` sets the pref `browser.tabs.remote.useCrossOriginOpenerPolicy`

@@ -42,7 +42,8 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 
 ## What each chain contains (mechanics — WHEN to run them is the tier law)
 
-- **`npm run verify:iter`** — the cheap static checks (the type check is incremental), then only the tests reachable from the uncommitted
+- **`npm run verify:iter`** — the hooks check first (a clone without git hooks fails here, not at a push that runs no gate), the cheap
+  static checks (the type check is incremental), then only the tests reachable from the uncommitted
   diff (stages: `scripts/gate-tiers.json`). Two deliberate properties: while `package.json` or a
   vite/vitest config is dirty, `--changed` runs the FULL suite (force-rerun triggers); and
   `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.

@@ -327,6 +327,10 @@ hook prints the remedy: `npm run fix && git add -u`.
 
 - `npm run verify:push` — phase-aware (`scripts/gate-tiers.json`): phase 0 skips the stages that need a build until the first deploy; phase 1 runs the full `verify:ci`.
 
+The hooks exist only after `npm run prepare` (lifecycle scripts are disabled via `.npmrc`). `check-hooks` is the first
+step of `verify:iter` and of `verify`: on a clone without hooks they stop with "Git hooks are not installed", so a push
+cannot go out with no gate and no output.
+
 ### CI (GitHub Actions)
 
 **`ci.yml`** — on pull requests and pushes to `master` (Node 24.x, `npm ci --ignore-scripts`):

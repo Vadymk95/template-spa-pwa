@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.2](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.1...v3.3.2) (2026-10-16)
+
+
+### Bug fixes
+
+* **gate:** verify:iter checks git hooks first, so a hookless clone cannot push ungated ([#85](https://github.com/Vadymk95/template-spa-pwa/issues/85)) ([888eb0d](https://github.com/Vadymk95/template-spa-pwa/commit/888eb0dce2ff22ce7564f915587f062fb4358dc8))
+
 ## [3.3.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.0...v3.3.1) (2026-10-16)
 
 

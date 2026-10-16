@@ -1,5 +1,44 @@
 # Changelog
 
+## [3.3.1](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.0...v3.3.1) (2026-10-16)
+
+
+### Bug fixes
+
+* **a11y:** scan target size after render, pin actions by SHA, SECURITY.md ([#68](https://github.com/Vadymk95/template-spa-pwa/issues/68)) ([3deafcd](https://github.com/Vadymk95/template-spa-pwa/commit/3deafcd313ed0b5ce646074076058942dfee7467))
+* **api:** stop retrying 4xx through safeFetch; refuse agent-memory imports in docs ([#73](https://github.com/Vadymk95/template-spa-pwa/issues/73)) ([77fdf7b](https://github.com/Vadymk95/template-spa-pwa/commit/77fdf7b5762d7d6e0088a91f10d1589d04c170d2))
+* **ci:** audit workflows with zizmor, fail CI on flaky tests, end the Firefox flake ([#69](https://github.com/Vadymk95/template-spa-pwa/issues/69)) ([c4e9c37](https://github.com/Vadymk95/template-spa-pwa/commit/c4e9c3741cfda15abf392fcb616501a889a2f0c4))
+* **gate:** close audit holes - CI steps, ruleset, size, boundary, safeFetch, shim ([#66](https://github.com/Vadymk95/template-spa-pwa/issues/66)) ([6e44134](https://github.com/Vadymk95/template-spa-pwa/commit/6e4413460bf3067d0c83666a45d019a4756b7845))
+* **gate:** hook edits trigger docs-check at pre-commit ([#81](https://github.com/Vadymk95/template-spa-pwa/issues/81)) ([7a43104](https://github.com/Vadymk95/template-spa-pwa/commit/7a43104f9b1a7236444772be2c539b327d1ff983))
+* **harness:** gate edits need a gate-change label; sibling, marker and date guards tightened ([#79](https://github.com/Vadymk95/template-spa-pwa/issues/79)) ([282ab64](https://github.com/Vadymk95/template-spa-pwa/commit/282ab648d82a6a8df44e353249a0b55fb8fc8292))
+* **harness:** lock-age and Node-floor guards, quiet green gate, fork-path fixes ([#77](https://github.com/Vadymk95/template-spa-pwa/issues/77)) ([d9df82a](https://github.com/Vadymk95/template-spa-pwa/commit/d9df82aac2ffc7be9c857c6f7d51f3d241b84eea))
+* **security:** ship default CSP and headers; suppressions need a reason; Lighthouse in CI ([#75](https://github.com/Vadymk95/template-spa-pwa/issues/75)) ([db26555](https://github.com/Vadymk95/template-spa-pwa/commit/db2655504a480cd932c39e5caaa3f7868f12aca0))
+* **security:** test the auth-token guards, scan the dashboard for a11y, fix stale docs ([#67](https://github.com/Vadymk95/template-spa-pwa/issues/67)) ([6ba2515](https://github.com/Vadymk95/template-spa-pwa/commit/6ba25150c30e03a8233580f2b9a21476225e519b))
+
+
+### Performance
+
+* **gate:** split the slowest test suite; size-limit stays one PR; docs name majors ([#82](https://github.com/Vadymk95/template-spa-pwa/issues/82)) ([c469b82](https://github.com/Vadymk95/template-spa-pwa/commit/c469b82c3f371c0324a2c7f2ce84f0eb09ced812))
+
+
+### Maintenance
+
+* **deps:** bump the minor-and-patch group across 1 directory with 3 updates ([#84](https://github.com/Vadymk95/template-spa-pwa/issues/84)) ([ef2e999](https://github.com/Vadymk95/template-spa-pwa/commit/ef2e9998539163e633b4659cca07706bb2af6326))
+* **deps:** bump the size-limit group with 2 updates ([#83](https://github.com/Vadymk95/template-spa-pwa/issues/83)) ([9928187](https://github.com/Vadymk95/template-spa-pwa/commit/9928187da18af9e8d661d5da72988a36288971ba))
+* **deps:** newest compatible versions; holds and the cooldown bypass recorded ([#74](https://github.com/Vadymk95/template-spa-pwa/issues/74)) ([d23a5ff](https://github.com/Vadymk95/template-spa-pwa/commit/d23a5ffc39920c638183937cd67edda66bc31c40))
+
+
+### Documentation
+
+* **decisions:** date the next check of the vitest hold lift trigger ([#64](https://github.com/Vadymk95/template-spa-pwa/issues/64)) ([1e3800d](https://github.com/Vadymk95/template-spa-pwa/commit/1e3800dbfee3863ca2297b87f5ba9eb883172f7f))
+* **harness:** one readable home for the gate chain; docs-check flags retold chains ([#80](https://github.com/Vadymk95/template-spa-pwa/issues/80)) ([b41513d](https://github.com/Vadymk95/template-spa-pwa/commit/b41513d3327957aef5bc48833057b57bc4f32a69))
+* **harness:** slim agent docs, enforce version holds, resolve section pointers ([#76](https://github.com/Vadymk95/template-spa-pwa/issues/76)) ([b34a676](https://github.com/Vadymk95/template-spa-pwa/commit/b34a676be90be5cf0e422521c48d80acabc6ab2f))
+
+
+### CI
+
+* **deps:** bump the actions group across 1 directory with 4 updates ([#78](https://github.com/Vadymk95/template-spa-pwa/issues/78)) ([b03af75](https://github.com/Vadymk95/template-spa-pwa/commit/b03af758c8391e1cc513b78ad492bbdaa2d74d98))
+
 ## [3.3.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.2.3...v3.3.0) (2026-10-02)
 
 

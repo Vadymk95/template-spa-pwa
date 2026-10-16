@@ -342,7 +342,8 @@ move only on a measurement (places of the old tree caught, lines flagged on the 
 
 Of the 39, 21 state what a script is made of; 18 are ordinary (lists, prohibitions, history). Not caught: a
 spread beyond the windows in words, lines or sentences, two bare words with no mark, script comments, code,
-issue templates, app copy, a one-name statement in a `gate-tiers.json` description (read without its key).
+issue templates, app copy, a one-name statement in a `gate-tiers.json` description (read without its key), a
+one-name alias statement in prose (a line saying one script is an alias of another).
 
 **Status**: in force. **Evidence**: `scripts/docs-check.mjs` and its test, `scripts/gate-tiers.json`.
 

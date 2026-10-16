@@ -86,7 +86,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 
 - **React 19** — latest features, no React import needed for JSX
 - **Vite 8** — official `vite` package with **Rolldown** + **Oxc** for production builds ([migration from `rolldown-vite`](https://vite.dev/guide/migration))
-- **TypeScript 6.0** — strict mode with `@/*` path aliases
+- **TypeScript 6** — strict mode with `@/*` path aliases
 - **React Router v7** — automatic lazy loading
 
 ### State & Data
@@ -123,8 +123,8 @@ PWA manifest, or the e2e title assertion is the usual slip:
 - **Prettier 3** — code formatting
 - **Husky + lint-staged** — git hooks for quality gates
 - **Commitlint** — conventional commits enforcement
-- **Vitest 4.1** — unit testing with Testing Library
-- **Playwright 1.63** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
+- **Vitest 4** — unit testing with Testing Library
+- **Playwright** — E2E tests; browsers installed on demand by `scripts/ensure-playwright.mjs`
 
 ## 📲 PWA
 

@@ -250,7 +250,8 @@ as written, so `sh -c`, a full binary path or a `git -C` prefix walks past it. T
 Cursor and Codex do not read the file.
 
 **Dependabot**: one `minor-and-patch` group carries every non-major update (two groups rewrote `package-lock.json` and
-the second PR conflicted); a major still opens its own PR. **Release token**: `release.yml` passes
+the second PR conflicted), except the `size-limit` pair, which is excluded from it and lives in its own `size-limit`
+group; a major still opens its own PR. **Release token**: `release.yml` passes
 `secrets.RELEASE_PLEASE_TOKEN || github.token`; with the secret absent, release PR runs wait in `action_required` for one
 approval, with a fine-grained PAT they get CI like any PR.
 

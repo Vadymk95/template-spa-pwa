@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { isCrossBrowserEnabled, LAYOUT_SPEC_PATTERN } from './e2e/support/cross-browser';
+import { isPreviewRun } from './e2e/support/preview-mode';
 
-/** GitHub Actions sets CI. PLAYWRIGHT_USE_PREVIEW=1 matches post-build `vite preview` (e.g. ci:local after `npm run build`). */
-const usePreview = Boolean(process.env.CI) || process.env.PLAYWRIGHT_USE_PREVIEW === '1';
+/** Preview build or dev server: `isPreviewRun` has the switches, and the specs that need the preview ask it too. */
+const usePreview = isPreviewRun(process.env);
 const crossBrowser = isCrossBrowserEnabled(process.env);
 /*
  * PORT lets a lane MOVE off a busy port instead of fighting for it: several agent lanes share one

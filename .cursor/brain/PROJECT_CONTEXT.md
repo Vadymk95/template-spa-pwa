@@ -58,7 +58,7 @@ New features add a `queries.ts` (or `*.queries.ts`) under `src/lib/api/`: a stab
 
 Reference: `PWA.md`. Quick map:
 
-- Manifest + Workbox config in `vite.config.ts` → `VitePWA({...})`; `registerType: 'prompt'`, `devOptions.enabled: false`.
+- Manifest + Workbox config in `vite.config.ts` → `VitePWA({...})` (the manifest's name, description, language and colours come from `app.config.ts`); `registerType: 'prompt'`, `devOptions.enabled: false`.
 - Update UI: `src/components/common/PwaUpdateToast/` (auto-mounted in `App.tsx`, i18n via `common.pwa.*`).
 - Install: `src/hooks/pwa/usePwaInstall.ts` (UI is the consumer's choice); the eager `beforeinstallprompt` capture is `src/lib/pwa/installPromptCapture.ts`, imported from `main.tsx`.
 - Icons: placeholder PNGs in `public/icons/` from `scripts/generate-placeholder-icons.mjs`; forks MUST replace them before deploy.

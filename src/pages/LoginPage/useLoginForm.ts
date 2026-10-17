@@ -3,12 +3,12 @@ import type { BaseSyntheticEvent } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { z } from 'zod';
 
 import { authApi } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { HTTP_UNAUTHORIZED, MIN_PASSWORD_LENGTH } from '@/lib/constants';
 import { logger } from '@/lib/logger';
+import { z } from '@/lib/zod';
 import { RoutesPath } from '@/router/routes';
 import { useUserStore } from '@/store/user/userStore';
 

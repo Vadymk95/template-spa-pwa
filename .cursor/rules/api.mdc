@@ -15,11 +15,11 @@ src/lib/api/
   safeFetch.ts          # fetch + Zod boundary validation (safeFetchQueryFn)
   <domain>.ts           # Domain-specific API functions (getUser, updateUser, ...)
   <domain>.queries.ts   # Key factory + queryOptions() factories for the domain
-                        # canonical shape: _example.queries.ts; live slice: greeting.queries.ts
+                        # keys first, then one queryOptions() factory per query
 ```
 
 - **API functions** (`lib/api/<domain>.ts`): pure async functions returning typed data. No React, no hooks.
-- **Query factories** (`lib/api/<domain>.queries.ts`): `<domain>Keys` key factory + `queryOptions()` factories. Consumers call `useQuery(<domain>Options(...))` from a page/component-local hook (e.g. `src/pages/HomePage/useHomePage.ts`). Register each new key factory in `src/lib/queryKeys.ts` as well.
+- **Query factories** (`lib/api/<domain>.queries.ts`): `<domain>Keys` key factory + `queryOptions()` factories. Consumers call `useQuery(<domain>Options(...))` from a page- or component-local hook (`use<Page>.ts` beside the component). Register each new key factory in `src/lib/queryKeys.ts` as well.
 - **Components**: consume hooks only. Never call `apiClient` directly in components.
 
 ## 2. Implementation Rules
@@ -105,7 +105,7 @@ export const useUpdateUserMutation = () => {
 
 ## 7. Boundary adapter
 
-- A response is parsed **once**, at the boundary: `safeFetch` / `safeFetchQueryFn` + a Zod schema (`src/lib/api/safeFetch.ts`; live example `greeting.queries.ts`). Here the parse also catches a Workbox-cached response of the OLD shape after a deploy — the PWA reason in the `safeFetch.ts` header.
+- A response is parsed **once**, at the boundary: `safeFetch` / `safeFetchQueryFn` + a Zod schema (`src/lib/api/safeFetch.ts`). Here the parse also catches a Workbox-cached response of the OLD shape after a deploy — the PWA reason in the `safeFetch.ts` header.
 - Defaults and renames live in the schema or a mapper next to it — `.default()`, `.catch()`, `.transform()`, or a `toViewModel(dto)` function in `lib/api/<domain>.ts` — never in a component.
 - Components and page hooks receive the parsed view model: they never see a raw DTO and never supply their own fallbacks (`data?.x ?? ''` in JSX is the smell).
 - A schema change is a payload-contract change: the Approval Law applies (`workflow.mdc`).

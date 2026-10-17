@@ -1,4 +1,5 @@
 import { expect, test } from './support/fixtures';
+import { isPreviewRun } from './support/preview-mode';
 
 /**
  * SW lifecycle smoke (minimal subset per /consilium 2026-05-23 APPLY Item 9 with conditions).
@@ -11,12 +12,13 @@ import { expect, test } from './support/fixtures';
  *
  * REQUIRES preview-mode (`PLAYWRIGHT_USE_PREVIEW=1`) — dev server intentionally
  * disables vite-plugin-pwa via `devOptions.enabled: false`. Skip when running
- * against dev server.
+ * against dev server. The mode comes from `isPreviewRun`, the switch `playwright.config.ts`
+ * uses, not from the port: `PORT` moves the preview server too.
  */
 
 test.describe('PWA service worker lifecycle (preview only)', () => {
     test.skip(
-        ({ baseURL }) => !baseURL?.includes(':4173'),
+        !isPreviewRun(process.env),
         'PWA SW only registers in preview build (vite-plugin-pwa devOptions.enabled: false)'
     );
 

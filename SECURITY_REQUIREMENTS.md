@@ -20,7 +20,7 @@ One module is the source of truth: [`vite-plugins/security-headers.ts`](vite-plu
 
 > **Note on `X-XSS-Protection`:** This header is **deprecated** and must not be set. It was removed from modern browsers (Chrome 78+) and can introduce vulnerabilities in legacy browsers. CSP is the correct defense against XSS.
 
-The policy allows exactly what the app needs and nothing else. There is no `'unsafe-inline'` and no `'unsafe-eval'` (zod 4 probes for JIT with `new Function`, which a policy without `'unsafe-eval'` reports, so `src/env.ts` sets `z.config({ jitless: true })` instead of loosening the policy):
+The policy allows exactly what the app needs and nothing else. There is no `'unsafe-inline'` and no `'unsafe-eval'` (zod 4 probes for JIT with `new Function`, which a policy without `'unsafe-eval'` reports, so `src/lib/zod.ts` sets `z.config({ jitless: true })` instead of loosening the policy, and every module takes `z` from `@/lib/zod`: a lint rule fails a direct import of `zod`, so the setting holds whichever module loads first):
 
 | Directive                    | Sources                   | Why                                                                                                                                                                                  |
 | ---------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

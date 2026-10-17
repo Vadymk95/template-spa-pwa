@@ -68,7 +68,7 @@ The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it w
 - **TS/TSX / tests** (logic, components, hooks, stores) — `npm run verify:iter`
 - **E2E / Playwright** (`e2e/**`, `playwright.config.ts`, routing/flows) — `npm run e2e:one -- <spec>` (free port, traced); the whole suite runs at the push, never by hand
 - **Touches `src/env.ts`, `vite.config.ts`, `src/lib/vitals.ts`, `src/lib/webVitals/`** — Above + `node scripts/check-web-vitals-chunks.mjs` on a fresh `dist/`
-- **PWA** (`vite.config.ts → VitePWA`, `index.html` PWA meta, `public/icons/**`, `src/components/common/PwaUpdateToast/**`, `src/hooks/pwa/**`, `src/lib/pwa/**`) — `npm run verify:iter`, then `npm run verify:pwa` on a fresh `dist/`
+- **PWA** (`vite.config.ts → VitePWA`, `app.config.ts`, `index.html` PWA meta, `public/icons/**`, `src/components/common/PwaUpdateToast/**`, `src/hooks/pwa/**`, `src/lib/pwa/**`) — `npm run verify:iter`, then `npm run verify:pwa` on a fresh `dist/`
 - **Perf budget** (any change that could move LCP/CLS/TBT — vendor chunks, fonts, route-loaded code, third-party deps) — `npm run perf:ci` on a fresh `dist/` (Lighthouse vs `vite preview`; `lighthouserc.json`)
 - **A11y** (`src/components/common/**`, `src/components/ui/**`, `src/pages/**` UI, `index.html` semantics) — Above + `npm run verify:measure -- e2e/a11y.spec.ts` (axe scan, preview mode)
 - **Feature flag wiring** (`src/lib/features/**`, `src/hooks/features/**`, provider swap in `main.tsx`) — `npm run verify:iter`

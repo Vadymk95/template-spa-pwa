@@ -9,10 +9,10 @@
  * (see `src/lib/api/safeFetch.ts` for the PWA-cache-survival rationale).
  */
 import { queryOptions } from '@tanstack/react-query';
-import { z } from 'zod';
 
 import { env } from '@/env';
 import { API_DEFAULT_URL } from '@/lib/constants';
+import { z } from '@/lib/zod';
 
 import { safeFetchQueryFn } from './safeFetch';
 

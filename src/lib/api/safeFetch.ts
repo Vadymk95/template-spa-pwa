@@ -35,7 +35,7 @@
  * safeFetch wrapper (PWA-aware)" for the full rationale.
  */
 
-import type { z } from 'zod';
+import type { z } from '@/lib/zod';
 
 import { ApiError } from './client';
 

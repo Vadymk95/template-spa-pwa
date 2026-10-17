@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.3](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.2...v3.3.3) (2026-10-17)
+
+
+### Bug fixes
+
+* **app:** manifest and fonts out of a gate file, SW specs on any port, zod in one module ([#87](https://github.com/Vadymk95/template-spa-pwa/issues/87)) ([5b37c85](https://github.com/Vadymk95/template-spa-pwa/commit/5b37c85094586d40fe4557f976a2962936d1b741))
+
 ## [3.3.2](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.1...v3.3.2) (2026-10-16)
 
 

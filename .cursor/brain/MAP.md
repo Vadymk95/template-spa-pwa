@@ -9,6 +9,7 @@
 | `src/App.tsx`          | Layout shell: ErrorBoundary → Header/Main/Footer + auto-mounted `PwaUpdateToast`                                                                                                                                           |
 | `src/router/index.tsx` | Router assembly, merge route modules here                                                                                                                                                                                  |
 | `vite.config.ts`       | Build config + `VitePWA({...})` + local plugins in `vite-plugins/` (dev-banner, i18n-hmr, html-optimize, security-headers) — manifest, Workbox precache, `registerType: 'prompt'`, `devOptions.enabled: false`, `globIgnores` for MSW worker |
+| `app.config.ts`        | App identity a fork changes first: the manifest's name, description, language and colours (`manifestIdentity`) and the web font URLs (`webFontUrls`). Read by `vite.config.ts`; not a gate file |
 
 ## Adding a New Page
 
@@ -108,7 +109,8 @@ Dark mode toggle: `src/hooks/theme/useTheme.ts`
 - Toggles `.dark` class on `<html>`, persists to `localStorage` key `"theme"`
 - Usage: `const { theme, setTheme } = useTheme()`
 
-To change brand color: update `--primary` HSL values in `:root`.
+To change brand color: update `--primary` and `--primary-hover` HSL values in `:root` and `.dark`;
+`scripts/button-contrast.test.mjs` fails a button state whose label drops under 4.5:1.
 To add new color token: add to `:root`, then map in `@theme inline`.
 
 ## Testing / MSW

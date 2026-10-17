@@ -13,7 +13,7 @@ This template ships as an installable Progressive Web App via `vite-plugin-pwa`.
 
 | Concern                  | File                                                              |
 | ------------------------ | ----------------------------------------------------------------- |
-| Plugin config + manifest | `vite.config.ts` → `VitePWA({...})`                               |
+| Plugin config + manifest | `vite.config.ts` → `VitePWA({...})`; identity fields: `app.config.ts` |
 | SW registration          | Inlined `<script>` in `index.html` via `injectRegister: 'inline'` (no separate `registerSW.js`) |
 | Update UI                | `src/components/common/PwaUpdateToast/`                           |
 | Install hook             | `src/hooks/pwa/usePwaInstall.ts` (UI is consumer's choice)        |
@@ -50,6 +50,8 @@ All build-versioned assets including `public/locales/*.json` are precached with 
 **`globIgnores: ['**/mockServiceWorker.js', '**/mockServiceWorker.js.br']`** — defence-in-depth so `removeMswPlugin` ordering bugs cannot ship MSW's worker as a dead precache entry.
 
 ## Manifest fields shipped
+
+`name`, `short_name`, `description`, `lang`, `theme_color` and `background_color` are values of `manifestIdentity` in `app.config.ts`, which `vite.config.ts` spreads into the manifest; `app.config.ts` is not a gate file, so a fork edits them without a `gate-change` label. The rest are literals in `vite.config.ts`.
 
 | Field             | Value                                | Reason                                                 |
 | ----------------- | ------------------------------------ | ------------------------------------------------------ |

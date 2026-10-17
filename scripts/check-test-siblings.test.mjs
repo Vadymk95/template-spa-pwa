@@ -322,7 +322,8 @@ describe('staged mode reads the git index, not the disk', () => {
         write(repo.root, { 'src/lib/value.ts': LOGIC });
         execFileSync('git', ['add', 'src/lib/value.ts'], {
             cwd: repo.root,
-            env: { ...cleanEnvironment(), GIT_INDEX_FILE: alternate }
+            env: { ...cleanEnvironment(), GIT_INDEX_FILE: alternate },
+            stdio: ['ignore', 'pipe', 'pipe']
         });
 
         expect(gate(repo).code).toBe(0);

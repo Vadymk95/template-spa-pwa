@@ -14,10 +14,10 @@ Mandatory — without this the deploy ships as a generic placeholder template.
 
 | Item | File / location | Notes |
 |---|---|---|
-| App name + short name | `vite.config.ts → VitePWA.manifest.name` / `.short_name` | Reflected in OS install UI. |
-| Description | `vite.config.ts → VitePWA.manifest.description`, `index.html` `<meta name="description">` | iOS install sheet + SEO. |
-| Theme colour + background colour | `vite.config.ts → VitePWA.manifest.theme_color` / `.background_color`, `index.html` `theme-color` × 2 | Match Tailwind theme tokens in `src/index.css`. |
-| `lang` | `vite.config.ts → VitePWA.manifest.lang`, `src/lib/i18n/constants.ts → DEFAULT_LANGUAGE` | Update if not English. |
+| App name + short name | `app.config.ts → manifestIdentity.name` / `.short_name` | Reflected in OS install UI. |
+| Description | `app.config.ts → manifestIdentity.description`, `index.html` `<meta name="description">` | iOS install sheet + SEO. |
+| Theme colour + background colour | `app.config.ts → manifestIdentity.theme_color` / `.background_color`, `index.html` `theme-color` × 2 | Match Tailwind theme tokens in `src/index.css`. |
+| `lang` | `app.config.ts → manifestIdentity.lang`, `src/lib/i18n/constants.ts → DEFAULT_LANGUAGE` | Update if not English. |
 | iOS title | `index.html` `<meta name="apple-mobile-web-app-title">` | Truncates after ~12 chars on home screen. |
 | App icons | `public/icons/{192x192,512x512,apple-touch-icon}.png` | Replace red "REPLACE ME" placeholders with real branding. |
 | HTML `<title>` | `index.html` | Surfaces in tab + Lighthouse SEO. |
@@ -118,7 +118,7 @@ Template ships **English only** (`SUPPORTED_LANGUAGES = ['en']` in `src/lib/i18n
 
 1. Mirror `public/locales/en/` to `public/locales/<lng>/` for each new locale. Keep namespaces aligned (`common`, `errors`, `home`, `auth`).
 2. Extend `SUPPORTED_LANGUAGES` and update `DEFAULT_LANGUAGE` if the primary changes.
-3. Update `manifest.lang` in `vite.config.ts` if the app's primary language changes.
+3. Update `manifestIdentity.lang` in `app.config.ts` if the app's primary language changes.
 4. Run `/sync-i18n` (skill) periodically to detect key drift across locales.
 5. RTL? Add `<html dir="rtl">` toggle in `useI18nReload` or via a separate hook; Tailwind v4 supports `rtl:` variants natively.
 

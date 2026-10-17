@@ -132,10 +132,16 @@ Auto-update silently force-reloads tabs and destroys mid-session form state. The
 
 - **Risk:** zod 4 probes for JIT support with `new Function('')` when the first schema is built. Under this policy
   that is a CSP violation (Firefox writes it to the console; Chromium raises only a `securitypolicyviolation` event),
-  and the required `cross-browser` job goes red while the Chromium suite can look green.
-- **Mitigation:** keep `z.config({ jitless: true })` at the top of `src/env.ts`, the first zod consumer. Never move it
-  into a side-effect-only import (`treeshake.moduleSideEffects: false` drops it from the bundle) and never add
-  `'unsafe-eval'` to the policy.
+  and the required `cross-browser` job goes red while the Chromium suite can look green. A module that builds a
+  schema while it loads, before the switch is set, brings the probe back, so a switch kept in one consumer
+  (`src/env.ts`) was protected by import order alone.
+- **Mitigation:** `src/lib/zod.ts` calls `z.config({ jitless: true })` and re-exports `z`. Every module under `src`
+  takes `z` from `@/lib/zod`, and `no-restricted-imports` in `eslint.config.js` fails a direct import of `zod`
+  (tests included), so the order modules load in cannot matter; `scripts/lint-guards.test.mjs` pins the rule.
+  The production build would drop that module, which only re-exports `z`, under `treeshake.moduleSideEffects:
+  false`, and the call with it; `vite.config.ts` exempts `src/lib/zod.ts` (`hasSideEffects`) and
+  `scripts/zod-config-bundle.test.mjs` builds a consumer and fails if the call is missing. Moving the file means
+  editing both. Never add `'unsafe-eval'` to the policy.
 
 ## The Firefox test project turns off Firefox's COOP process swap
 

@@ -1,9 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 
 import { safeFetchQueryFn } from '@/lib/api/safeFetch';
 import { QUERY_GC_TIME_MS, QUERY_MAX_RETRIES, QUERY_STALE_TIME_MS } from '@/lib/constants';
+import { z } from '@/lib/zod';
 import { server } from '@/test/server';
 
 import { createQueryClient } from './queryClient';

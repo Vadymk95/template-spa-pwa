@@ -60,8 +60,9 @@ the domain owner's call). COOP is `same-origin`. The dev server sends no policy:
 **Consequences**:
 
 - `connect-src` allows the localhost API origin unless `VITE_API_URL` is set for the production build.
-- zod 4 probes JIT with `new Function('')`, which the policy reports. `z.config({ jitless: true })` in `src/env.ts`
-  switches the probe off; never add `'unsafe-eval'`.
+- zod 4 probes JIT with `new Function('')`, which the policy reports. `z.config({ jitless: true })` in
+  `src/lib/zod.ts` switches the probe off, and a lint rule keeps every module importing `z` from there, so the
+  import order cannot bring the probe back; never add `'unsafe-eval'`.
 - Playwright 1.63.0's Firefox (build 1543) intermittently never finishes `page.goto` on a COOP page: 2 timeouts in
   3 rounds of 40 by default, 0 with `browser.tabs.remote.useCrossOriginOpenerPolicy` off, which the `firefox` project
   in `playwright.config.ts` sets. The header stays sent. Lift condition: SKELETONS.md.
@@ -239,7 +240,7 @@ to 21 minutes against about 5 for a green one, because every failing test waited
 **Consequences**: measured on one broken shared invariant (630 tests, six workers): uncapped, 7.5 min and 55 failures;
 capped at 10, 21 s; capped at 5, 15 s with half the failing neighbours reported. 10 is the value that settled.
 
-**Status**: in force. **Evidence**: a12c2db; `playwright.config.ts:48`.
+**Status**: in force. **Evidence**: a12c2db; `playwright.config.ts:49`.
 
 ## [2026-09] Agent limits in a committed `.claude/settings.json`; one Dependabot group; release token
 
@@ -482,7 +483,7 @@ rules, and indexing the ratchet on test style killed this rule set in a sibling 
 **Consequences**: when a threshold fires, split the function. Raising a number needs a fresh measurement recorded in
 this entry.
 
-**Status**: in force. **Evidence**: 7bdf539; `eslint.config.js:549`.
+**Status**: in force. **Evidence**: 7bdf539; `eslint.config.js:584`.
 
 ## [2026-08] Mutation testing
 

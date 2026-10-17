@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { expect, test } from './support/fixtures';
+import { isPreviewRun } from './support/preview-mode';
 
 /**
  * The preview server must send exactly the headers `dist/_headers` ships to Netlify / Cloudflare Pages,
@@ -9,9 +10,9 @@ import { expect, test } from './support/fixtures';
  * what fails when the plugin is dropped from `vite.config.ts` or stops writing the file: the other specs
  * would then still pass, with no policy applied at all.
  *
- * Same switch as `playwright.config.ts`: the dev server sends no policy, so there is nothing to compare.
+ * Same switch as `playwright.config.ts` (`isPreviewRun`): the dev server sends no policy, so there is
+ * nothing to compare.
  */
-const USES_PREVIEW = Boolean(process.env.CI) || process.env.PLAYWRIGHT_USE_PREVIEW === '1';
 
 const shippedHeaders = (): Record<string, string> => {
     const file = readFileSync(resolve('dist', '_headers'), 'utf8');
@@ -25,7 +26,10 @@ const shippedHeaders = (): Record<string, string> => {
 };
 
 test.describe('Security headers (preview only)', () => {
-    test.skip(!USES_PREVIEW, 'the dev server sends no policy; run through the preview build');
+    test.skip(
+        !isPreviewRun(process.env),
+        'the dev server sends no policy; run through the preview build'
+    );
 
     test('ships a CSP, and the page and its assets are served with the shipped set', async ({
         request

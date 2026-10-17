@@ -9,6 +9,7 @@ import compression from 'vite-plugin-compression';
 import { VitePWA } from 'vite-plugin-pwa';
 import { webfontDownload } from 'vite-plugin-webfont-dl';
 
+import { manifestIdentity, webFontUrls } from './app.config.ts';
 import pkg from './package.json' with { type: 'json' };
 import { devBanner } from './vite-plugins/dev-banner.ts';
 import { htmlOptimize } from './vite-plugins/html-optimize.ts';
@@ -27,6 +28,12 @@ const removeMswPlugin = (): Plugin => ({
         if (fs.existsSync(swBr)) fs.unlinkSync(swBr);
     }
 });
+
+// `treeshake.moduleSideEffects` below is false for every module, so the bundler drops one that nothing
+// imports a binding from. `src/lib/zod.ts` only re-exports zod's `z` after switching its JIT off, which
+// makes it that kind of module: its body has to run before any schema is built, so it is the one exception.
+const ZOD_MODULE = /[\\/]src[\\/]lib[\\/]zod\.ts$/;
+const hasSideEffects = (id: string): boolean => ZOD_MODULE.test(id);
 
 export default defineConfig(({ command }) => ({
     server: {
@@ -78,16 +85,11 @@ export default defineConfig(({ command }) => ({
                 id: '/',
                 scope: '/',
                 start_url: '/',
-                name: 'React SPA + PWA Foundation',
-                short_name: 'React PWA',
-                description:
-                    'Production-ready React 19 + Vite 8 + TypeScript SPA + PWA template. Replace this description before shipping.',
-                lang: 'en',
+                // name, short_name, description, lang, theme_color, background_color: app.config.ts.
+                ...manifestIdentity,
                 display: 'standalone',
                 display_override: ['standalone', 'minimal-ui'],
                 orientation: 'any',
-                theme_color: '#0a0a0a',
-                background_color: '#ffffff',
                 icons: [
                     { src: '/icons/192x192.png', sizes: '192x192', type: 'image/png' },
                     { src: '/icons/512x512.png', sizes: '512x512', type: 'image/png' },
@@ -127,8 +129,11 @@ export default defineConfig(({ command }) => ({
         // CSP + security headers: writes dist/_headers at build and applies the same set to
         // `vite preview` (SECURITY_REQUIREMENTS.md). Not `apply: 'build'` — preview needs it too.
         securityHeaders(),
-        // Downloads fonts from @import in CSS and bundles them locally (0 external requests)
-        webfontDownload(),
+        // Downloads the fonts listed in app.config.ts (and any @import found in CSS) and bundles them
+        // locally (0 external requests). Emitted as a blocking <link>: the plugin's default inline
+        // <style> is blocked by style-src 'self', and its async media="print" swap uses an inline
+        // onload handler that script-src 'self' blocks.
+        webfontDownload(webFontUrls, { injectAsStyleTag: false, async: false }),
         // Bundle analyzer: only runs when ANALYZE=true env variable is set
         // Usage: ANALYZE=true npm run build
         ...((process.env.ANALYZE === 'true'
@@ -168,7 +173,7 @@ export default defineConfig(({ command }) => ({
         assetsInlineLimit: 4096,
         rolldownOptions: {
             treeshake: {
-                moduleSideEffects: false
+                moduleSideEffects: hasSideEffects
             },
             output: {
                 codeSplitting: {

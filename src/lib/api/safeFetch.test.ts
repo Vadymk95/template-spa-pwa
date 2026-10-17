@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
 
+import { z } from '@/lib/zod';
 import { server } from '@/test/server';
 
 import { ApiError } from './client';

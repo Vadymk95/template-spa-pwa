@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.4](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.3...v3.3.4) (2026-10-25)
+
+
+### Bug fixes
+
+* **deps:** bump zod, undici and body-parser for three high advisories ([#91](https://github.com/Vadymk95/template-spa-pwa/issues/91)) ([84a51a6](https://github.com/Vadymk95/template-spa-pwa/commit/84a51a68822675014a15e9621eb8f3964e5b6cfe))
+
+
+### Documentation
+
+* name the Actions switch a fork needs for release pull requests ([#93](https://github.com/Vadymk95/template-spa-pwa/issues/93)) ([8006ca4](https://github.com/Vadymk95/template-spa-pwa/commit/8006ca435ce5fe64e89f3dea5371fb30d6ee0d59))
+
 ## [3.3.3](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.2...v3.3.3) (2026-10-17)
 
 

@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "id": "GHSA-mrhx-c7xc-m3w5",
+        "reason": "No patched zod 3.x exists: the advisory covers <4.6.6 and the newest stable 3.x is 3.25.76 (the 3.26.0-canary prereleases above it are unpatched too). The only zod 3 copy is dev tooling, node_modules/chromium-bidi/node_modules/zod (dev: @lhci/cli > lighthouse 12.6.1 > puppeteer-core 24.43.1 > chromium-bidi 14.0.0 > zod ^3.24.1). The top-level zod is 4.6.7, held there by package.json ^4.6.7 alone: this allowance is keyed by advisory id, so it would also cover a vulnerable top-level copy.",
+        "upstream": "chromium-bidi depends on zod 4 from 157.0.8082-0 (2026-10-01) and puppeteer-core 25.16.0 (latest) uses 157.0.8090-0, but lighthouse 12.6.1 allows only puppeteer-core ^24 and @lhci/cli 0.15.1 (latest, published 2025-06-25) pins that lighthouse. Re-check for a newer @lhci/cli or any chain that leaves no zod 3 under chromium-bidi, then remove this entry.",
+        "expires": "2026-12-01"
+    }
+]

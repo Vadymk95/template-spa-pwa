@@ -85,7 +85,7 @@ jobs:
                   persist-credentials: false
 
             - name: Initialize CodeQL
-              uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+              uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
               with:
                   languages: ${{ matrix.language }}
                   # Adds the security-extended pack — broader coverage at the cost of run time.
@@ -95,7 +95,7 @@ jobs:
                   config-file: ./.github/codeql/codeql-config.yml
 
             - name: Perform analysis
-              uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+              uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
               with:
                   category: '/language:${{ matrix.language }}'
 
@@ -116,7 +116,7 @@ jobs:
               # an exact release on purpose. Dependabot moves the action's SHA; a newer zizmor is a deliberate edit
               # of `version`, so a new audit rule reddens the pull request that bumps it, not a random weekly run.
               # The same pin and config reproduce this verdict locally: `uvx zizmor@1.30.1 .github/workflows`.
-              uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+              uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
               with:
                   version: 1.30.1
                   inputs: .github/workflows

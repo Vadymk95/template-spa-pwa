@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.5](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.4...v3.3.5) (2026-10-29)
+
+
+### Bug fixes
+
+* **gate:** lessons from a fork build: mutation, probe, typed e2e, CSP guard, docs rules ([#95](https://github.com/Vadymk95/template-spa-pwa/issues/95)) ([d70f9e3](https://github.com/Vadymk95/template-spa-pwa/commit/d70f9e362ce94edb89c3759a74b626db0f4d6ff6))
+
 ## [3.3.4](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.3...v3.3.4) (2026-10-25)
 
 

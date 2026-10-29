@@ -23,7 +23,17 @@ always runs the full chain — the phase gates only the LOCAL hook.
 Measured here (`.gate-trace.log`, 2026-08-30 to 2026-09-11): a phase-0 push 15-20 s; the full chain
 (`GATE_PHASE=full`, or phase 1) 32-47 s over six passing runs, p90 47 s — plus ~20 % headroom that is the
 60 s `push` budget in `gate-tiers.json` (the one 131 s row is a failed run, not a measurement);
-`verify:iter` 3.9-11.5 s; `verify:measure` 5.6-6.0 s; the mutation run 2m54s (`mutation.yml`).
+`verify:measure` 5.6-6.0 s; the mutation run 2m54s (`mutation.yml`).
+
+`verify:iter` before the ESLint leg and the mutation-scope test: 3.9-11.5 s (`.gate-trace.log`, same dates). The two
+legs were measured separately on 2026-10-29, in a git worktree of this repository on 12 cores shared with other work
+(load average 9 when the session started, 36 when it ended; three runs per case, so ranges, not medians). ESLint alone,
+with the flags of `lint-changed`: one file 4.5-32.8 s cold (a fresh cache) and 1.1-8.6 s warm; ten files 5.6-19.7 s cold
+and 1.2-3.1 s warm. The leg over the 42 changed files of that worktree: 7.0 s cold, 1.4 s warm. The mutation-scope test
+by name: 1.5-2.6 s. With `package.json` or the vitest config dirty the whole suite runs: 40 s and 52 s through the chain
+without its hooks check (90 test files; the 52 s run had one timeout of a test this change does not touch, which the
+second run did not repeat). The iterate budget stays 15 s (`scripts/gate-tiers.json`): a cold first run or a dirty
+config can pass it on a loaded machine, and `trace:report` lists that as a finding.
 
 ## The tracer — how it works (the RULES it enforces are the tier law)
 
@@ -38,15 +48,36 @@ discipline changes by editing that JSON.
 `e2e:one` and `verify:measure` route through `scripts/run-on-free-port.mjs`, which probes up from the
 base port and exports `PORT` + `PLAYWRIGHT_BASE_URL`; the Playwright config passes that port into its
 webServer command, because Vite reads neither variable. Playwright tears down the server it started.
-The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it will not die).
+The push gate's preflight takes `--kill-port` (SIGTERM, re-probe, refuse if it will not die). It calls a port busy
+only when two looks 150 ms apart both find it busy (`isPortBusy` in `scripts/check-gate-env.mjs`): one look cannot tell
+a server from a socket another process holds for a millisecond, and `scripts/run-on-free-port.mjs` binds every port it
+walks.
+
+Tests that bind sockets take their ports from `scripts/quiet-ports.mjs`: 10000-19999, below both ephemeral ranges,
+one window per checkout and one lane per test file, never `listen(0)` or a fixed number.
 
 ## What each chain contains (mechanics — WHEN to run them is the tier law)
 
 - **`npm run verify:iter`** — the hooks check first (a clone without git hooks fails here, not at a push that runs no gate), the cheap
-  static checks (the type check is incremental), then only the tests reachable from the uncommitted
-  diff (stages: `scripts/gate-tiers.json`). Two deliberate properties: while `package.json` or a
-  vite/vitest config is dirty, `--changed` runs the FULL suite (force-rerun triggers); and
-  `--changed` follows the import graph only, so cross-cutting suites surface at the push chain.
+  static checks (the type check is incremental), then ESLint, type-aware, on the files the working tree changed
+  (tracked changes against HEAD and untracked files, deleted ones left out; `scripts/lint-changed.mjs`), then only the
+  tests reachable from the uncommitted diff, then the mutation-scope test by name (stages: `scripts/gate-tiers.json`).
+  Deliberate properties:
+    - while `package.json` or a vite/vitest config is dirty, `--changed` runs the FULL suite. The force-rerun triggers
+      are literal paths anchored at the repository root (`forceRerunTriggersFor` in `vitest.config.ts`): the runner's
+      defaults never match a config file, and a `**` stops at a dot-directory such as `.worktrees/`, where not even
+      `package.json` fired. That edit alone costs the whole suite, over the 15 s iterate budget by design;
+    - `--changed` follows the import graph only, so cross-cutting suites surface at the push chain. The one exception
+      is `scripts/mutation-scope.test.mjs`: it reads `stryker.config.json` as text, nothing imports that file, so the
+      chain runs it by name;
+    - the ESLint cache follows the Tailwind stylesheet. Both Tailwind rule families open `src/index.css` themselves and
+      the cache keys on the file and the resolved config only, so `eslint.config.js` puts a fingerprint of that
+      stylesheet, the local files it `@import`s and the installed version of each package it imports (`tailwindcss`,
+      `tw-animate-css`) into `settings` for `**/*.tsx` (`scripts/css-fingerprint.mjs`). A stylesheet edit or a package
+      upgrade re-lints those files and nothing else, so there is no `.eslintcache` to delete by hand. The package's
+      files are not hashed: a patched copy with the same version is not seen;
+    - `.cursor/` is ignored by both linters: it is tracked for the brain, rules, commands and templates, and an agent's
+      scratch script there would otherwise red the chain.
 - **`npm run verify`** — every **offline** check. Stage order: `scripts/gate-tiers.json`; the superset
   rule and the push/CI split: `AGENTS.md` § the gate; why: `DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI".
 - **`npm run verify:ci`** — the CI gate. Its network-bound checks need the network, which is why they

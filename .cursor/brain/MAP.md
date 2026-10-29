@@ -98,10 +98,14 @@ Full reference: `.cursor/brain/PWA.md`. Source-of-truth files map below.
 src/index.css — single source of truth for Tailwind v4:
   @import "tailwindcss"    — base + utilities
   @import "tw-animate-css" — animation utilities
+  @source                  — the folders scanned for class names: src/ minus tests and test helpers
   @custom-variant dark     — class-based dark mode
   @theme inline {}         — maps TW utility names → CSS variables
   :root / .dark {}         — HSL design tokens
 ```
+
+Automatic class detection is off, so a new top-level folder that holds class names needs its own `@source` line
+(`SKELETONS.md` § Tailwind v4).
 
 Dark mode toggle: `src/hooks/theme/useTheme.ts`
 

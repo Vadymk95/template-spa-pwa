@@ -35,6 +35,10 @@ export default mergeConfig(
             // exits 0. Vitest's default allows it outside CI, so a push could carry one; refuse it
             // everywhere. Iterate on one test with `npm run test:one -- <file>` or `-t <name>`.
             allowOnly: false,
+            // Vitest keeps a mock's calls and implementation from one test to the next by default.
+            // Resetting before each test returns a mock to the implementation it was created with, so
+            // the order of the tests in a file cannot decide a verdict.
+            mockReset: true,
             environment: 'jsdom',
             setupFiles: ['./src/test/setup.ts'],
             // The runner adds `setupFiles` to this list itself, so the setup file is covered as well.

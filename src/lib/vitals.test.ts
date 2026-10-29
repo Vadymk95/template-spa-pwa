@@ -88,7 +88,9 @@ describe('reportWebVitals', () => {
             await vi.waitFor(() => {
                 expect(subscribeStandard).toHaveBeenCalledTimes(1);
             });
-            return vi.mocked(subscribeStandard).mock.calls[0][0];
+            const [call] = vi.mocked(subscribeStandard).mock.calls;
+            if (!call) throw new Error('the default reporter was never handed to the subscriber');
+            return call[0];
         };
 
         it('is handed to the subscriber when the caller passes none', async () => {

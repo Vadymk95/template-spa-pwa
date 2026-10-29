@@ -11,21 +11,21 @@
         "held": ">=10.0.0 <11",
         "reason": "eslint-plugin-react and eslint-plugin-jsx-a11y cap their eslint peer below 10 and are mapped to $eslint through overrides; a new major would outrun that mapping.",
         "lift": "both plugins publish a release whose eslint peer admits the next major, and the overrides entries can go",
-        "evidence": "package.json:144"
+        "evidence": "https://github.com/Vadymk95/template-spa-pwa/commit/bb485c62e1bc0e3a1d558a42c743009ac1f01351"
     },
     {
         "package": "@eslint/js",
         "held": ">=10.0.0 <11",
         "reason": "moves in lockstep with eslint; see the eslint entry.",
         "lift": "the eslint hold lifts",
-        "evidence": "package.json:144"
+        "evidence": "https://github.com/Vadymk95/template-spa-pwa/commit/bb485c62e1bc0e3a1d558a42c743009ac1f01351"
     },
     {
         "package": "@types/node",
         "held": ">=24.0.0 <25",
         "reason": "the types must match engines.node >= 24, so they do not promise APIs the supported runtime cannot deliver.",
         "lift": "engines.node moves to a newer Node major (a deliberate, ask-first change)",
-        "evidence": "package.json:6"
+        "evidence": "https://github.com/Vadymk95/template-spa-pwa/commit/de86d4c56b7e3c6060ac8f5424650d920c84b72a"
     },
     {
         "package": "vitest",

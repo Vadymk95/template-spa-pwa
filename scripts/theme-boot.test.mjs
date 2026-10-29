@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 /*
  * `public/theme-boot.js` is plain JS the browser runs from <head> before the first paint, so it is
  * exercised as the file it is: evaluated in a bare VM context with the storage and media states it
- * reads. The storage key must stay equal to STORAGE_KEYS.THEME in src/store/keys.ts.
+ * reads. The storage key must stay equal to STORAGE_KEY in src/hooks/theme/useTheme.ts.
  */
 const script = readFileSync(resolve(process.cwd(), 'public/theme-boot.js'), 'utf8');
 

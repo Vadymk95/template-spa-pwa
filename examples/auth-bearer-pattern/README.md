@@ -70,6 +70,7 @@ If the team owns a backend that issues httpOnly session cookies:
 3. A `/me` query (TanStack Query) drives `isLoggedIn` from the cookie's session — refetches on focus to detect remote logout.
 4. `ProtectedRoute` reads the `useQuery` `data` instead of `useUserStore.use.isLoggedIn()`; redirect if 401.
 5. CSRF: backend issues a CSRF token cookie + verifies on mutations; `apiClient` echoes it via `X-CSRF-Token` header.
+6. Cross-browser runs: WebKit refuses a `Secure` cookie over plain `http://localhost` while Chromium and Firefox accept it _(measured in a fork, not re-verified here)_, so under `CROSS_BROWSER=1` a dev backend that sets `Secure` either serves the preview over https for the WebKit runs or strips `Secure` for WebKit on plain http only (`DECISIONS.md` § Cross-engine coverage).
 
 ### Path 5 — Keep the bearer pattern (rare)
 

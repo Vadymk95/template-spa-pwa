@@ -7,7 +7,7 @@ Production-ready React 19 + Vite 8 (Rolldown) PWA template — vite-plugin-pwa (
 1. Read `.cursor/brain/PROJECT_CONTEXT.md` before any task, then open `.cursor/brain/READING_INDEX.md`: it maps a situation ("about to change a shared primitive") to the two or three files that answer it. Depth: `.cursor/brain/MAP.md` (architecture), `.cursor/brain/SKELETONS.md` (danger zones), `.cursor/brain/VERIFICATION.md` (what to run per change), `.cursor/brain/PWA.md`, `.cursor/brain/TEMPLATE_SEEDS.md` (do NOT remove as dead code), `.cursor/brain/EXTENSIONS.md` (graduation checklist), `.cursor/brain/DECISIONS.md` (decisions in force; history is `git log -p`), `examples/auth-bearer-pattern/README.md` (auth alternatives).
 2. `.cursor/rules/*.mdc` are **binding for the files they cover**: read the ones for the area you touch before the first edit.
 3. Before building, check the work is still needed (`git log --oneline -15` plus one grep for what the task names). LOOK instead of inferring (`npm run probe`). When you dispatch work to another agent, name the files.
-4. **This file is the canonical guide for every tool**: Cursor and Codex load it natively, Claude Code through the one-line import in `CLAUDE.md`. Edit THIS file; never grow the shim. Code is ground truth: if a line here conflicts with the code, follow the code and fix the stale line in the same session.
+4. **This file is the canonical guide for every tool**: Cursor and Codex load it natively, Claude Code through the one-line import in `CLAUDE.md`. Edit THIS file; never grow the shim. Code is ground truth: if a line here conflicts with the code, follow the code and fix the stale line in the same session. A pointer names a path and the symbol in it, never a line number: `docs:check` fails `path:12`.
 
 ## Stack
 
@@ -25,10 +25,10 @@ React 19 · TypeScript 6 strict · Vite 8 (Rolldown) · Tailwind **v4** · shadc
 - **PWA** — manifest and Workbox config in `vite.config.ts`; update toast in `src/components/common/PwaUpdateToast/`; install hook `src/hooks/pwa/usePwaInstall.ts`. Do not flip `registerType` post-deploy, drop the `apple-mobile-web-app-capable` meta tag or enable `devOptions.enabled`. Threat model: `.cursor/brain/PWA.md`.
 - **Security headers** come from ONE definition, `vite-plugins/security-headers.ts` (it feeds `dist/_headers` and `vite preview`). The CSP has no `unsafe-*`: a new inline script, third-party origin or `data:` source changes the policy in that file, never in a host config. A CSP violation fails a preview-mode e2e spec. Host recipes: `SECURITY_REQUIREMENTS.md`.
 - **Reuse first, consistency beats preference** — search for an existing function, util, component or constant before creating one, and extend it; match the surrounding file.
-- **Content variance** — anything that renders authored copy is proven in a real browser against content it has NOT seen (text: minimal / typical / long / unbroken; collections: none / one / many). Add a case to `/dev/ui/content-stress` (dev-only; `e2e/dev/content-stress.spec.ts`) with every content-bearing component. The range of widths a guard covers is part of its spec, and a wrap class with no red-to-green proof is deleted. Engines disagree on intrinsic sizing, font metrics and scrollbar gutters: measure (`CROSS_BROWSER=1` adds Firefox and WebKit), never predict.
+- **Content variance** — anything that renders authored copy is proven in a real browser against content it has NOT seen (text: minimal / typical / long / unbroken; collections: none / one / many). Add a case to `/dev/ui/content-stress` (dev-only; `e2e/dev/content-stress.spec.ts`) with every content-bearing component, as a `test.step` or an extra assertion in the existing test, never a new `test(` (the suite ceiling in `gate-tiers.json` counts those calls). The range of widths a guard covers is part of its spec, and a wrap class with no red-to-green proof is deleted. Engines disagree on intrinsic sizing, font metrics and scrollbar gutters: measure (`CROSS_BROWSER=1` adds Firefox and WebKit), never predict.
 - **Zero warnings, a complexity ratchet** — `eslint --max-warnings 0`, `oxlint --deny-warnings`. Fix the cause; never downgrade a rule or sprinkle `eslint-disable`. A suppression that stays says why on the same comment, and a rule wrong for a class of files gets a documented file-scoped override in `eslint.config.js`. The complexity limits there sit above the measured ceiling: a hit is new drift, so split the function; raising a number needs a fresh measurement and a `DECISIONS.md` update.
 - **Pre-commit is repo-scoped** — `lint-staged`, the TDD sibling gate, then the cheap checks (the list is `.husky/pre-commit`) over the whole repo; the remedy for any failure is `npm run fix && git add -u`.
-- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify:iter` and `verify` fail loudly without hooks, and a push from a clone without them runs no gate). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`. The lockfile obeys the same cooldown: `npm run lock:age` (a network-bound check) fails a changed `name@version` younger than `min-release-age`; a deliberate bypass bump is listed with a reason and an expiry in `scripts/lock-age-allowlist.json`.
+- **Bootstrap after clone** — `npm run prepare` once (`.npmrc` disables lifecycle scripts as a supply-chain guard, so husky does not install itself; `verify:iter` and `verify` fail loudly without hooks, and a push from a clone without them runs no gate). `.npmrc` `min-release-age=3` (DAYS) holds a brand-new release back: an urgent patch needs `npm install <pkg> --min-release-age=0`. The lockfile obeys the same cooldown: `npm run lock:age` (a network-bound check) fails a changed `name@version` younger than `min-release-age`. Prefer waiting out the cooldown. An agent never runs the `--min-release-age=0` install and never edits `scripts/lock-age-allowlist.json` (an agent's classifier refuses both); the operator runs the bypass install and lists the row (reason, expiry no later than the day the version is old enough on its own).
 - **Machine-agnostic configs** — no absolute local paths (the VS Code i18next extension rewrites `i18next.i18nPaths`; keep them relative) and no DURATION measured on one machine: `scripts/gate-tiers.json` holds a ratio and a sample size, and the gate calibrates its own baseline into the gitignored `.gate-budget.json`.
 
 ## Commands / the gate
@@ -41,9 +41,10 @@ npm run verify:iter   # iteration tier: the seconds-long check, run per change
 npm run verify:measure # MEASURE moment: build + look; add `-- e2e/<f>.spec.ts` for one preview-mode spec
 npm run e2e:one -- <spec> # one Playwright spec, FREE port, through the tracer (`test:e2e:prod` = all, against vite preview)
 npm run test:one -- <file> # one unit test file, through the tracer (not around it)
-npm run probe -- <route> [widths] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
+npx --no-install eslint <path> # lint one path from the repo root; npm exec --prefix keeps the caller's cwd
+npm run probe -- <route> [widths] [--signed-in] [--theme=dark] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
 npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage
-npm run docs:check    # docs class: paths, scripts, sentinels, versions, command table, dead docs, section pointers, test quarantines, agent-memory imports, the gate chain view and any retelling or composition of it (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
+npm run docs:check    # docs class: paths against the files git lists, line pointers, scripts, sentinels, versions, command table, dead docs, section pointers, the DECISIONS shape, test quarantines, agent-memory imports, the gate chain view, its strict flags and any retelling or composition of it (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
 npm run verify:push   # what pre-push runs: phase-aware (scripts/gate-tiers.json)
 npm run verify        # THE gate: every offline check; the push/CI chain, not a desk tool
 npm run verify:ci     # the CI gate; the push runs it in phase 1
@@ -81,7 +82,8 @@ list of the stages each gate script runs (`checks.<name>.chain`, checked against
   before the first deploy) runs the offline checks and loudly SKIPS the heavy stages; phase 1 (from the
   first deploy) runs the full `verify:ci`. A skipped stage is printed, never silent; flip the phase in one
   commit at the first deploy. A repo whose gate has no heavy stage runs the full `verify:ci` at push and
-  records in `gate-tiers.json` that a phase switch would gate nothing.
+  records in `gate-tiers.json` that a phase switch would gate nothing. With no remote there is no push
+  moment: the lead hand-runs the push chain once per slice on the main checkout; an implementer never does.
 - **CI** - phase-blind: always the full `verify:ci`, plus what only CI can do (the security workflow, the
   scheduled mutation job, a mandatory dev-smoke job where the repo has one).
 
@@ -121,17 +123,19 @@ moments, blown budgets, gate runs from a worktree). After a push, gate output in
 the contract: **silence is a failure, not a pass** - a push that printed no gate ran no gate, whatever the
 exit code says.
 
-**Ports.** A busy port means MOVE, never kill a server you did not start; the single-spec and measure
-scripts take the next free port. Only the push gate clears its own port.
+**Ports.** A busy port means MOVE, never kill a server you did not start; every script that starts its
+own server takes the next free port. Only the push gate clears its own port.
 
 ### Lanes - who runs what
 
 - **Main agent, inline.** Iterate and measure while working; the push runs the chain, never a hand-run.
-- **Implementer subagent.** Works in a hand-made `git worktree` OUTSIDE the repo directory, on its own
-  port, with `node_modules` symlinked from the main checkout. Iterate and measure only; the gate never
-  runs from a worktree (the tracer records it as a finding). The lead removes the worktree, checks the
-  branch out in the main checkout and pushes from there, so the gate runs once, at the push, for every
-  writer.
+- **Implementer subagent.** Works in a hand-made `git worktree` OUTSIDE the repo directory, on its own port,
+  with `node_modules` symlinked from the main checkout. Iterate and measure only; the gate never runs from a
+  worktree. The lead removes the worktree, checks the branch out in the main checkout and pushes from there,
+  so the gate runs once, at the push, for every writer. A lane never waits on a prompt: it writes only in its
+  worktree and its scratch folder (a planner or gate file change goes in the report as exact lines, which the lead
+  applies with the operator), reads with Read and Grep, and runs `git -C <dir>` and `npm run --prefix <dir>`
+  instead of `cd`, with no shell variable or `;` chain. Lane rules: `.cursor/templates/LANE.md`.
 - **Copilot coding agent.** Hand-over is a fully specified issue (goal as behaviour, paths in scope,
   acceptance, out of scope; use `.github/ISSUE_TEMPLATE/agent-task.yml` where the repo ships it), assigned
   to Copilot. It works on its own branch and opens a draft pull request; workflows on that PR start only
@@ -192,6 +196,4 @@ Range, reason, lift condition and evidence per package live in `scripts/version-
 
 ## Pull requests and commits
 
-Changes reach master through a pull request: branch, run the gate, push the branch, open a PR, merge when CI is green. Here `master` carries a ruleset requiring the checks in `.github/ruleset.json`; a fork gets the files but not the settings, so nothing stops a direct push until you set them up (`README.md` § "What your fork does not inherit").
-
-Commit format: `type(scope): description`, max 96 chars; types `feat` `fix` `chore` `docs` `style` `refactor` `perf` `test` `revert`. Add a rule to this file when an agent makes the same mistake twice, and prune stale lines.
+Changes reach master through a pull request: branch, run the gate, push the branch, open a PR, merge when CI is green. Here `master` carries a ruleset requiring the checks in `.github/ruleset.json`; a fork gets the files but not the settings, so nothing stops a direct push until you set them up (`README.md` § "What your fork does not inherit"). Commit format: `type(scope): description`, max 96 chars; types `feat` `fix` `chore` `docs` `style` `refactor` `perf` `test` `revert`. Add a rule to this file when an agent makes the same mistake twice, and prune stale lines.

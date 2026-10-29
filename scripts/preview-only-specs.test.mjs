@@ -130,6 +130,31 @@ describe('preview-only specs', () => {
         }
     });
 
+    // The Playwright configs block service workers, so `page.route` sees every request. The lifecycle
+    // spec exists to run the real worker and opts back in; a spec that forgets it times out waiting
+    // for `serviceWorker.ready`, and only a preview run, which is the push gate, would say so.
+    it('lets the lifecycle spec opt back in to service workers', () => {
+        const optsIn = (call) => {
+            const [options] = call.arguments;
+            return (
+                options !== undefined &&
+                ts.isObjectLiteralExpression(options) &&
+                options.properties.some(
+                    (property) =>
+                        ts.isPropertyAssignment(property) &&
+                        property.name.getText() === 'serviceWorkers' &&
+                        ts.isStringLiteralLike(property.initializer) &&
+                        property.initializer.text === 'allow'
+                )
+            );
+        };
+
+        expect(
+            memberCalls(specNamed('sw-lifecycle.spec.ts'), 'test', 'use').filter(optsIn),
+            'sw-lifecycle.spec.ts does not opt back in to service workers'
+        ).toHaveLength(1);
+    });
+
     it('has no spec that reads a port number', () => {
         const withPort = specs
             .filter(({ nodes }) => textOfLiterals(nodes).some((text) => /:\d{4,5}\b/.test(text)))

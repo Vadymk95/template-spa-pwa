@@ -8,6 +8,10 @@
 // head TREE does. A test file that exists only untracked in the working tree is not part of
 // the commit, so it must not satisfy the gate (it did, when this read the disk).
 //
+// The very first commit has nothing earlier to compare with and is not judged, staged (no HEAD
+// yet) or in a range (no base): a fork's first commit is the whole template, starter files with
+// no sibling included.
+//
 // Usage:
 //   node scripts/check-test-siblings.mjs                 # staged files vs the index (pre-commit)
 //   node scripts/check-test-siblings.mjs --range         # base...HEAD vs the HEAD tree (CI, push)
@@ -113,6 +117,15 @@ export const stagedChange = (git) => {
     const tracked = git(['ls-files', '-z']);
     if (changed === null || tracked === null) {
         return { error: 'cannot read the git index (is this a git repository?)' };
+    }
+    // No HEAD means no commit yet: everything staged is new, and judging it would fail on every
+    // starter file that has no sibling.
+    if (git(['rev-parse', '--verify', '--quiet', 'HEAD^{commit}']) === null) {
+        return {
+            files: [],
+            exists: () => false,
+            note: 'no commit yet (the first commit): nothing to check'
+        };
     }
     const inIndex = new Set(splitNul(tracked));
     return {

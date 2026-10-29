@@ -24,9 +24,15 @@
         "brotli": true
     },
     {
+        "name": "schema-vendor (brotli)",
+        "path": "dist/assets/schema-vendor.*.js",
+        "limit": "22 KB",
+        "brotli": true
+    },
+    {
         "name": "index entry (brotli)",
         "path": "dist/assets/index.*.js",
-        "limit": "28 KB",
+        "limit": "10 KB",
         "brotli": true
     },
     {

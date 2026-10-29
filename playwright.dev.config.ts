@@ -42,6 +42,10 @@ export default defineConfig({
     },
     use: {
         baseURL,
+        // `page.route` cannot see a request a service worker answers: MSW's does against the dev
+        // server and the Workbox worker does against the preview build. The one spec that needs the
+        // real worker (`e2e/sw-lifecycle.spec.ts`) opts back in with `test.use`.
+        serviceWorkers: 'block',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: isCI ? 'retain-on-failure' : 'off'
@@ -65,6 +69,8 @@ export default defineConfig({
     ],
     webServer: {
         command: `npm run dev -- --host 127.0.0.1 --port ${String(PORT)} --strictPort`,
+        // MSW cannot start under blocked service workers: off, so no failed start is logged.
+        env: { VITE_ENABLE_MSW: 'false' },
         /*
          * A Vite dev server answers the SPA fallback before its module graph is warm, and this app also
          * hides the document while i18next loads, so "the port responds" is NOT "the fixture rendered".

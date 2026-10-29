@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import js from '@eslint/js';
 import eslintComments from '@eslint-community/eslint-plugin-eslint-comments';
 import queryPlugin from '@tanstack/eslint-plugin-query';
@@ -15,6 +17,12 @@ import tailwind from 'eslint-plugin-tailwindcss';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+
+import { cssFingerprint } from './scripts/css-fingerprint.mjs';
+import hookLocation from './scripts/eslint-hook-location.mjs';
+
+/** The stylesheet both Tailwind lint rule families read (their settings and the cache fingerprint below). */
+const TAILWIND_ENTRY = './src/index.css';
 
 const parentRelativeImportPatternGroup = {
     group: [
@@ -35,6 +43,11 @@ const parentRelativeImportPatternGroup = {
 const zodImportMessage =
     "Import `z` from '@/lib/zod', not from 'zod': that module turns zod's JIT off before any schema is built, and a direct import can run first (the shipped CSP has no 'unsafe-eval').";
 
+// The folders an exported hook may live in, relative to this file: hooks by domain, a page's own
+// hook, a hook beside its component, the hook of a store. This list is the `ignores` of the rule
+// block below, and the rule prints it in its message.
+const HOOK_HOMES = ['src/hooks/**', 'src/pages/*/**', 'src/components/**', 'src/store/*/**'];
+
 export default defineConfig([
     globalIgnores([
         'dist',
@@ -46,6 +59,10 @@ export default defineConfig([
         'playwright-report/**',
         'blob-report/**',
         'playwright/.cache/**',
+        // `.cursor/` is tracked for the brain, rules, commands and templates, so a throwaway script an
+        // agent leaves there is an untracked file the linters would pick up and red the iterate chain
+        // with. Nothing under it is product code.
+        '.cursor',
         // An agent worktree created under the repository root is a full SECOND CHECKOUT, and every
         // ignore above is root-anchored, so its copies walk straight past them. Same class as the
         // `.stryker-tmp` line - the gate must never lint a copy of the repo - and measured with a
@@ -107,8 +124,11 @@ export default defineConfig([
             'import-x/resolver-next': [
                 createTypeScriptImportResolver({
                     alwaysTryTypes: true,
-                    // Root solution tsconfig (`references` → app, node, vitest); one project = no multi-project warn.
-                    project: './tsconfig.json'
+                    // Root solution tsconfig (`references` → app, node, vitest, e2e); one project = no multi-project warn.
+                    // Anchored at this folder like `tsconfigRootDir` above: a relative path is read from
+                    // the directory lint started in, and from any other folder every `@/` import
+                    // stops resolving.
+                    project: path.join(import.meta.dirname, 'tsconfig.json')
                 })
             ]
         },
@@ -148,6 +168,8 @@ export default defineConfig([
             // ─── Magic numbers — extract to a constants.ts (exempt below) ─────
             // Cheap models scatter literals; force named constants. Universal units
             // (60 s/min, 1000 ms/s, 100 %) + trivial (-1,0,1,2) ignored.
+            // `type Gap = 3 | 5` is a name already, so a numeric literal type declared as an alias
+            // passes; the same union written inline in a property type still counts: name it as an alias.
             '@typescript-eslint/no-magic-numbers': [
                 'error',
                 {
@@ -156,7 +178,8 @@ export default defineConfig([
                     ignoreReadonlyClassProperties: true,
                     ignoreArrayIndexes: true,
                     ignoreDefaultValues: true,
-                    ignoreTypeIndexes: true
+                    ignoreTypeIndexes: true,
+                    ignoreNumericLiteralTypes: true
                 }
             ],
 
@@ -309,6 +332,16 @@ export default defineConfig([
             ]
         }
     },
+    // ─── Hooks are exported from the folders that hold hooks ──────────────────
+    // The rule reads exports (`scripts/eslint-hook-location.mjs`); where a hook may live is the one
+    // list above, used here as `ignores`, so ESLint resolves it from this folder whatever directory
+    // lint starts in. Tests and `src/test/` are exempt, as in the complexity ratchet below.
+    {
+        files: ['src/**/*.{ts,tsx}'],
+        ignores: [...HOOK_HOMES, '**/*.test.*', 'src/test/**'],
+        plugins: { local: hookLocation },
+        rules: { 'local/hook-location': ['error', { homes: HOOK_HOMES }] }
+    },
     // ─── A suppression must carry its reason ─────────────────────────────────
     // A reasonless `eslint-disable-next-line <rule>` passed the gate untouched (sabotage run,
     // 2026-10), and "do not sprinkle eslint-disable" in AGENTS.md is prose, not a check.
@@ -325,6 +358,21 @@ export default defineConfig([
             '@eslint-community/eslint-comments/no-unlimited-disable': 'error'
         }
     },
+    // Both Tailwind rule families below read the stylesheet on their own, and ESLint's cache keys on the
+    // linted file and the resolved config, never on a file a rule opens itself: after a token or utility
+    // change a cached run replays the verdicts of the old stylesheet (`scripts/lint-config.test.mjs`
+    // reproduces it against ESLint itself). `settings` is part of that key, so a fingerprint of the
+    // stylesheet, the local files it imports and the installed version of each package it imports
+    // re-lints exactly the files these rules cover. How the hash is built: `scripts/css-fingerprint.mjs`.
+    {
+        files: ['**/*.tsx'],
+        settings: {
+            tailwindCssFingerprint: cssFingerprint({
+                root: import.meta.dirname,
+                entry: TAILWIND_ENTRY
+            })
+        }
+    },
     // ─── Tailwind class hygiene ───────────────────────────────────────────────
     // Reads the v4 CSS-first config (@import 'tailwindcss' + @theme) from
     // src/index.css to know the custom theme classes. classnames-order and
@@ -334,7 +382,7 @@ export default defineConfig([
         files: ['**/*.tsx'],
         plugins: { tailwindcss: tailwind },
         settings: {
-            tailwindcss: { cssConfigPath: './src/index.css' }
+            tailwindcss: { cssConfigPath: TAILWIND_ENTRY }
         },
         rules: {
             'tailwindcss/no-contradicting-classname': 'error',
@@ -466,7 +514,9 @@ export default defineConfig([
             '@typescript-eslint/no-unsafe-assignment': 'off'
         }
     },
-    // Playwright — not part of app tsconfig project references; disable type-aware TS rules.
+    // Playwright — `tsc -b` type-checks these files in their own project (`tsconfig.e2e.json`, a
+    // reference of `tsconfig.json`), while ESLint reads them without type information: the type-aware
+    // TS rules are disabled for them here.
     {
         ...tseslint.configs.disableTypeChecked,
         files: ['e2e/**/*.ts', 'playwright.config.ts', 'playwright.dev.config.ts'],
@@ -556,7 +606,7 @@ export default defineConfig([
     {
         files: ['**/*.tsx'],
         plugins: { 'better-tailwindcss': betterTailwindcss },
-        settings: { 'better-tailwindcss': { entryPoint: './src/index.css' } },
+        settings: { 'better-tailwindcss': { entryPoint: TAILWIND_ENTRY } },
         rules: {
             'better-tailwindcss/no-deprecated-classes': 'error',
             'better-tailwindcss/enforce-canonical-classes': 'error'

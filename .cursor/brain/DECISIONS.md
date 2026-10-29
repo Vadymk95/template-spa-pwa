@@ -1,11 +1,25 @@
 # Architectural Decisions
 
 Only decisions that are true and in force today. History lives in `git log -p -- .cursor/brain/DECISIONS.md` and the
-linked PRs (Vadymk95/template-spa-pwa). An entry is at most 30 lines: context, decision, consequences, status, evidence.
+linked PRs (Vadymk95/template-spa-pwa). Each entry has one row in the index below and holds at most 30 lines after its
+heading (`docs:check` holds both): context, decision, consequences, status, evidence.
 A superseded or dead decision is deleted, not archived. Dependency holds live in `scripts/version-holds.json`.
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| The probe stops its server, and the group a killed probe left                            | 2026-10 | in force |
+| docs:check reads the tree as a clean checkout does                                       | 2026-10 | in force |
+| The gate's strict flags are read from the commands                                       | 2026-10 | in force |
+| Gate tests pin the git defaults their flags override                                     | 2026-10 | in force |
+| The app sits at the git root                                                             | 2026-10 | in force |
+| The type check is incremental per project                                                | 2026-10 | in force |
+| Block-axis spill is measured with a font-size allowance                                  | 2026-10 | in force |
+| WebKit's report of a native select is not a CSP finding                                  | 2026-10 | in force |
+| Exported hooks live in folders that hold hooks                                           | 2026-10 | in force |
+| Mocks reset before every test                                                            | 2026-10 | in force |
+| The iterate chain: a config edit reruns all, ESLint sees the diff                        | 2026-10 | in force |
+| Tailwind scans an allowlist: `@source` names the folders                                 | 2026-10 | in force |
+| Gate scripts cannot pass silently or race on ports                                       | 2026-10 | in force |
 | Default CSP and security headers ship with the template                                  | 2026-10 | in force |
 | Lighthouse CI runs in CI as its own job                                                  | 2026-10 | in force |
 | Dependency holds are a checked file                                                      | 2026-10 | in force |
@@ -45,6 +59,255 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-10] The probe stops its server, and the group a killed probe left
+
+**Context**: the probe started `npm run dev|preview` with a bare `spawn` and `server.kill()` in a `finally`. It took its
+port whether or not something already answered there (another checkout's server was measured); a signal or a failed
+browser launch skipped the cleanup; `kill()` reached the npm wrapper only; and a probe killed with SIGKILL or a power cut
+runs no cleanup, so its server kept the port.
+
+**Decision**: `withServer` in `scripts/probe.mjs` spawns the server `detached` on the first free port with `--strictPort`
+and stops the whole group (negative pid) on every way out: the body returning or failing, SIGINT, SIGTERM, SIGHUP,
+process exit. `scripts/server-group.mjs` (framework-neutral) stops a group with SIGTERM, a bounded wait, then SIGKILL, and
+records it in `.probe/server.json` (pid, port, spawn arguments, owner pid, `ps` start time). The next run stops a recorded
+group only when the recorder is gone, the group exists, the process at that pid started when recorded (1 s tolerance) and
+its command line carries every recorded argument as a whole word; otherwise it leaves the group alone, with one line.
+Never by port or name. The wait is asynchronous: a leader that is this process's child stays a zombie, which still
+answers signal 0, until the loop reaps it.
+
+**Consequences**: one record per checkout, and a run that is ending removes it only when it holds its own group, so the
+last probe to start owns it; a kill in the ~20 ms (measured in a sibling template) between the spawn and the record (two
+`ps` calls) leaves a group nobody knows; a group that cannot be signalled keeps its record; the exit of the process cannot
+wait, so it sends SIGTERM only and leaves the record while the group is alive, for the next run to settle; without `ps` a
+record is never acted on.
+Measured in a sibling template, not re-run here: `ps -ww -o command=` of the npm wrapper reads
+`node <path>/npm run dev -- --port N`, then `npm`, then `npm run dev --port N`, so arguments are compared, not text
+recorded at spawn.
+
+**Status**: in force. **Evidence**: `scripts/server-group.test.mjs`, `scripts/probe.test.mjs`.
+
+## [2026-10] docs:check reads the tree as a clean checkout does
+
+**Decision**: a path in a doc resolves only to a file git lists (tracked, or new and not ignored) that is on disk, or to a
+folder holding one; this file is judged the same way, so an evidence link that points nowhere is red. A path that ends in
+a line number is red: cite the symbol. This file also keeps its shape: one index row per entry heading, at most 30 lines
+after a heading. A browser suite's measurement is printed on every run, and no suite carries a hand-written count. Where
+git cannot list the files, the run says the path and line-pointer checks were skipped instead of claiming them.
+
+**Consequences**: the disk alone answers differently on a machine that kept an emptied folder or an ignored file than on
+a clean checkout, so the same docs were green here and red in CI. A line number moves with every edit and nothing can
+check it; a symbol can be searched. A cap and an index that only prose states are exceeded one entry at a time, and a
+typed `_measured` count was already three behind here (13 against 16 tests).
+
+**Status**: in force. **Evidence**: `scripts/docs-check.test.mjs`, `scripts/docs-check.mjs`.
+
+## [2026-10] The gate's strict flags are read from the commands
+
+**Decision**: `docs:check` expands every gate script through its `npm run` steps and requires the flags that make a tool
+strict. For the linters that is `--max-warnings 0` and `--deny-warnings`; a test runner runs once (`vitest run`) and never
+watches. `--passWithNoTests` may appear only in the iterate chain, the check `moments.iterate` names in
+`scripts/gate-tiers.json`. The arguments after a hop's `--` count as part of the target script's last command, a command
+ends at `&&`, `||`, `;` or a newline outside quotes, `NAME=value`, `cross-env`, `env` and `npx` are looked through, `npm test`
+counts as `npm run test`, and the last `--max-warnings` value is the one judged.
+
+**Consequences**: the chain view is derived from `package.json` and then compared with it, so a flag dropped from a script
+is dropped from the view the same way and both equality checks stay green. A lint that tolerates warnings, a test run that
+watches, or a "no tests found" pass is a gate that approves what it did not run.
+
+**Status**: in force. **Evidence**: `scripts/docs-check.test.mjs`, `scripts/docs-check.mjs`.
+
+## [2026-10] Gate tests pin the git defaults their flags override
+
+**Decision**: a fixture repository sets repository-local git config that is the opposite of what each git flag of the
+gate overrides (`diff.renames`, `diff.noprefix`, `core.quotepath`, `color.diff`). That config beats the developer's global
+one, and the gate's own git reads it too.
+
+**Consequences**: a flag's test is red on removal only while git would otherwise do the other thing. Measured in sibling
+templates on a scratch copy of the checker, one flag deleted at a time, under a global config that agrees with the flags
+(`diff.renames=false`, `diff.noprefix=true`, `core.quotepath=false`): deleting `--no-renames`, `--no-prefix` or the
+quotepath override left the suite green; with the fixture defaults those deletions fail 2, 81 and 2 tests, and deleting
+`--no-color` fails 85 under the fixtures' `color.diff=always`. The same fixtures change is made here.
+
+**Status**: in force. **Evidence**: `scripts/check-gate-integrity.fixtures.mjs`.
+
+## [2026-10] The app sits at the git root
+
+**Decision**: `scripts/check-hooks.mjs`, the first step of `verify:iter`, `verify` and `verify:scaffold` (the other chains
+run those), refuses an app whose folder is not the git root, CI included, and says so in three lines.
+
+**Consequences**: the gate scripts read git paths relative to the repository root (staged names, the hooks path,
+`ref:path`). From a subfolder they match nothing and say nothing, and the hooks check itself resolved the hooks folder
+against the folder it ran in, so an installed app there passed while git ran no hook. A refusal costs a sentence in the
+fork checklist (`README.md`); support costs every script a rewrite and a test of its own.
+
+**Status**: in force. **Evidence**: `scripts/check-hooks.test.mjs`.
+
+## [2026-10] The type check is incremental per project
+
+**Decision**: the type check covers four projects: the app, the Node scripts, the unit tests and the browser specs
+(`tsconfig.e2e.json`: those specs, their support code and both Playwright configs, which no project checked before). Each
+sets `incremental` and its own `tsBuildInfoFile` in `.tsbuild/` (git-ignored; not under `node_modules`, which a clean
+install empties, where the app and Node projects kept theirs before and the unit-test project shared the app's through
+`extends`). The app and Node projects also set `noUncheckedIndexedAccess` and `noImplicitOverride`; the unit-test and
+browser projects inherit them. The test pins one state file per project, none under `node_modules`, every
+`tsconfig.*.json` of the root referenced, and every `e2e/` file inside some project.
+
+**Measured** (TypeScript 6.0.3, one machine, a scratch copy of the branch, the ratios matter): a plain `tsc -b` took 2.6 to
+3.5 s on every run, unchanged tree included (four runs). Now 3.0 s cold, 0.07 s unchanged, 0.7 s after touching one e2e
+file, 0.9 to 2.0 s after touching one file under `src/` (app and vitest both read it).
+
+**Consequences**: a plain `tsc -b` does not see a dependency changed in `node_modules`: in a sibling template a changed
+type file in a dependency left it at exit 0 while `tsc -b --force` exited 2 with the real error (not re-run here). The
+push tiers run the forced check (`typecheck:force`, 3.0 to 3.4 s here); the iterate chain, the pre-commit hook and `build`
+keep the plain one, so after `npm ci` or a lockfile change an iterate run wants `npx tsc -b --force` once. The locale
+JSON joined the `include` of the app and unit-test projects: removing the used key `appName` from
+`public/locales/en/common.json` now fails a plain `tsc -b` (TS2345 in the footer, measured here); a sibling template saw
+exit 0 from the plain run before the listing and TS2345 only from `--force`. Other inputs outside an include are seen
+only at the push. The first run after a clone, or after removing `.tsbuild/`, costs the cold time.
+
+**Status**: in force. **Evidence**: `e2e/support/tsconfig-graph.test.ts`.
+
+## [2026-10] Block-axis spill is measured with a font-size allowance
+
+**Decision**: `hasBlockOverflow` (`e2e/support/geometry.ts`) is the vertical twin of `hasContentOverflow`: an element
+whose `scrollHeight` exceeds its `clientHeight`, with the same exemptions (`overflow-y: auto | scroll`, a box that is
+exactly `inline`). Both geometry specs call it and report a `block-spill` line. `hidden` is not exempt, because clipped
+content is lost content. Fields are skipped on both axes.
+
+**Why not a flat pixel**: a first run at one pixel flagged tight-line-height headings in a sibling template (a 36px heading
+in a 40px line box read `block-spill=42-40`): the font's content area is taller than the line box and Chromium counts the
+overhang in `scrollHeight`. On a bare page (measured in a sibling template, not re-run here), 36px text in a 36px line
+box reads 2px over in Chromium, 1px in Firefox, 0 in WebKit; a wrapped label in a one-line box reads 264px over in all
+three. The tolerance is 1px plus a quarter of the element's font size (`LINE_BOX_OVERHANG_EM`): it clears every heading in
+a tight line height and still flags a spill of a line or more.
+
+**Consequences**: a spill of a few pixels on large text is invisible to this check; that is the price of not flagging
+every tight heading in every engine.
+
+**Status**: in force. **Evidence**: `e2e/support/geometry.test.ts`, `e2e/support/measure.test.ts`.
+
+## [2026-10] WebKit's report of a native select is not a CSP finding
+
+**Decision**: under the shipped policy WebKit reports every native `<select>` as one `style-src-attr` violation (blocked
+inline, no source position, target the `<select>`) plus one generic console line, "Refused to apply a stylesheet because
+its hash, its nonce, or 'unsafe-inline' ...". Chromium and Firefox report nothing for a select (measured on a bare page
+in all three, in a sibling template). The header's language switcher is a native select, so under `CROSS_BROWSER=1`
+every route would fail the CSP guard in WebKit for a violation no template code causes. `e2e/support/csp-guard.ts` decides
+per engine: in WebKit only, a `style-src-attr` event whose target is a `select`, that blocks inline and names no source
+file, and that console line, are not findings. Every other violation fails in every engine: the unit test pins another
+element, another directive, a blocked source and a source file.
+
+**Consequences**: `e2e/csp-select.spec.ts` (a bare page with only a select, served with `buildContentSecurityPolicy`) is in
+the cross-browser geometry set, so WebKit collects it; it fails without the exclusion. Known blind spot: a `style`
+attribute written on a `<select>` itself reports identically in WebKit and is hidden with it; Chromium and Firefox are
+unaffected because the exclusion is WebKit-only. The spec is one `test(` against the suite ceiling (18): the next browser
+test folds into an existing case as a `test.step`, or the ceiling moves with a measurement.
+
+**Status**: in force. **Evidence**: `e2e/csp-select.spec.ts`, `e2e/support/csp-guard.test.ts`.
+
+## [2026-10] Exported hooks live in folders that hold hooks
+
+**Context**: a hook exported from `src/lib/` or the router reads as a utility, so the next author does not look there and
+writes the same logic a second time.
+
+**Decision**: the local rule `local/hook-location` reports an exported name that starts with `use` and an uppercase
+letter or a digit (React's own test for a hook name) outside `src/hooks/`, a page folder, `src/components/` and a store
+folder. It reads exports in every form (a declaration, a destructured binding, `export { a as useA }`, a re-export, a
+default export) and never the file name. The homes are one list, `HOOK_HOMES` in `eslint.config.js`, used as the
+`ignores` of the config block that switches the rule on, so ESLint resolves them from the config's folder whatever
+directory lint starts in. Tests and `src/test/` are exempt.
+
+**Consequences**: an explicit `--config` that points at the config file from another folder makes that folder ESLint's
+base path, and every `src/**` block then goes quiet, the zod import guard and the complexity ratchet included; no flow
+of this repository does that. A hook in a new top-level folder is reported until the folder joins the list.
+
+**Status**: in force. **Evidence**: `scripts/lint-guards.test.mjs`, `scripts/eslint-hook-location.mjs`.
+
+## [2026-10] Mocks reset before every test
+
+**Decision**: `mockReset: true` in `vitest.config.ts`. Vitest keeps a mock's calls and implementation from one test to the
+next by default; resetting before each test returns a mock to the implementation it was created with, so the order of the
+tests in a file cannot decide a verdict. A mock therefore keeps only the implementation it was created with: a return
+value or a spy is set inside the test or in a `beforeEach`, never once at module level.
+
+**Consequences**: when the option went on, the whole unit suite stayed green (2,110 tests in 89 files; the one red was a
+gate test that objects to the scratch config file the run used), so no test relied on leaked mock state. The hand-rolled
+resets already in some tests stay; removing them is a separate cleanup. A leak test runs one dirtying case twice and fails
+whenever the reset is missing, whichever order the runner uses; the config test pins the value.
+
+**Status**: in force. **Evidence**: `src/test/mock-reset.test.ts`, `scripts/vitest-config.test.mjs`.
+
+## [2026-10] The iterate chain: a config edit reruns all, ESLint sees the diff
+
+**Context**: `verify:iter` answered about something other than the change in five ways. (1) The runner's own
+triggers (`**/package.json/**`, `**/{vitest,vite}.config.*/**`) never match a config file, and a `**` never crosses
+a dot-directory: under `.worktrees/` not even `package.json` fired, and a dirty `vitest.config.ts` ran only the test
+files that import it. (2) The Tailwind lint rules read the stylesheet themselves and ESLint's cache keys on the
+linted file and the resolved config only, so after a stylesheet change a cached run replays the old verdicts
+(`scripts/lint-config.test.mjs` shows it against ESLint with a stand-in rule). (3) oxlint has no types, so
+type-aware findings appeared first at the commit hook. (4) A scratch script under tracked `.cursor/` was linted by
+both linters. (5) `scripts/mutation-scope.test.mjs` reads `stryker.config.json` as text, so `--changed` never
+selects it for an edit of that file alone.
+
+**Decision**: (1) `forceRerunTriggers` are literal paths anchored at the repository root, glob syntax escaped
+(`forceRerunTriggersFor` in `vitest.config.ts`); the vite config counts too, this one merges it. (2) `eslint.config.js`
+puts a fingerprint of the stylesheet, the local files it imports and the installed version of each package it
+imports (`scripts/css-fingerprint.mjs`) into `settings` for `**/*.tsx`; ESLint hashes `settings` into every cache
+entry, so `lint`, `fix` and the staged pass follow it with no second cache. (3) `scripts/lint-changed.mjs` lints what
+differs from HEAD plus untracked files, with the `lint` flags and the same cache. (4) Both linters ignore `.cursor/`.
+(5) The chain runs the scope test by name.
+
+**Consequences**: a dirty `package.json` or vitest config costs the whole suite on purpose, over the 15 s iterate
+budget by design (`VERIFICATION.md` § Phases has the measured runs). Rejected: the stylesheet hash in the cache path,
+which a sibling template measured as silently skipped when `.eslintcache` already exists as a file. Not covered: a
+patched copy of a package with an unchanged version (the package's files are not hashed).
+
+**Status**: in force. **Evidence**: `scripts/vitest-force-rerun.test.mjs`, `scripts/css-fingerprint.test.mjs`,
+`scripts/lint-config.test.mjs`, `scripts/lint-changed.test.mjs`, `scripts/iterate-chain.test.mjs`.
+
+## [2026-10] Tailwind scans an allowlist: `@source` names the folders
+
+**Context**: Tailwind 4 emits a rule for every class-shaped string in every file it scans, so with automatic
+detection a class quoted in a test, a spec, a script, a root config file or a doc page can become CSS that no page
+uses.
+
+**Decision**: `src/index.css` imports Tailwind with automatic detection off (`source(none)`) and names what is
+scanned in `@source` lines: `src/` minus tests and test helpers, paths resolved from the stylesheet.
+`src/pages/DevPlayground` is dev-only but stays scanned, because the dev server needs its utilities.
+
+**Consequences**: a new top-level folder that holds class names needs its own `@source` line, or its utilities
+silently do not ship; so does `index.html` the day it carries a utility class (today it carries none, only plain class
+names). The shipped CSS size before and after is not measured here. The stylesheet is also the
+input of the ESLint cache fingerprint, so editing it re-lints every `.tsx` file once (see the iterate-chain entry).
+
+**Status**: in force. **Evidence**: `src/index.css`; `scripts/tailwind-sources.test.mjs` builds it with the plugin
+`vite.config.ts` declares and fails when a test, a script, a doc page or an unlisted folder ships a rule.
+
+## [2026-10] Gate scripts cannot pass silently or race on ports
+
+**Context**: (1) The entry check `import.meta.url === new URL('file://' + process.argv[1]).href`, in 15 scripts (two
+more spelled it with `pathToFileURL`, which a symlink also defeats), is false through a symlink or for a path with
+`#`, `%` or `?`: the script skips its check and exits 0, a pass that checked nothing. (2) `gate-trace` trimmed the
+front of `git status --porcelain`, so the first line of an unstaged edit (` M path`) lost its space and the path
+parse shifted by one character: a `.cursor/` file counted as code. (3) `docs:check` reported a helper named `fit` or
+`xit` that the file declares itself as a focused or skipped test. (4) The preflight called a port busy on one look.
+(5) Tests bound `listen(0)` ports from the OS's ephemeral range, where parallel tests meet each other's sockets.
+
+**Decision**: (1) `scripts/is-entry-point.mjs` (real path, encoded) in every script that runs only when started;
+`is-entry-point.test.mjs` fails a hand-written guard, and `check-gate-env.mjs` became importable (a `main()` behind
+the guard) so its port check can be tested. (2) `gate-trace` trims only the end of the status text. (3) A Jest name
+the file declares itself is its own helper; an imported or destructured one is still read, it may be the Jest
+global. (4) A port is busy only when two looks 150 ms apart both find it busy (`isPortBusy`). (5) Tests that bind
+sockets take ports from `scripts/quiet-ports.mjs`: 10000-19999, below both ephemeral ranges, one window per
+checkout, one lane per test file.
+
+**Consequences**: the preflight waits 150 ms longer on a port that really is busy. How often one look alone read a free
+port as busy is not measured in this repository. A new test file that binds sockets adds a lane to
+`quiet-ports.mjs`; its test refuses an overlap.
+
+**Status**: in force. **Evidence**: `scripts/is-entry-point.test.mjs`, `scripts/gate-trace.test.mjs`,
+`scripts/docs-check.test.mjs`, `scripts/check-gate-env.test.mjs`, `scripts/quiet-ports.test.mjs`.
 
 ## [2026-10] Default CSP and security headers ship with the template
 
@@ -98,10 +361,12 @@ Three runs over several URLs and form factors stays rejected (REJECT list).
 bumping a held package by hand: a Dependabot `ignore` stops only the bot.
 
 **Decision**: `scripts/version-holds.json` is the one list (package, held range, reason, lift condition, evidence,
-optional `reviewBy`). `scripts/check-version-holds.mjs`, inside `verify` and `verify:scaffold`, fails when a manifest
-range or the lockfile version leaves the range, when `.github/dependabot.yml` lacks the matching npm `ignore`, or when
-an entry's package is absent. Held today: `typescript`, `eslint`, `@eslint/js`, `@types/node`, `vitest`,
-`@vitest/coverage-v8`, `msw`. A lift is one commit: the hold entry, the Dependabot ignore and the bump together.
+optional `reviewBy`). An entry's evidence is a URL (a commit or pull request of this repository, or the upstream file
+that states the constraint); a `file:line` drifts with every edit. `scripts/check-version-holds.mjs`, inside `verify` and
+`verify:scaffold`, fails when a manifest range or the lockfile version leaves the range, when `.github/dependabot.yml`
+lacks the matching npm `ignore`, or when an entry's package is absent. Held today: `typescript`, `eslint`, `@eslint/js`,
+`@types/node`, `vitest`, `@vitest/coverage-v8`, `msw`. A lift is one commit: the hold entry, the Dependabot ignore and
+the bump together.
 
 **Consequences**: three pins are not holds and stay outside the file.
 
@@ -240,7 +505,7 @@ to 21 minutes against about 5 for a green one, because every failing test waited
 **Consequences**: measured on one broken shared invariant (630 tests, six workers): uncapped, 7.5 min and 55 failures;
 capped at 10, 21 s; capped at 5, 15 s with half the failing neighbours reported. 10 is the value that settled.
 
-**Status**: in force. **Evidence**: a12c2db; `playwright.config.ts:49`.
+**Status**: in force. **Evidence**: a12c2db; `maxFailures` in `playwright.config.ts`.
 
 ## [2026-09] Agent limits in a committed `.claude/settings.json`; one Dependabot group; release token
 
@@ -286,11 +551,15 @@ the lift). A mutation floor is raised after a good run, never moved to fit a too
 
 **Decision**: `size-limit` with `@size-limit/file` only (the time plugin cost 15 to 19 s per CI run and measured nothing
 a budget used) and budgets in `.size-limit.json`, brotli: react-vendor 90 KB, i18n-vendor 22 KB, state-vendor 15 KB,
-ui-vendor 12 KB, index entry 28 KB, total JS 187 KB. `npm run size:check` is part of the local gate. The service worker and
+ui-vendor 12 KB, schema-vendor 22 KB, index entry 10 KB, total JS 187 KB. `npm run size:check` is part of the local gate. The service worker and
 the workbox runtime are not budgeted: `vite-plugin-pwa` owns their size.
 
 **Consequences**: a budget moves once, with the cause named (the entry chunk went 25 to 26 to 28 KB on dependency
-minors, `zod` 4.6 alone +1.5 kB); the next unexplained growth is a hunt, not another bump. Recalibrate per fork.
+minors, `zod` 4.6 alone +1.5 kB); the next unexplained growth is a hunt, not another bump. Zod then moved into its own `schema-vendor` chunk and the `index`
+budget dropped from 28 to 10 KB, app code alone, so a zod bump moves the `schema-vendor` budget and an app change moves the
+`index` one; `scripts/size-limit-budgets.test.mjs` fails a chunk group that has no budget (the sizes behind 22 and 10 KB,
+from a recon build, brotli, not re-measured here: schema-vendor 19.56 kB, index 7.86 kB; the index measured 27.19 kB with
+zod inside). Recalibrate per fork.
 
 **Status**: in force. **Evidence**: 60b0ccd, 488a89a, 739e556; `.size-limit.json`.
 
@@ -465,7 +734,10 @@ non-replaced inline elements a zero client box) while Chromium reports a box; th
 
 **Consequences**: a `testMatch` that matches nothing collects zero tests and reports success, so
 `scripts/check-cross-browser-selection.mjs` asks Playwright whether every configured project has work and fails closed
-on a report it cannot read.
+on a report it cannot read. WebKit also refuses a `Secure` cookie over plain `http://localhost`, which Chromium and Firefox
+accept (measured in a fork, not re-verified here). The template sets no cookie (the token lives in memory), but a fork
+whose backend sets `Secure` in development either serves the preview over https for the WebKit runs or strips `Secure`
+for WebKit on plain http only.
 
 **Status**: in force. **Evidence**: 6d70127; `scripts/check-cross-browser-selection.mjs`.
 
@@ -483,7 +755,7 @@ rules, and indexing the ratchet on test style killed this rule set in a sibling 
 **Consequences**: when a threshold fires, split the function. Raising a number needs a fresh measurement recorded in
 this entry.
 
-**Status**: in force. **Evidence**: 7bdf539; `eslint.config.js:584`.
+**Status**: in force. **Evidence**: 7bdf539; the "Complexity ratchet" block comment in `eslint.config.js`.
 
 ## [2026-08] Mutation testing
 
@@ -543,7 +815,9 @@ return 200 `image/png`. It needs `PLAYWRIGHT_USE_PREVIEW=1` (`devOptions.enabled
 
 **Consequences**: deferred until a regression is observed (Playwright SW flakiness, microsoft/playwright#32230): the
 `vite:preloadError` stale-chunk flow and the update-toast `'prompt'` flow. A fork that hits a SW regression the minimal
-subset missed promotes them with `expect.poll`, an extended timeout and a retry quirk.
+subset missed promotes them with `expect.poll`, an extended timeout and a retry quirk. Both Playwright configs block
+service workers by default (`serviceWorkers: 'block'`, pinned by `e2e/support/playwright-config.test.ts`); this spec
+is the one that opts back in with `test.use`.
 
 **Status**: in force. **Evidence**: 60b0ccd; `e2e/sw-lifecycle.spec.ts`.
 
@@ -583,8 +857,13 @@ is unused).
 
 **Consequences**: one handler list for Node and browser, and mocks can be turned off without removing code. Dropping
 the `import.meta.env.DEV` gate ships an MSW chunk in production; the total-JS budget in `.size-limit.json` catches it.
+Playwright blocks service workers in both configs (`serviceWorkers: 'block'`, pinned by
+`e2e/support/playwright-config.test.ts`) because `page.route` cannot see a request a worker answers; the dev servers
+Playwright starts also set `VITE_ENABLE_MSW=false`, so no MSW worker is attempted and none logs a startup error. A dev
+server started by hand and reused through Playwright's `reuseExistingServer` does not get that variable: it still runs MSW
+and logs the failed start.
 
-**Status**: in force. **Evidence**: `src/main.tsx:108`.
+**Status**: in force. **Evidence**: `isMswEnabled` in `src/main.tsx`.
 
 ## [2026-04] i18n init failure: English-only fallback
 
@@ -608,13 +887,15 @@ asserts the attribution variant too.
 
 ## [2026-04] eslint-import-resolver-typescript: single solution `tsconfig`
 
-**Decision**: `createTypeScriptImportResolver` uses `./tsconfig.json` only (the solution file with `references`), not an
-array of `tsconfig.*.json`.
+**Decision**: `createTypeScriptImportResolver` is given the solution `tsconfig.json` only (the file with `references`),
+not an array of `tsconfig.*.json`, as an absolute path built from the config folder
+(`path.join(import.meta.dirname, 'tsconfig.json')`): a relative path is read from the directory lint starts in, and from
+any other folder every `@/` import is reported unresolved (`scripts/eslint-resolver.test.mjs`).
 
 **Consequences**: the resolver warns on multiple `project` entries; with one file it sets `references: 'auto'` and
-follows `tsconfig.app`, `tsconfig.node` and `tsconfig.vitest` like `tsc -b`.
+follows `tsconfig.app`, `tsconfig.node`, `tsconfig.vitest` and `tsconfig.e2e` like `tsc -b`.
 
-**Status**: in force. **Evidence**: `eslint.config.js`.
+**Status**: in force. **Evidence**: `eslint.config.js`, `scripts/eslint-resolver.test.mjs`.
 
 ## [2026-04] TypeScript 6
 

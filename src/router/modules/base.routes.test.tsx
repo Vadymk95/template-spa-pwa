@@ -14,6 +14,7 @@ const loadChildPaths = async (): Promise<(string | undefined)[]> => {
     vi.resetModules();
     const module = await import('./base.routes');
     const [root] = module.default;
+    if (!root) throw new Error('the route module exports no root route');
 
     return (root.children ?? []).map((child) => child.path);
 };

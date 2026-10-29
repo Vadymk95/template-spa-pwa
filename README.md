@@ -86,6 +86,8 @@ PWA manifest, or the e2e title assertion is the usual slip:
   Enterprise plan), and without it the `codeql` job fails with "Code scanning is not enabled for this
   repository". Get the license, or delete the `codeql` job and its required check in one commit. Sources and
   the exact check name: [Where the security workflow works](#where-the-security-workflow-works)
+- Repository layout: keep the app at the git root. `scripts/check-hooks.mjs` refuses to run from a subfolder of
+  the repository, because every gate script reads git paths relative to the repository root
 
 ## 🚀 Tech Stack
 
@@ -246,15 +248,15 @@ src/
 ### TypeScript Configuration
 
 - **Path Aliases:** `@/*` → `./src/*`; `@locales/*` → `./public/locales/*`
-- **Strict Mode:** enabled across `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.vitest.json`
-- **Project References:** split configs for app, node scripts, and tests
+- **Strict Mode:** enabled across `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.vitest.json` and `tsconfig.e2e.json`, with `noUncheckedIndexedAccess` and `noImplicitOverride` on
+- **Project References:** split configs for app, node scripts, unit tests and the browser specs (`e2e/`, the Playwright configs)
 
 ### Vite Configuration
 
 Key optimizations configured in `vite.config.ts`:
 
 - **Minification:** Oxc (faster than Terser)
-- **Chunking:** vendor splitting via `build.rolldownOptions.output.codeSplitting.groups` (`react-vendor`, `ui-vendor`, `state-vendor`, `i18n-vendor`)
+- **Chunking:** vendor splitting via `build.rolldownOptions.output.codeSplitting.groups` (`react-vendor`, `ui-vendor`, `state-vendor`, `i18n-vendor`, `schema-vendor`)
 - **Compression:** Brotli (`.br`) files generated at build time
 - **Source Maps:** disabled in production output (`sourcemap: false`)
 - **Fonts:** the URLs in `app.config.ts` (none by default) are downloaded at build time and self-hosted via `vite-plugin-webfont-dl`
@@ -286,6 +288,7 @@ The gate scripts (`verify` and its variants; `ci:local`) and the iteration loop 
 | `npm run build`                    | Type-checked production build (Oxc + Brotli)                                                  |
 | `npm run preview`                  | Serve production build locally                                                                |
 | `npm run typecheck`                | Runs `tsc -b` (no emit)                                                                       |
+| `npm run typecheck:force`          | Runs `tsc -b --force` (no emit): re-checks every project, ignoring incremental state          |
 | `npm run lint`                     | Run ESLint                                                                                    |
 | `npm run lint:oxlint`              | Fast Oxc-based lint pass (pre-ESLint)                                                         |
 | `npm run format`                   | Format codebase with Prettier                                                                 |
@@ -321,7 +324,7 @@ script, in order: `scripts/gate-tiers.json` (`checks.<name>.chain`, checked agai
 **Pre-commit** (via Husky + lint-staged):
 
 1. `lint-staged` — autofix of the **staged** files (the tools it runs: `lint-staged` in `package.json`)
-2. TDD gate — a staged `src` logic file with no co-located `*.test.*` that is tracked or staged blocks the commit (the gate repeats the check over the whole branch)
+2. TDD gate — a staged `src` logic file with no co-located `*.test.*` that is tracked or staged blocks the commit (the gate repeats the check over the whole branch; the first commit of a repository is not judged, there is nothing earlier to compare with)
 3. **Repo-wide** cheap checks (the list is `.husky/pre-commit`)
 
 Why step 3 exists: `.cursor/brain/DECISIONS.md` § "The gate is `verify`; `verify` is a superset of CI". On failure the
@@ -470,7 +473,7 @@ Add new domains as new route modules (`user.routes.tsx`, `billing.routes.tsx`) a
 - **Framework:** Vitest + Testing Library
 - **Utilities:** `renderWithProviders` from `src/test/test-utils.tsx`
 - **Coverage:** `npm run test:coverage`
-- **MSW:** node adapter (`src/test/server.ts`) for unit/integration; browser worker (`public/mockServiceWorker.js`) starts in dev **by default**; set `VITE_ENABLE_MSW=false` to opt out (default-on, opt-out semantics in `src/main.tsx:105`)
+- **MSW:** node adapter (`src/test/server.ts`) for unit/integration; browser worker (`public/mockServiceWorker.js`) starts in dev **by default**; set `VITE_ENABLE_MSW=false` to opt out (default-on, opt-out semantics in `isMswEnabled` in `src/main.tsx`)
 
 ### Writing Tests
 

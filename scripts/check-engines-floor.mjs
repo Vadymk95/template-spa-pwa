@@ -33,6 +33,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { inRange, isWithin, parseRange } from './check-version-holds.mjs';
+import { isEntryPoint } from './is-entry-point.mjs';
 
 const MAX_NAMED = 3;
 
@@ -226,6 +227,6 @@ const main = () => {
     process.exit(1);
 };
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (isEntryPoint(import.meta.url)) {
     main();
 }

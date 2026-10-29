@@ -22,6 +22,10 @@ test.describe('PWA service worker lifecycle (preview only)', () => {
         'PWA SW only registers in preview build (vite-plugin-pwa devOptions.enabled: false)'
     );
 
+    // Both Playwright configs block service workers so `page.route` sees every request. This spec
+    // exists to run the real worker: without the opt-in `serviceWorker.ready` never resolves.
+    test.use({ serviceWorkers: 'allow' });
+
     test('registers SW + reaches activated state', async ({ page }) => {
         await page.goto('/');
 

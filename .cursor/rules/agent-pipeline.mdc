@@ -56,7 +56,7 @@ Everything else about the gate (the push and its phases, CI, what is forbidden b
 Green means nothing until you know the gate can go red.
 
 1. **Capture the exit code without a pipe**: `npm run verify:iter > /tmp/verify.log 2>&1; echo $?`. A pipe to `tail` returns the PIPE's status, so a failed build reads as a pass.
-2. **Mutation-check the tests**: if mentally reverting your change leaves the suite green, the test is worthless.
+2. **Mutation-check the tests in your head, not on disk**: if reverting your change would leave the suite green, the test is worthless. Do not edit the code, run the tests and restore it; a physical mutation is for a NEW gate only (item 3), and a pure file move needs none.
 3. **Prove a new gate gates**: break it on purpose once (an expired entry in `scripts/audit-allowlist.json`, a raw hex in a component, a staged `src` logic file with no `*.test.*` sibling, a held package bumped past `scripts/version-holds.json`), watch it refuse, then revert the sabotage.
 4. **A check that reports success when it could not run is fail-OPEN.** Ask what it does on a missing directory, an empty result or no network, not only on the failure it was written for.
 5. **Name the condition under which the green would have been RED.** If you cannot, the check proved nothing. Real shapes here: a layout measurement taken while i18next still hides the document sees NO element and passes every invariant vacuously; a Playwright `testMatch` that matches nothing collects zero tests and exits 0; `vitest --coverage` prints `Excluding it from coverage` for a file it could not parse, then exits 0 over a smaller set.
@@ -66,7 +66,7 @@ Green means nothing until you know the gate can go red.
 ### 4.2 Self-correction and diff self-review
 
 - On any failure do NOT patch the symptom: trace it to the origin (`sequential-thinking` if available), fix the root cause, re-run the loop.
-- Before finishing, re-read every changed file (mandatory): does the diff match the Step 2 plan (flag unplanned additions); is anything outside the original scope; could a removed or changed line break an existing caller?
+- Before finishing, re-read every changed file (mandatory): does the diff match the Step 2 plan (flag unplanned additions); is anything outside the original scope; could a removed or changed line break an existing caller? Find each changed module's importers by SYMBOL (`rg -w <exportName>`), never by file path: a directory import (`@/components/X`) or a barrel re-export hides the path.
 - `rg` the changed files for a `console.error(e)` without context, new circular imports or missing `@/` aliases, hardcoded user-visible strings, and pure computation left inside hooks.
 
 ## Step 5: Brain Auto-Sync

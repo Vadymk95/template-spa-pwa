@@ -217,11 +217,17 @@ const write = (root, files) => {
     }
 };
 
-/** A repository on `main` whose first commit holds `files`. */
-const createRepo = (files = { 'README.md': '# fixture\n' }) => {
+/** A repository on `main` with no commit yet. */
+const initRepo = () => {
     const root = mkdtempSync(path.join(tmpdir(), 'test-siblings-'));
     tempRoots.push(root);
     git(root, 'init', '-q', '--initial-branch=main');
+    return root;
+};
+
+/** A repository on `main` whose first commit holds `files`. */
+const createRepo = (files = { 'README.md': '# fixture\n' }) => {
+    const root = initRepo();
     const repo = {
         root,
         write: (changes) => write(root, changes),
@@ -304,6 +310,30 @@ describe('staged mode reads the git index, not the disk', () => {
 
         repo.stage({ 'src/main.tsx': LOGIC, 'docs/notes.md': 'x\n' });
         expect(gate(repo).code).toBe(0);
+    });
+
+    // A fork's first commit is the whole template, starter files with no sibling included, and there is
+    // no earlier commit to compare with, so nothing is judged (range mode does the same).
+    it('says so, and passes, on the first commit of a repository', () => {
+        const root = initRepo();
+        write(root, { 'src/lib/starter.ts': LOGIC });
+        git(root, 'add', '-A');
+
+        const { code, text } = gate({ root });
+
+        expect(code).toBe(0);
+        expect(text).toMatch(/the first commit/);
+    });
+
+    it('judges the second commit again', () => {
+        const repo = createRepo({ 'src/lib/starter.ts': LOGIC });
+        repo.stage({ 'src/lib/added.ts': LOGIC });
+
+        const { code, text } = gate(repo);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/added.ts');
+        expect(text).not.toContain('src/lib/starter.ts');
     });
 
     it('is not fooled by the repository location a hook chain exports', () => {

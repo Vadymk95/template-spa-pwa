@@ -30,7 +30,7 @@ Mandatory — without this the deploy ships as a generic placeholder template.
 
 ### Day-1 shadcn batch (recommended)
 
-The template ships shadcn/ui primitives that the placeholder pages already use (`Button`, `Input`, `Form`, `Card`). For most product apps — admin panels, dashboards, Jira-likes, CRMs — you'll want a wider set on day 1. Install them in one batch so you don't break flow later:
+The template ships shadcn/ui primitives that the placeholder pages already use (`Button`, `Input`). For most product apps — admin panels, dashboards, Jira-likes, CRMs — you'll want a wider set on day 1. Install them in one batch so you don't break flow later:
 
 ```bash
 npx shadcn@latest add dialog alert-dialog dropdown-menu sheet sidebar table tabs sonner skeleton popover calendar select tooltip scroll-area
@@ -57,6 +57,12 @@ Skip what your domain doesn't need (e.g. drop `calendar` if you have no date inp
 
 After install, run `npm run lint:oxlint`; then `npm run lint`, once — shadcn primitives ship with their own conventions and the `src/components/ui/**` lint exemption (see `eslint.config.js`) lets `func-style` differences pass without edits.
 
+Traps a fork measured once Radix-based widgets were in use. The template ships none (only `@radix-ui/react-slot`), so each line is a lead to confirm in your own tree, not a recipe; the symptom comes first and the remedy after:
+
+- **A Radix `RadioGroup` chooses on arrow focus only while the key is held**, and user-event releases a key at once: hold it (`{ArrowDown>}`, wait for the choice, `{/ArrowDown}`). **A list mounted open makes axe report `aria-hidden-focus`**, because Radix hides the rest of the page while the trigger inside it stays focusable: turn that one rule off only for the check that mounts the list open, with a comment saying why.
+- **A Radix layer (`dialog`, `popover`, `select`) focuses its first tab stop in the commit after its content mounts**, so a conditional tab stop (a scroll region) that appears in that commit takes the focus. Delay the first measure of it by one microtask.
+- **The `tooltip` runs its open side effects before a consumer's `onOpenChange`.** A consumer can refuse an open only after those effects, or by cancelling the focus event, which reaches roving items and tabs. Check for a veto option at each Radix bump.
+
 ---
 
 ## Phase 1 — Real backend (week 1 of MVP)
@@ -79,6 +85,7 @@ The template ships with a wired **TanStack Query example** (`greeting.queries.ts
 3. Replace `apiClient` with the BaaS SDK if relevant — keep `getAuthToken()` exported from `src/lib/api/auth.ts` to avoid circular imports.
 4. Update `.env.example` so forkers know what to set.
 5. Update [`MAP.md`](./MAP.md) "State Boundaries" if topology changes.
+6. **Same-origin dev proxy (optional)** _(a recipe recorded in a fork that shipped it as a small dev plugin; not built in this template, so untested here)_. `server` in `vite.config.ts` has only `port` and `cors` today. A `server.proxy` key also reaches `vite preview` (and so the gate's preview-mode e2e run): `preview.proxy` falls back to `server.proxy` when it is unset (`resolvePreviewOptions` in the installed Vite 8.3.4), so set `preview: { proxy: {} }` to keep the preview server unproxied, or register the proxy from a plugin's `configureServer` hook, which runs for the dev server only. One `server.proxy` key per backend prefix, written as a regular expression that ends at a path-segment boundary: a key that starts with `^` is read as a RegExp and any other key as a plain prefix, so a bare `'/api'` would also proxy `/apiary`; the key is tested against `req.url`, which carries the query string, so the boundary accepts `/`, `?` or the end (both read in the installed Vite 8.3.4 source). `changeOrigin: false`, so the backend sees the `Host` the browser used _(inference: what a cookie session and an `Origin` check expect)_. `ws: true` only on the one prefix that carries a websocket, and never `rewriteWsOrigin`, which can leave websocket proxying open to cross-site request forgery (the warning on that option in the installed Vite typings). A carve-out for every client route that shares the prefix, so the dev server answers it and the backend never sees it. A table test of path to target (or to none), with a prefix look-alike, a path with a query string and the carved-out client route among the rows, pins the keys. With the proxy the client calls its own origin: the CSP `connect-src` needs no extra origin and a cookie session needs no CORS, but `VITE_API_URL` is `z.url().optional()` in `src/env.ts` today, so the schema has to accept a path first. Production needs the same prefix routed by the host (a rewrite or a reverse proxy), which this recipe does not cover. **Approval Law** (API contract).
 
 **Skip** apiClient entirely when using Supabase / Firebase — their SDKs plug into TanStack Query directly via `queryFn: () => supabase.from(...).select()`.
 
@@ -105,6 +112,7 @@ Template ships a placeholder `userStore` (Zustand + persist + localStorage `"use
 4. Extend `ProtectedRoute` with role / permission checks if the product needs them — current contract is binary (`isAuthenticated` true/false).
 5. Add new `auth.json` translation keys per provider.
 6. Update [`SKELETONS.md`](./SKELETONS.md) if a new persist key collides with `"user-store"`.
+7. **Multi-tenant apps** _(a pattern recorded in a fork; nothing of it ships here, because the starter has one demo query and no tenant)_: put the active membership id (or tenant id) first in every query key, so two memberships never share a cache entry and a prefix invalidation stays inside one; handle a 401 once, in the transport (`src/lib/api/`), not at each call site; and drop the whole query cache when the active membership changes and on logout (`queryClient.clear()`). _(Inference: the previous membership's data should not outlive the switch, and after a logout another person may use the tab.)_ The starter's transport has no 401 handling (only the login form reads a 401, for its own message) and `logout()` in the persisted `userStore` touches no query cache, so each is a change to add. **Approval Law** (API and store contracts).
 
 **Pitfall:** never call `persist.clearStorage()` in tests — see SKELETONS.md "userStore — persist middleware".
 
@@ -401,7 +409,7 @@ When you graduate any phase, update these files in lockstep so the brain doesn't
 - [`PWA.md`](./PWA.md) — only when Phase 7 (PWA extras) is touched.
 - `README.md` — only if developer-facing scripts / commands change.
 
-If a phase introduces a recurring class of failures, also append to `SKELETONS.md` per the Cat Wu / Boris Cherny harness rule (see `~/.claude/CLAUDE.md` "Learning from failures").
+If a phase introduces a recurring class of failures, also append it to `SKELETONS.md`: a mistake made twice earns a written danger-zone line, the way `AGENTS.md` asks for a rule after the second repeat.
 
 ---
 
@@ -413,3 +421,40 @@ If a phase introduces a recurring class of failures, also append to `SKELETONS.m
 - **B2B internal**: Skip Phase 3 (multi-locale) unless explicitly required.
 
 The template is opinionated; this checklist is a menu, not a mandate. Pick what your product needs.
+
+---
+
+## Appendix — traps when a fork adds Storybook or a Radix-based UI kit
+
+Trigger: a fork adds a story runner (Storybook, its stories run through the Vitest browser mode) or a UI kit built on Radix primitives. This template ships neither a story runner nor a Radix widget, so nothing below is exercised here. Every line is a trap measured in one fork that added both: a lead to confirm in your own tree, not a recipe, the symptom first and the remedy after. A line says so when the source recorded no remedy. The Radix traps for the widgets the Day-1 batch installs sit with that batch (Phase 0, "Day-1 shadcn batch"); only the one that needs a story viewport is here.
+
+### The story runner
+
+- **A story project in the Vitest config is also run by everything else.** A bare `vitest`, coverage, `--changed` and the mutation run would all execute the browser story project too: the Vitest measured (4.1.11) documents no config-level default project, only `--project` selects one. Keep the story project behind an environment switch from the start.
+- **A link followed in a play navigates the host window.** Storybook's preview head carries `<base target="_parent">`, so following a link drops the browser connection. Set `target="_self"` on the link before the click.
+- **A failure frame can name the wrong line.** A 130-line file was reported at line 188, an excerpt came from another story of the same file, a frame pointed into a child component, and the message was right each time: read the message, not the frame.
+- **A whole-suite story run can stall silently.** Nothing was printed for over 8 minutes; elsewhere a run sat at 0 % CPU with every file at "0 test"; no cause was found. Run it with `--reporter=verbose` and a hard time bound, so a stall is visible and ends.
+- **The first story run of a fresh checkout can reload mid-run.** Vite's dependency optimiser finds a package late, reloads, and the files in flight fail at "0 test"; Vitest names the fix (`optimizeDeps.include`). List every package the stories import, one that only a dynamic `import()` loads included. The optimiser cache sits under `node_modules/.cache/storybook/<version>/<hash>/sb-vitest`, keyed by the hash of the Storybook config path, so each checkout has its own; the story runs also fetch their fonts from the network.
+- **Locale JSON imported from `public/` in a story helper warns on every run** (three times per story run): "Assets in public directory cannot be imported from JavaScript". Vite's own message gives the remedy: import the file from `src/`, or use its URL.
+- **`parameters.layout: 'centered'` does nothing in the story runner.** An overlay or placement story brings its own fixed, centred box and measures against the scrim, never `innerWidth`: the runner window carries an 11 px scrollbar.
+- **`userEvent.click` throws on an element with `pointer-events: none`** (a loading button, a disabled tab). Assert `toBeDisabled`, or press with the keyboard.
+- **The story-test types are thin.** `toHaveBeenCalledExactlyOnceWith` is missing and `MockInstance` is not exported: use `toHaveBeenCalledTimes(1)` plus `toHaveBeenCalledWith`, and have a helper return the call count instead of a typed spy.
+- **A story window cannot press a real mouse**, so code that branches on `:focus-visible` (a trigger that scripts `focus()` on click, such as a Select) needs a stub of `Element.prototype.matches` in a shared helper under `src/test/`. Importing the browser-mode entry of Vitest for a real pointer is no way out: Storybook's own UI loads every story file.
+- **A story cannot send a real Tab.** Prove keyboard order with the synthetic Tab plus `focus()` on the elements that must refuse it (the platform refuses focus on inert nodes), and measure the real key order once in a probe outside the story tree. In Firefox, with two story files in sibling iframes, a `focus()` from the frame without the window focus takes the window focus and moves no element focus, so a counted Tab press does nothing: press until the focus arrives (a `tabTo` helper).
+- **An `IntersectionObserver` with no root measures the runner page**, whose story window sits scaled and above it. Give it an explicit root through a shim, and keep a short stub observer in `src/test/` as the unit-test seam for any component that reads an observer's report.
+- **A bulk migration of a test idiom by regex needs the three-engine run before review:** one of 54 sites was synchronous on purpose.
+- **Two `<header>` elements in one story fail axe `landmark-no-duplicate-banner`**, so a width comparison takes two stories; a story that mounts a sheet cannot size it, only fill it.
+- **Story files count against the 200-line `max-lines` cap** (`src/**`, tests exempt), so data and helpers move to a fixtures file and every extra story file repeats its meta and decorators: export the decorators once per component.
+
+### Radix primitives in a story
+
+- **A viewport global plus a layer that closes on window resize (Select) races in Firefox.** It sends the phone frame's resize after the first render, and a list mounted open closes under the play. Open the list in the play and assert `data-state="open"`; refuse a `defaultOpen` Select under a viewport global.
+
+### Styling and lint in a kit
+
+- **`cn` knows a design-token name only once tailwind-merge is told it.** With this template's plain `cn`, `h-menu-item h-auto` keeps both classes (run here); register the token names so that `h-auto` replaces `h-menu-item` in a merge.
+- **An unnamed container query reads the nearest container**, so a density lift keyed to an unnamed container variant (`@max-<size>:`) fires inside any component that is itself a container, such as a card narrower than the breakpoint on a desktop. Name the frame container and key the lift to that name from the start.
+- **The base layer's `overflow-wrap: break-word` makes a wrap class red only in a flex row or a grid:** unlike `anywhere`, it leaves the min-content size alone (the comment in `src/index.css`), so a content story for such a class puts the component there.
+- **The unbroken stress token sized for a 280 px box fits a 640 px phone frame without breaking**, so a layer story proves nothing with it: a layer story needs a token sized to the layer.
+- **`jsx-a11y/no-noninteractive-tabindex` cannot see spread props**, so a conditional region is written as a spread object, an idiom the rule does not check at all.
+- **`better-tailwindcss/no-unknown-classes` reads a map key inside `cn()` as a class** (four false hits, such as a tone lookup with a `?? 'neutral'` fallback). The rule has an `ignore` option, a list of regular expressions for names to skip (read in the installed plugin); this template enables only `no-deprecated-classes` and `enforce-canonical-classes`.

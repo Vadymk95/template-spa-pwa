@@ -13,4 +13,11 @@ describe('vitest.config.ts', () => {
     it('refuses a focused test regardless of CI', () => {
         expect(config()).toMatch(/^\s*allowOnly:\s*false,/m);
     });
+
+    // Vitest keeps a mock's calls and its implementation from one test to the next by default, so a
+    // call count or a stubbed return asserted in one test carries into the next and the order of the
+    // tests decides a verdict. Read as text for the same reason as the option above.
+    it('resets every mock before each test', () => {
+        expect(config()).toMatch(/^\s*mockReset:\s*true,/m);
+    });
 });

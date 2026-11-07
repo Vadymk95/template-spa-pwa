@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.3.7](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.6...v3.3.7) (2026-11-07)
+
+
+### Maintenance
+
+* **deps:** bump the minor-and-patch group across 1 directory with 32 updates ([#102](https://github.com/Vadymk95/template-spa-pwa/issues/102)) ([571a7fa](https://github.com/Vadymk95/template-spa-pwa/commit/571a7faca29652fc74b8dcf798c6b8e03e35b910))
+* **deps:** bump the size-limit group across 1 directory with 2 updates ([#98](https://github.com/Vadymk95/template-spa-pwa/issues/98)) ([71a3b92](https://github.com/Vadymk95/template-spa-pwa/commit/71a3b929201188c926e1ae2cefbff86f302a5f48))
+
+
+### CI
+
+* **deps:** bump the actions group across 1 directory with 3 updates ([#90](https://github.com/Vadymk95/template-spa-pwa/issues/90)) ([e4b2385](https://github.com/Vadymk95/template-spa-pwa/commit/e4b23858fa4b8449755cdba1b68d94c9affc443f))
+* **workflows:** key the Playwright browser cache by the Ubuntu release ([#103](https://github.com/Vadymk95/template-spa-pwa/issues/103)) ([7d5adc4](https://github.com/Vadymk95/template-spa-pwa/commit/7d5adc4706cb4d6b0c02d4e63f998e3399df9cfe))
+
 ## [3.3.6](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.5...v3.3.6) (2026-11-07)
 
 

@@ -35,6 +35,9 @@ export default defineConfig({
     retries: isCI ? 2 : 0,
     // Same policy as `playwright.config.ts`: a retry that passes must not read as a green run.
     failOnFlakyTests: isCI,
+    // Same cap and reason as `playwright.config.ts`: without it every failing case waits out its own
+    // timeout, and CI's retries pay for each one three times over. The desk run stays uncapped.
+    maxFailures: isCI ? 10 : undefined,
     reporter: [['html', { open: 'never' }], ['list']],
     timeout: 60_000,
     expect: {

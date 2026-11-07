@@ -523,8 +523,9 @@ advisory, so a stale floor shows up there. An audit allowance is the last resort
 to 21 minutes against about 5 for a green one, because every failing test waited out its own timeout.
 
 **Decision**: `playwright.config.ts` caps `maxFailures` at 10 when `usePreview` is true (CI or
-`PLAYWRIGHT_USE_PREVIEW=1`); the desk run against the dev server stays uncapped. Each config writes to its own
-`outputDir` (`test-results/e2e`, `test-results/dev`) so `--last-failed` never reads the other suite's record.
+`PLAYWRIGHT_USE_PREVIEW=1`); `playwright.dev.config.ts` caps at 10 when `CI` is set; the desk run against the dev
+server stays uncapped in both configs. Each config writes to its own `outputDir` (`test-results/e2e`,
+`test-results/dev`) so `--last-failed` never reads the other suite's record.
 
 **Consequences**: measured on one broken shared invariant (630 tests, six workers): uncapped, 7.5 min and 55 failures;
 capped at 10, 21 s; capped at 5, 15 s with half the failing neighbours reported. 10 is the value that settled.

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.6](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.5...v3.3.6) (2026-11-07)
+
+
+### Bug fixes
+
+* **gate:** audit severity, intent-to-add siblings, dev-smoke cap, unjudgeable gate inputs ([#100](https://github.com/Vadymk95/template-spa-pwa/issues/100)) ([fff07a6](https://github.com/Vadymk95/template-spa-pwa/commit/fff07a6467e6eeb0cd359d82f057979854936514))
+
 ## [3.3.5](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.4...v3.3.5) (2026-10-29)
 
 

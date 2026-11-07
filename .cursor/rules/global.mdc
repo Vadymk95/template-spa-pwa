@@ -31,6 +31,6 @@ Always-on rules (`agent-pipeline.mdc`, `global.mdc`, `workflow.mdc`) attach auto
 
 - **Language**: English only — source, identifiers, comments, JSDoc, tests and Git messages (`type(scope): subject`, `workflow.mdc`). Brain/docs under `.cursor/brain/` may be English for template consistency; no Russian in production code or commits.
 - **Authority**: `AGENTS.md` § Start here — code is ground truth, `AGENTS.md` the canonical guide, `.cursor/brain/` the depth layer; sync drift in the same session.
-- **Tools**: `sequential-thinking` (if available) for logic, `context7` for docs lookups.
+- **Tools**: a written plan with one adversarial pass for logic, `context7` for docs lookups.
 - **Quality**: strict TypeScript; prefer existing libs over custom logic; minimalist code; no magic strings (constants or i18n keys); descriptive names; explain complex logic with single-line `//` only.
 - **Hygiene**: AI metadata and agent-only specs stay in `.cursor/`; normal project docs (`README.md`, deployment checklists) may live in the root when they are part of the template contract.

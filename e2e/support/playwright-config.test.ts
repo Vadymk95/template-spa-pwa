@@ -32,6 +32,25 @@ describe.each(CONFIGS)('%s', (_file, load) => {
         vi.unstubAllEnvs();
     });
 
+    // A red run must not wait out every failure's own timeout, and CI's retries pay each one three
+    // times over. Every config the CI runs carries the same cap; the desk run stays uncapped, because
+    // it is not what a push or CI pays for. `playwright.config.ts` also caps the preview run, the one
+    // the push gate starts.
+    it('caps failures at 10 in a CI run', async () => {
+        vi.resetModules();
+        for (const key of MODE_KEYS) vi.stubEnv(key, undefined);
+        vi.stubEnv('CI', 'true');
+
+        expect((await load()).default.maxFailures).toBe(10);
+    });
+
+    it('leaves a desk run uncapped', async () => {
+        vi.resetModules();
+        for (const key of MODE_KEYS) vi.stubEnv(key, undefined);
+
+        expect((await load()).default.maxFailures).toBeUndefined();
+    });
+
     it.each(MODES)('blocks service workers in a $name', async ({ env }) => {
         vi.resetModules();
         for (const key of MODE_KEYS) vi.stubEnv(key, undefined);

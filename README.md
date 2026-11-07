@@ -306,7 +306,7 @@ The gate scripts (`verify` and its variants; `ci:local`) and the iteration loop 
 | `npm run perf:ci`                  | Lighthouse budgets (`lighthouserc.json`) against the preview build; CI runs it as its own job |
 | `npm run audit:gate`               | Fail-closed dependency audit with a self-expiring allowlist                                   |
 | `npm run lock:age`                 | Fails a lockfile version younger than `min-release-age` unless allowed (reason + expiry)      |
-| `npm run gate:integrity`           | Lists the gate files and suppressions this branch changes vs `origin/master` (CI: PR base)    |
+| `npm run gate:integrity`           | Lists gate files and suppressions this branch changes vs the default branch (CI: PR base)     |
 
 ### The gate
 

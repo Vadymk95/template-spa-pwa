@@ -6,7 +6,9 @@
 //
 // A sibling counts only once git holds it: in staged mode the INDEX decides, in range mode the
 // head TREE does. A test file that exists only untracked in the working tree is not part of
-// the commit, so it must not satisfy the gate (it did, when this read the disk).
+// the commit, so it must not satisfy the gate (it did, when this read the disk). An intent-to-add
+// entry (`git add -N`) sits in the index with an empty blob but a commit leaves it out, so it
+// does not count either until it is really staged.
 //
 // The very first commit has nothing earlier to compare with and is not judged, staged (no HEAD
 // yet) or in a range (no base): a fork's first commit is the whole template, starter files with
@@ -111,7 +113,7 @@ const CHANGED_FILTER = '--diff-filter=ACMR';
 
 /* ------------------------------------------------------------------------ what to check */
 
-/** Staged files, and the index as the set of files that exist. */
+/** Staged files, and what the commit would carry of the index as the set of files that exist. */
 export const stagedChange = (git) => {
     const changed = git(['diff', '--cached', '--name-only', CHANGED_FILTER, '-z']);
     const tracked = git(['ls-files', '-z']);
@@ -127,7 +129,22 @@ export const stagedChange = (git) => {
             note: 'no commit yet (the first commit): nothing to check'
         };
     }
-    const inIndex = new Set(splitNul(tracked));
+    // `git add -N` (intent to add) lists a path in `ls-files` with an empty blob, yet the commit leaves
+    // it out. What the commit carries is the HEAD tree, plus the staged additions, minus the staged
+    // deletions: a committed spec dropped from the index and re-marked with `-N` is in HEAD and in
+    // `ls-files`, and only the staged deletion says the commit removes it. `--no-renames` makes a
+    // spec that arrives as a rename an addition instead of an `R` entry.
+    const stagedDiff = (filter) =>
+        git(['diff', '--cached', '--no-renames', '--name-only', '-z', `--diff-filter=${filter}`]);
+    const committed = git(['ls-tree', '-r', '-z', '--name-only', 'HEAD']);
+    const added = stagedDiff('A');
+    const deleted = stagedDiff('D');
+    if (committed === null || added === null || deleted === null) {
+        return { error: 'cannot read the git index (is this a git repository?)' };
+    }
+    const carried = new Set([...splitNul(committed), ...splitNul(added)]);
+    for (const file of splitNul(deleted)) carried.delete(file);
+    const inIndex = new Set(splitNul(tracked).filter((file) => carried.has(file)));
     return {
         files: splitNul(changed),
         exists: (file) => inIndex.has(file),

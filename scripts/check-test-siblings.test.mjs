@@ -13,7 +13,12 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { findMissingSiblings, isSrcLogic, siblingCandidates } from './check-test-siblings.mjs';
+import {
+    findMissingSiblings,
+    isSrcLogic,
+    siblingCandidates,
+    stagedChange
+} from './check-test-siblings.mjs';
 
 const nothingExists = () => false;
 
@@ -294,6 +299,132 @@ describe('staged mode reads the git index, not the disk', () => {
         expect(gate(repo).code).toBe(1);
     });
 
+    // `git add -N` (intent to add) puts the path in the index with an empty blob so `git diff` can see
+    // it, and `git ls-files` lists it, but a commit leaves it out: the sibling would not ship.
+    it('refuses a staged source file whose sibling is only marked intent-to-add', () => {
+        const repo = createRepo();
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        repo.write({ 'src/lib/value.test.ts': TEST });
+        git(repo.root, 'add', '-N', 'src/lib/value.test.ts');
+
+        const { code, text } = gate(repo);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/value.ts');
+    });
+
+    // A deleted test and an intent-to-add one of the same content look like a rename to git; the
+    // intent-to-add file is still not part of the commit.
+    it('refuses an intent-to-add sibling that looks like a rename of a deleted test', () => {
+        const repo = createRepo({ 'src/lib/old.test.ts': TEST });
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        rmSync(path.join(repo.root, 'src/lib/old.test.ts'));
+        repo.write({ 'src/lib/value.test.ts': TEST });
+        git(repo.root, 'add', '-N', 'src/lib/value.test.ts');
+
+        const { code, text } = gate(repo);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/value.ts');
+    });
+
+    // Each listing is its own git call: when only one of them fails, the gate must report an unreadable
+    // state (exit 2 in `run`), not read the index as if nothing were intent-to-add.
+    it.each([
+        ['the HEAD tree', (args) => args[0] === 'ls-tree'],
+        [
+            'the staged additions',
+            (args) => args.includes('--cached') && args.includes('--diff-filter=A')
+        ],
+        [
+            'the staged deletions',
+            (args) => args.includes('--cached') && args.includes('--diff-filter=D')
+        ]
+    ])('reports an unreadable state when only %s cannot be listed', (_label, fails) => {
+        const git = (args) => (fails(args) ? null : '');
+
+        expect(stagedChange(git)).toEqual({
+            error: 'cannot read the git index (is this a git repository?)'
+        });
+    });
+
+    // `git add -N` then deleting the file from disk leaves the path out of `git diff` as an addition
+    // (there is nothing to diff against), yet `ls-files` still lists it and the commit holds nothing.
+    it('refuses a sibling marked intent-to-add and then deleted from the working tree', () => {
+        const repo = createRepo();
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        repo.write({ 'src/lib/value.test.ts': TEST });
+        git(repo.root, 'add', '-N', 'src/lib/value.test.ts');
+        rmSync(path.join(repo.root, 'src/lib/value.test.ts'));
+
+        expect(gate(repo).code).toBe(1);
+    });
+
+    // HEAD holds the spec and `ls-files` lists it again, yet the index says the commit deletes it.
+    it('refuses a committed sibling removed from the index and re-marked intent-to-add', () => {
+        const repo = createRepo({ 'src/lib/value.test.ts': TEST });
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        git(repo.root, 'rm', '-q', '--cached', 'src/lib/value.test.ts');
+        git(repo.root, 'add', '-N', 'src/lib/value.test.ts');
+
+        expect(gate(repo).code).toBe(1);
+    });
+
+    it('accepts a sibling that arrives as a staged rename of a committed file', () => {
+        const spec = "it('works', () => undefined);\n".repeat(20);
+        const repo = createRepo({ 'src/lib/old.test.ts': spec });
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        git(repo.root, 'mv', 'src/lib/old.test.ts', 'src/lib/value.test.ts');
+
+        expect(gate(repo).code).toBe(0);
+    });
+
+    it('passes once an intent-to-add sibling is properly staged', () => {
+        const repo = createRepo();
+        repo.stage({ 'src/lib/value.ts': LOGIC });
+        repo.write({ 'src/lib/value.test.ts': TEST });
+        git(repo.root, 'add', '-N', 'src/lib/value.test.ts');
+        git(repo.root, 'add', 'src/lib/value.test.ts');
+
+        expect(gate(repo).code).toBe(0);
+    });
+
+    it('judges only the intent-to-add sibling: a staged one beside it still counts', () => {
+        const repo = createRepo();
+        repo.stage({
+            'src/lib/first.ts': LOGIC,
+            'src/lib/first.test.ts': TEST,
+            'src/lib/second.ts': LOGIC
+        });
+        repo.write({ 'src/lib/second.test.ts': TEST });
+        git(repo.root, 'add', '-N', 'src/lib/second.test.ts');
+
+        const { code, text } = gate(repo);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/second.ts');
+        expect(text).not.toContain('src/lib/first.ts');
+    });
+
+    it('counts a sibling already in HEAD even when its source is the intent-to-add file', () => {
+        const repo = createRepo({ 'src/lib/value.test.ts': TEST });
+        repo.write({ 'src/lib/value.ts': LOGIC });
+        git(repo.root, 'add', '-N', 'src/lib/value.ts');
+        repo.stage({ 'src/lib/value.ts': `${LOGIC}export const other = 2;\n` });
+
+        expect(gate(repo).code).toBe(0);
+    });
+
+    // The file was staged for real and then removed from the working tree: the commit still carries it,
+    // so it counts. (Only an intent-to-add entry is subtracted, never a missing file.)
+    it('counts a staged sibling that was deleted from the working tree afterwards', () => {
+        const repo = createRepo();
+        repo.stage({ 'src/lib/value.ts': LOGIC, 'src/lib/value.test.ts': TEST });
+        rmSync(path.join(repo.root, 'src/lib/value.test.ts'));
+
+        expect(gate(repo).code).toBe(0);
+    });
+
     it('checks a renamed source file under its new name', () => {
         const repo = createRepo({ 'src/lib/old.ts': LOGIC, 'src/lib/old.test.ts': TEST });
         git(repo.root, 'mv', 'src/lib/old.ts', 'src/lib/renamed.ts');
@@ -318,6 +449,17 @@ describe('staged mode reads the git index, not the disk', () => {
         const root = initRepo();
         write(root, { 'src/lib/starter.ts': LOGIC });
         git(root, 'add', '-A');
+
+        const { code, text } = gate({ root });
+
+        expect(code).toBe(0);
+        expect(text).toMatch(/the first commit/);
+    });
+
+    it('still passes the first commit when a file in it is only marked intent-to-add', () => {
+        const root = initRepo();
+        write(root, { 'src/lib/starter.ts': LOGIC, 'src/lib/starter.test.ts': TEST });
+        git(root, 'add', '-N', '.');
 
         const { code, text } = gate({ root });
 

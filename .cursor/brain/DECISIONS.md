@@ -7,6 +7,7 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| Inter is self-hosted by default                                                          | 2026-11 | in force |
 | A browser subscription started in an effect is released                                  | 2026-11 | in force |
 | The commit hook formats every file the push gate checks for format                       | 2026-11 | in force |
 | Gate checks refuse a value they cannot judge                                             | 2026-11 | in force |
@@ -62,6 +63,32 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-11] Inter is self-hosted by default
+
+**Decision**: `webFontUrls` in `app.config.ts` holds the Google Fonts stylesheet URL for Inter
+(`family=Inter:wght@100..900`), so the font plugin downloads and bundles Inter at build time. A fork that wants no web
+font empties the list.
+
+**Context**: with the list empty, `--font-sans` named Inter first but no machine without Inter installed had it, so
+the page took the machine's own sans-serif: DejaVu Sans on the GitHub runner, WenQuanYi Zen Hei in the Playwright image
+(Chromium over CDP). Measured in CI on the pull request that moved `cross-browser` into that image, the document height
+moved between the two: 3557 px against 3282 px at a 390 px viewport, 1971 px against 1856 px at 1440 px. The geometry
+specs then measured a font nobody ships.
+
+**Consequences**:
+
+- The build downloads the font stylesheet and the font files once and the site serves them: no runtime request to
+  Google, and the CSP keeps `font-src 'self'`.
+- The service worker precaches the woff2 files (`workbox.globPatterns` in `vite.config.ts` include `woff2`), so the
+  font works offline.
+- Every machine renders Inter, so the geometry specs measure the shipped font; only glyphs Inter lacks, and text drawn
+  before it loads, use the machine's fallback.
+- A fork that empties the list accepts machine-dependent page geometry.
+- The build needs the network for the font host; `scripts/app-identity.test.mjs` pins that the default list holds an
+  Inter URL.
+
+**Status**: in force. **Evidence**: `app.config.ts`, `scripts/app-identity.test.mjs`.
 
 ## [2026-11] A browser subscription started in an effect is released
 

@@ -89,7 +89,11 @@ went red after 9 minutes.
   so Latin text renders in Inter on every engine wherever the job runs. Only glyphs Inter lacks, and text drawn before
   Inter loads, use the machine's fallback font: in the image that is WenQuanYi Zen Hei for `sans-serif`.
 
-Trial numbers: to be added from the pull request's measurement.
+Measured on pull request #111: six attempts on 2026-11-10, each paired with the old job on the same commit. The image
+job took a median 133 s (118 to 173 s), 20 to 38 s of it container setup; the old job 155 s (138 to 272 s), 24 to 91 s
+of it `install-deps`. Apt lines: 0 against 188. Both ran 33 and 3 tests, all passed. Before Inter shipped the pages
+differed (document height at 390 px: 3557 on the runner, 3282 in the image); since then the built app has the same
+boxes, size and font (Inter) in both on three engines. Fallback: DejaVu Sans (runner), WenQuanYi Zen Hei (image).
 
 **Status**: in force. **Evidence**: `.github/workflows/ci.yml`, `scripts/ci-cross-browser-image.test.mjs`.
 

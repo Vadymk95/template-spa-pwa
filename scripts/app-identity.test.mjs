@@ -168,6 +168,24 @@ describe('app identity', () => {
         );
     });
 
+    it('self-hosts Inter by default, so every machine renders the font the specs measure', async () => {
+        const { file, exported } = fontImport();
+        const urls = (await load(file))[exported];
+        const inter = urls.filter((url) => {
+            const { hostname, pathname, searchParams } = new URL(url);
+
+            return (
+                hostname === 'fonts.googleapis.com' &&
+                pathname === '/css2' &&
+                searchParams.getAll('family').some((family) => family.split(':')[0] === 'Inter')
+            );
+        });
+
+        expect(inter, `${exported} holds no fonts.googleapis.com css2 URL for Inter`).toHaveLength(
+            1
+        );
+    });
+
     it('keeps the identity and the font list in one module that no gate-files.json path matches', () => {
         const { file } = fontImport();
 

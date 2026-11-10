@@ -346,7 +346,7 @@ cannot go out with no gate and no output.
 
 **`ci.yml`** — on pull requests and pushes to `master` (Node 24.x, `npm ci --ignore-scripts`):
 `validate` is a single `npm run verify:ci` step — one step on purpose, see the gate rule above, so this
-section never has to list stages again; `dev-smoke` runs the content-variance fixture against `vite dev` (`npm run smoke:dev`); `cross-browser` re-runs the geometry specs on Firefox and WebKit.
+section never has to list stages again; `dev-smoke` runs the content-variance fixture against `vite dev` (`npm run smoke:dev`); `cross-browser` re-runs the geometry specs on Firefox and WebKit, in the official Playwright image whose tag the `playwright-image` job reads from the lock file (`.cursor/brain/DECISIONS.md` has the why).
 
 **`security.yml`** — on push, PR and a weekly cron: gitleaks over the full history, CodeQL
 `security-extended`, and zizmor over this repository's workflow files (fails on medium and above;

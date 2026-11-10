@@ -67,7 +67,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 - `index.html`: `<title>`, `<meta name="description">`, `apple-mobile-web-app-title`
 - `app.config.ts`: the PWA manifest's `name`, `short_name`, `description`, `lang`,
   `theme_color` and `background_color` (`manifestIdentity`, which `vite.config.ts` spreads
-  into `VitePWA({ manifest })`), and `webFontUrls` if you add a web font. It is not a gate
+  into `VitePWA({ manifest })`), and `webFontUrls` (Inter by default; change it for another web font). It is not a gate
   file, so these edits need no `gate-change` label
 - `public/icons/{192x192,512x512,apple-touch-icon}.png`: swap the red "REPLACE
   ME" placeholder icons for branded PNGs at the same paths and sizes (see
@@ -114,7 +114,7 @@ PWA manifest, or the e2e title assertion is the usual slip:
 
 - **Tailwind CSS v4** — utility-first with CSS-based design tokens (`src/index.css` via `@theme inline {}`, no `tailwind.config.ts`)
 - **Shadcn UI** — accessible components with CVA (Class Variance Authority)
-- **Web fonts** — self-hosted via `vite-plugin-webfont-dl` from the URLs in `app.config.ts` (none by default; zero external requests)
+- **Web fonts** — self-hosted via `vite-plugin-webfont-dl` from the URLs in `app.config.ts` (Inter by default, so every machine renders the same font; zero external requests at runtime)
 - **Lucide React** — icon library
 
 ### PWA
@@ -259,7 +259,7 @@ Key optimizations configured in `vite.config.ts`:
 - **Chunking:** vendor splitting via `build.rolldownOptions.output.codeSplitting.groups` (`react-vendor`, `ui-vendor`, `state-vendor`, `i18n-vendor`, `schema-vendor`)
 - **Compression:** Brotli (`.br`) files generated at build time
 - **Source Maps:** disabled in production output (`sourcemap: false`)
-- **Fonts:** the URLs in `app.config.ts` (none by default) are downloaded at build time and self-hosted via `vite-plugin-webfont-dl`
+- **Fonts:** the URLs in `app.config.ts` (Inter by default; an empty list ships no web font) are downloaded at build time and self-hosted via `vite-plugin-webfont-dl`
 - **FOUC Prevention:** custom `htmlOptimize` plugin (`vite-plugins/html-optimize.ts`)
 - **PWA:** `vite-plugin-pwa` (Workbox, generateSW + prompt-mode) — registered AFTER `removeMswPlugin` so MSW's worker is stripped before Workbox precache scans. See [PWA](#-pwa) and [`.cursor/brain/PWA.md`](./.cursor/brain/PWA.md).
 - **Bundle Analysis:** `ANALYZE=true npm run build` → `dist/bundle-analysis.html`

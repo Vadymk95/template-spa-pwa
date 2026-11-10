@@ -86,6 +86,9 @@ records it as a known gap.
 has a parser) and asserts that it matches a `lint-staged` glob, matched the way lint-staged matches (picomatch, `dot`,
 `matchBase` for a pattern without a slash). `.mjs` and `.cjs` joined the code glob, because ESLint and oxlint both lint
 them; `.css` and `.html` joined the prettier-only glob.
+The same file runs the configured oxlint and ESLint commands on tracked files they ignore: oxlint exits 1 with "No
+files found to lint" unless `--no-error-on-unmatched-pattern` is set, so a commit of only ignored files (the Vite type
+declarations, the generated service worker) failed the hook; ESLint warns on each such file unless `--no-warn-ignored`.
 
 **Context**: `format:check` runs `prettier --check .`, which reads `.mjs`, `.css` and `.html` files that the hook never
 formatted, so a misformatted one passed the commit and failed the push.

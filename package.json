@@ -115,6 +115,7 @@
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^7.1.1",
         "eslint-plugin-react-refresh": "^0.5.7",
+        "eslint-plugin-react-web-api": "5.28.8",
         "eslint-plugin-tailwindcss": "^4.2.0",
         "globals": "^17.13.0",
         "husky": "^9.1.7",
@@ -162,12 +163,12 @@
         "@puppeteer/browsers": ">=3.0.2 <4"
     },
     "lint-staged": {
-        "*.{ts,tsx,js,jsx}": [
+        "*.{ts,tsx,js,jsx,mjs,cjs}": [
             "oxlint --config .oxlintrc.json --fix",
             "eslint --fix --cache --cache-location .eslintcache",
             "prettier --write --cache --cache-location .prettiercache"
         ],
-        "*.{json,md,yml,yaml}": [
+        "*.{json,md,yml,yaml,css,html}": [
             "prettier --write --cache --cache-location .prettiercache"
         ]
     }

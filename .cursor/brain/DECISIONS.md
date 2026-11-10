@@ -7,6 +7,8 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| A browser subscription started in an effect is released                                  | 2026-11 | in force |
+| The commit hook formats every file the push gate checks for format                       | 2026-11 | in force |
 | Gate checks refuse a value they cannot judge                                             | 2026-11 | in force |
 | The probe stops its server, and the group a killed probe left                            | 2026-10 | in force |
 | docs:check reads the tree as a clean checkout does                                       | 2026-10 | in force |
@@ -60,6 +62,35 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-11] A browser subscription started in an effect is released
+
+**Decision**: every `no-leaked-*` rule of `eslint-plugin-react-web-api` (pinned exactly at 5.28.8; listener, fetch,
+IntersectionObserver, interval, ResizeObserver, timeout) is an error over the files the React rules cover. Named rules,
+never a preset, so a new rule in a release cannot change the gate. The guard tests lint a leaking and a released form
+for each rule and fail when one is dropped. A state value rebuilt from other values in an effect is already reported by
+`react-hooks/set-state-in-effect` (a guard case pins it), so no second effect plugin was added.
+
+**Context**: types, unit tests and the other lint rules all pass on an effect that adds a listener, starts a timer, an
+observer or a request and returns no cleanup. The leak shows only as work that keeps running after unmount. The whole
+tree linted clean with the rules on, so nothing needed fixing at adoption.
+
+**Limits**: a state copy of a prop with no effect (`useState(props.value)`) is reported by no rule; the guard file
+records it as a known gap.
+
+**Status**: in force. **Evidence**: `scripts/lint-guards.test.mjs`, `eslint.config.js`.
+
+## [2026-11] The commit hook formats every file the push gate checks for format
+
+**Decision**: `scripts/lint-staged-coverage.test.mjs` takes every tracked file that prettier would check (not ignored,
+has a parser) and asserts that it matches a `lint-staged` glob, matched the way lint-staged matches (picomatch, `dot`,
+`matchBase` for a pattern without a slash). `.mjs` and `.cjs` joined the code glob, because ESLint and oxlint both lint
+them; `.css` and `.html` joined the prettier-only glob.
+
+**Context**: `format:check` runs `prettier --check .`, which reads `.mjs`, `.css` and `.html` files that the hook never
+formatted, so a misformatted one passed the commit and failed the push.
+
+**Status**: in force. **Evidence**: `scripts/lint-staged-coverage.test.mjs`, `package.json` `lint-staged`.
 
 ## [2026-11] Gate checks refuse a value they cannot judge
 

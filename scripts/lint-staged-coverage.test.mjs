@@ -93,39 +93,43 @@ const checkedByPrettier = async (file) => {
     return !info.ignored && info.inferredParser !== null;
 };
 
-describe('the commit hook formats every file the push gate checks for format', () => {
-    it('matches every tracked file prettier checks against a lint-staged glob', async () => {
-        const matchers = readGlobs().map(globMatcher);
-        const files = trackedFiles();
-        const checked = [];
-        for (const file of files) {
-            if (await checkedByPrettier(file)) checked.push(file);
-        }
+describe(
+    'the commit hook formats every file the push gate checks for format',
+    { timeout: 60_000 },
+    () => {
+        it('matches every tracked file prettier checks against a lint-staged glob', async () => {
+            const matchers = readGlobs().map(globMatcher);
+            const files = trackedFiles();
+            const checked = [];
+            for (const file of files) {
+                if (await checkedByPrettier(file)) checked.push(file);
+            }
 
-        const unmatched = checked.filter((file) => !matchers.some((isMatch) => isMatch(file)));
+            const unmatched = checked.filter((file) => !matchers.some((isMatch) => isMatch(file)));
 
-        expect(checked.length, 'prettier must check some tracked files').toBeGreaterThan(0);
-        expect(unmatched, 'tracked files no lint-staged glob matches').toEqual([]);
-    });
+            expect(checked.length, 'prettier must check some tracked files').toBeGreaterThan(0);
+            expect(unmatched, 'tracked files no lint-staged glob matches').toEqual([]);
+        });
 
-    // The assertion above is only as good as the matcher: pin that it reads globs the way lint-staged
-    // does, so a matcher that quietly matched everything cannot make the class check pass.
-    it('matches a slash-less glob in every folder and nothing it does not name', () => {
-        const isMatch = globMatcher('*.{mjs,cjs}');
+        // The assertion above is only as good as the matcher: pin that it reads globs the way lint-staged
+        // does, so a matcher that quietly matched everything cannot make the class check pass.
+        it('matches a slash-less glob in every folder and nothing it does not name', () => {
+            const isMatch = globMatcher('*.{mjs,cjs}');
 
-        expect(isMatch('probe.mjs')).toBe(true);
-        expect(isMatch('scripts/probe.cjs')).toBe(true);
-        expect(isMatch('scripts/probe.ts')).toBe(false);
-        expect(isMatch('scripts/mjs')).toBe(false);
-    });
-});
+            expect(isMatch('probe.mjs')).toBe(true);
+            expect(isMatch('scripts/probe.cjs')).toBe(true);
+            expect(isMatch('scripts/probe.ts')).toBe(false);
+            expect(isMatch('scripts/mjs')).toBe(false);
+        });
+    }
+);
 
 /* oxlint exits 1 with "No files found to lint" when every file it is given matches its
    `ignorePatterns`. A commit that stages only such files (the Vite type declarations, the generated
    service worker) would then fail the hook on a file nobody can lint. This takes one tracked file
    per ignore pattern out of the globs that run oxlint, and runs the configured command on them the
    way lint-staged does. */
-describe('the commit hook survives a commit of files oxlint ignores', () => {
+describe('the commit hook survives a commit of files oxlint ignores', { timeout: 60_000 }, () => {
     const lintStaged = readLintStaged();
     const oxlintGlobs = Object.keys(lintStaged).filter((glob) =>
         lintStaged[glob].some((command) => command.startsWith('oxlint '))

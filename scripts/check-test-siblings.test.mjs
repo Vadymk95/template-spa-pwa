@@ -634,6 +634,157 @@ describe('range mode checks what a branch added, against the head tree', () => {
     });
 });
 
+// The iterate chain runs this mode: it judges the working tree against HEAD, so a missing test is
+// found before `git add`, not at the commit hook. A sibling counts when it is on disk, because at
+// this moment nothing is staged yet; the commit hook still wants it in the index.
+describe('changed mode judges the working tree against HEAD', () => {
+    /** A repository whose HEAD holds `src/lib/ok.ts` with its test and `src/lib/legacy.ts` with none. */
+    const createChangedRepo = () =>
+        createRepo({
+            'src/lib/ok.ts': LOGIC,
+            'src/lib/ok.test.ts': TEST,
+            'src/lib/legacy.ts': LOGIC
+        });
+
+    it('passes on a clean tree, even when HEAD holds a file with no test', () => {
+        expect(gate(createChangedRepo(), ['--changed']).code).toBe(0);
+    });
+
+    it('refuses an untracked logic file with no test and names the file and the remedy', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'src/lib/fresh.ts': LOGIC });
+
+        const { code, text } = gate(repo, ['--changed']);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/fresh.ts');
+        expect(text).toContain('add src/lib/fresh.test.ts');
+    });
+
+    it('accepts an untracked logic file with an untracked test beside it', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'src/lib/fresh.ts': LOGIC, 'src/lib/fresh.test.ts': TEST });
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('refuses a staged-only logic file with no test', () => {
+        const repo = createChangedRepo();
+        repo.stage({ 'src/lib/fresh.ts': LOGIC });
+
+        const { code, text } = gate(repo, ['--changed']);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/fresh.ts');
+    });
+
+    it('accepts a staged logic file whose test is staged too', () => {
+        const repo = createChangedRepo();
+        repo.stage({ 'src/lib/fresh.ts': LOGIC, 'src/lib/fresh.test.ts': TEST });
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('refuses an unstaged edit of a tracked logic file that has no test', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'src/lib/legacy.ts': 'export const changed = 1;\n' });
+
+        const { code, text } = gate(repo, ['--changed']);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/legacy.ts');
+    });
+
+    it('accepts an unstaged edit of a tracked logic file whose test is committed', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'src/lib/ok.ts': 'export const changed = 1;\n' });
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('applies the exempt list of the commit hook', () => {
+        const repo = createChangedRepo();
+        repo.write({
+            'src/lib/constants.ts': LOGIC,
+            'src/pages/Login/index.ts': LOGIC,
+            'src/components/ui/button.tsx': LOGIC,
+            'src/types/global.d.ts': LOGIC,
+            'src/lib/api/_exampleQuery.ts': LOGIC
+        });
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('ignores a changed file outside src', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'scripts/tool.mjs': LOGIC, 'e2e/home.spec.ts': LOGIC });
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('does not judge a deleted logic file', () => {
+        const repo = createChangedRepo();
+        rmSync(path.join(repo.root, 'src/lib/legacy.ts'));
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('judges a renamed logic file at its new path', () => {
+        const repo = createChangedRepo();
+        git(repo.root, 'mv', 'src/lib/ok.ts', 'src/lib/renamed.ts');
+
+        const { code, text } = gate(repo, ['--changed']);
+
+        // `ok.test.ts` stayed behind: the old name had a test, the new one has none.
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/renamed.ts');
+        expect(text).not.toContain('src/lib/ok.ts');
+    });
+
+    it('accepts a renamed logic file that moved with its test', () => {
+        const repo = createChangedRepo();
+        git(repo.root, 'mv', 'src/lib/ok.ts', 'src/lib/renamed.ts');
+        git(repo.root, 'mv', 'src/lib/ok.test.ts', 'src/lib/renamed.test.ts');
+
+        expect(gate(repo, ['--changed']).code).toBe(0);
+    });
+
+    it('reports every offender, not only the first', () => {
+        const repo = createChangedRepo();
+        repo.write({ 'src/lib/a.ts': LOGIC, 'src/lib/b.tsx': LOGIC });
+
+        const { code, text } = gate(repo, ['--changed']);
+
+        expect(code).toBe(1);
+        expect(text).toContain('src/lib/a.ts');
+        expect(text).toContain('src/lib/b.tsx');
+    });
+
+    it('fails in a repository with no commit, rather than judging nothing', () => {
+        const root = initRepo();
+        write(root, { 'src/lib/fresh.ts': LOGIC });
+
+        const { code, text } = gate({ root }, ['--changed']);
+
+        expect(code).toBe(2);
+        expect(text).toMatch(/no commit/);
+    });
+
+    it('refuses to combine with --range or with named files', () => {
+        const repo = createChangedRepo();
+
+        for (const args of [
+            ['--changed', '--range'],
+            ['--changed', 'src/lib/ok.ts']
+        ]) {
+            const { code, text } = gate(repo, args);
+
+            expect(code).toBe(2);
+            expect(text).toMatch(/cannot be combined/);
+        }
+    });
+});
+
 describe('arguments', () => {
     it.each([
         ['an unknown option', ['--rnage']],

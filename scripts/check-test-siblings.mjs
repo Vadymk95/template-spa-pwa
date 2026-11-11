@@ -10,6 +10,9 @@
 // entry (`git add -N`) sits in the index with an empty blob but a commit leaves it out, so it
 // does not count either until it is really staged.
 //
+// The one exception is `--changed`, the iterate chain's mode: nothing is staged yet while the author
+// works, so a test on disk counts there, and the commit hook then asks for it in the index.
+//
 // The very first commit has nothing earlier to compare with and is not judged, staged (no HEAD
 // yet) or in a range (no base): a fork's first commit is the whole template, starter files with
 // no sibling included.
@@ -19,13 +22,16 @@
 //   node scripts/check-test-siblings.mjs --range         # base...HEAD vs the HEAD tree (CI, push)
 //       [--base <ref>] [--head <ref>]                    #   base: --base, else HEAD~1 under CI,
 //                                                        #   else the merge base with origin/master
+//   node scripts/check-test-siblings.mjs --changed       # working tree vs HEAD, tests on disk (iterate chain)
 //   node scripts/check-test-siblings.mjs <file> [file…]  # given files vs the working tree (tests)
 //
 // Exit 0 clean, 1 offenders, 2 the state could not be read (never a silent pass).
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import path from 'node:path';
 
 import { isEntryPoint } from './is-entry-point.mjs';
+import { changedFiles } from './lint-changed.mjs';
 
 // Exempt: tests themselves, type decls, barrels, constants, app shell, generated UI,
 // MSW mocks, test utils. These have no unit-testable logic of their own.
@@ -219,17 +225,39 @@ export const rangeChange = ({ git, env, baseRef, headRef }) => {
     };
 };
 
+/** What the working tree changed against HEAD, and the test files that are on disk beside it. */
+export const workingTreeChange = (root) => {
+    try {
+        return {
+            files: changedFiles({ cwd: root }),
+            exists: (file) => existsSync(path.join(root, file)),
+            heading:
+                'changed source files (working tree against HEAD) with no co-located *.test.* sibling:'
+        };
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error) };
+    }
+};
+
 /* ------------------------------------------------------------------------ arguments */
 
 const USAGE =
-    'usage: node scripts/check-test-siblings.mjs [--range [--base <ref>] [--head <ref>] | <file> [file…]]';
+    'usage: node scripts/check-test-siblings.mjs [--range [--base <ref>] [--head <ref>] | --changed | <file> [file…]]';
 
 export const parseArguments = (argv) => {
-    const options = { range: false, baseRef: undefined, headRef: undefined, files: [] };
+    const options = {
+        range: false,
+        changed: false,
+        baseRef: undefined,
+        headRef: undefined,
+        files: []
+    };
     for (let index = 0; index < argv.length; index += 1) {
         const argument = argv[index];
         if (argument === '--range') {
             options.range = true;
+        } else if (argument === '--changed') {
+            options.changed = true;
         } else if (argument === '--base' || argument === '--head') {
             const value = argv[index + 1];
             // A ref that starts with `-` would be read by git as an option.
@@ -243,6 +271,9 @@ export const parseArguments = (argv) => {
         } else {
             options.files.push(argument);
         }
+    }
+    if (options.changed && (options.range || options.files.length > 0)) {
+        return { error: '--changed cannot be combined with --range or with file names' };
     }
     if (options.range && options.files.length > 0) {
         return { error: '--range takes no file arguments' };
@@ -274,6 +305,8 @@ export const run = ({
     let change;
     if (options.files.length > 0) {
         change = { files: options.files, exists: existsSync, heading: null };
+    } else if (options.changed) {
+        change = workingTreeChange(root);
     } else if (options.range) {
         change = rangeChange({
             git,
@@ -305,8 +338,11 @@ export const run = ({
         const ext = file.endsWith('.tsx') ? 'tsx' : 'ts';
         lines.push(`  - ${file}  → add ${file.replace(/\.(ts|tsx)$/, `.test.${ext}`)}`);
     }
+    const staging = options.changed
+        ? '; the commit hook also wants the test `git add`ed'
+        : ', and only a tracked file counts (`git add` the test)';
     lines.push(
-        '\nTests must exist alongside source, and only a tracked file counts (`git add` the test). Add the test, or if genuinely exempt extend EXEMPT in scripts/check-test-siblings.mjs.\n'
+        `\nTests must exist alongside source${staging}. Add the test, or if genuinely exempt extend EXEMPT in scripts/check-test-siblings.mjs.\n`
     );
     return { code: 1, lines };
 };

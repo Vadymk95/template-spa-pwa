@@ -1,9 +1,17 @@
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import i18n from '@/lib/i18n';
+import { DEFAULT_LANGUAGE } from '@/lib/i18n/constants';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { ContentStress } from './ContentStress';
-import { CONTENT_STRESS_CASES, CONTENT_STRESS_TOTAL, STRESS_STATE } from './stressMatrix';
+import {
+    AUTHORED_COPY,
+    CONTENT_STRESS_CASES,
+    CONTENT_STRESS_TOTAL,
+    STRESS_STATE
+} from './stressMatrix';
 
 /**
  * jsdom cannot measure a rendered box, so this proves the CONTRACT the browser spec depends on:
@@ -87,5 +95,31 @@ describe('ContentStress fixture', () => {
         expect(itemCount(STRESS_STATE.ONE)).toBe(1);
         expect(itemCount(STRESS_STATE.MANY)).toBeGreaterThan(itemCount(STRESS_STATE.TYPICAL));
         expect(itemCount(STRESS_STATE.TYPICAL)).toBeGreaterThan(itemCount(STRESS_STATE.ONE));
+    });
+
+    it('renders its own authored copy without the start page namespace', () => {
+        // While `home` is loaded, a call site still reading it renders the same text and this case
+        // would prove nothing, so the bundle is taken out for the render and put back afterwards.
+        const bundle: unknown = i18n.getResourceBundle(DEFAULT_LANGUAGE, 'home');
+        i18n.removeResourceBundle(DEFAULT_LANGUAGE, 'home');
+
+        try {
+            renderWithProviders(<ContentStress />);
+
+            expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+                AUTHORED_COPY.heading
+            );
+            expect(screen.getByText(AUTHORED_COPY.intro)).toBeInTheDocument();
+
+            const target = caseElement('Prose', STRESS_STATE.TYPICAL).querySelector(
+                '[data-stress-target]'
+            );
+            expect(target?.querySelector('h3')?.textContent).toBe(AUTHORED_COPY.heading);
+            expect(target?.querySelector('p')?.textContent).toBe(AUTHORED_COPY.text);
+        } finally {
+            if (bundle) {
+                i18n.addResourceBundle(DEFAULT_LANGUAGE, 'home', bundle, true, true);
+            }
+        }
     });
 });

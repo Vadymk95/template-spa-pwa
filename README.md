@@ -57,37 +57,30 @@ npm install && npm run prepare && npm run dev
 
 ## Forking this template: rename checklist
 
-This scaffold ships with placeholder branding: `react-spa-pwa-foundation` (the
-package / identifier slug) and `React SPA + PWA Foundation` / `React PWA` (the
-display name). When you start a real project, replace every spot below, then grep
-the old strings to be sure none survive; a missed brand string in `<title>`, the
-PWA manifest, or the e2e title assertion is the usual slip:
+After cloning and `npm run prepare`, run one command from the repository root. It reads and writes files only: no install, no network, no `gh`, and git history is never touched.
 
-- `package.json` **and** `package-lock.json`: `name`
-- `index.html`: `<title>`, `<meta name="description">`, `apple-mobile-web-app-title`
-- `app.config.ts`: the PWA manifest's `name`, `short_name`, `description`, `lang`,
-  `theme_color` and `background_color` (`manifestIdentity`, which `vite.config.ts` spreads
-  into `VitePWA({ manifest })`), and `webFontUrls` (Inter by default; change it for another web font). It is not a gate
-  file, so these edits need no `gate-change` label
-- `public/icons/{192x192,512x512,apple-touch-icon}.png`: swap the red "REPLACE
-  ME" placeholder icons for branded PNGs at the same paths and sizes (see
-  [PWA](#-pwa))
-- `public/locales/<lng>/common.json`: `appName` (the single brand source; Header
-  and Footer render `t('appName')`, so no brand string is hardcoded in components)
-  plus the consumer-facing `pwa.*` toast copy
-- `e2e/smoke.spec.ts`: the expected document-title assertion
-- `README.md`: heading + description
-- `LICENSE`: MIT is fine for an open project; for a **proprietary/commercial**
-  app delete `LICENSE` and set `package.json` `"license": "UNLICENSED"` (the repo
-  is already `private`)
-- `.cursor/brain/PROJECT_CONTEXT.md` + `AGENTS.md`: heading (internal agent docs)
-- Private repository only, `.github/workflows/security.yml` and `.github/ruleset.json`: code scanning is free
-  on a public repository; a private one needs a GitHub Code Security license (a GitHub Team or GitHub
-  Enterprise plan), and without it the `codeql` job fails with "Code scanning is not enabled for this
-  repository". Get the license, or delete the `codeql` job and its required check in one commit. Sources and
-  the exact check name: [Where the security workflow works](#where-the-security-workflow-works)
-- Repository layout: keep the app at the git root. `scripts/check-hooks.mjs` refuses to run from a subfolder of
-  the repository, because every gate script reads git paths relative to the repository root
+```bash
+npm run fork:init -- --name my-app --title "My App" [--holder "My Company Ltd"] [--private] [--dry-run]
+```
+
+It refuses on a dirty working tree, on an invalid package name, an empty title or an unknown option, and on a second run (it writes `.template-origin.json`, and that file's presence is the refusal). A successful run also removes the command from your fork (the script, its test, the `package.json` entry and this description of it, leaving the list below) so your gate does not carry a test of a one-time tool; `docs:check` judges that final tree, and if it is red the command stays whole. What it does:
+
+- **Identity** — the `package.json` name and both root entries of `package-lock.json`; the `index.html` `<title>`, the manifest `name` in `app.config.ts`, the `appName` copy in `public/locales/en/common.json`, the `toHaveTitle` expectation in `e2e/smoke.spec.ts`, the heading of this file and the manifest row of `.cursor/brain/PWA.md`; the title lines of `AGENTS.md` and `.cursor/brain/PROJECT_CONTEXT.md`; the `LICENSE` copyright holder when `--holder` is given.
+- **Release start** — the version restarts at `0.1.0` in `package.json`, the lock file and `.release-please-manifest.json`; `CHANGELOG.md` restarts empty; `bootstrap-sha` in `release-please-config.json` becomes your repository's current commit, so the first release notes do not replay the template's history.
+- **Origin record** — `.template-origin.json` names the template, its version and its commit.
+- **Decision history** — `.cursor/brain/DECISIONS.md` starts with its header, an empty index and a pointer at the template's version; the `§` pointers into the old entries in other docs become quoted entry names, which `docs:check` does not pin. The script runs `docs:check` at the end and exits 1 if it is red.
+- **`--private`** — for a private repository without a code-scanning licence: the `codeql` job in `.github/workflows/security.yml` and its required check in `.github/ruleset.json` leave together. Sources: [Where the security workflow works](#where-the-security-workflow-works).
+- **What is left** — printed at the end, in order, with the exact `gh` commands: enable Actions, the permission for Actions to open pull requests, the `gate-change` label, one pull request, then the ruleset ([why in this order](#what-your-fork-does-not-inherit)), and the settings that are only switches.
+
+What it does not do, and you decide:
+
+- **Languages** — `src/lib/i18n/constants.ts`: `SUPPORTED_LANGUAGES` (add locales beyond `'en'`), `DEFAULT_LANGUAGE`, and the namespace lists `DEFAULT_NAMESPACES` / `LAZY_NAMESPACES` (each must match a folder under `public/locales/{lng}/{ns}.json`); repeat `appName` and the consumer-facing `pwa.*` toast copy in every locale file you add.
+- **Manifest, icons and iOS title** — `app.config.ts` `manifestIdentity`: `short_name` (still `React PWA`), `description`, `lang`, `theme_color` and `background_color`; `index.html`: `apple-mobile-web-app-title` (still `React PWA`) and the two `theme-color` tags; `public/icons/{192x192,512x512,apple-touch-icon}.png`: swap the red "REPLACE ME" placeholder icons for branded PNGs at the same paths and sizes (see [PWA](#-pwa)). `app.config.ts` is not a gate file, so these edits need no `gate-change` label.
+- **Fonts** — `app.config.ts` `webFontUrls` (Inter by default; change it for another web font, or empty the list to drop the web font) and the family in `--font-sans` in `src/index.css`.
+- **Page meta and licence** — the commented-out `<meta name="robots">` and the `<meta name="description">` in `index.html`. MIT suits an open project; for a **proprietary/commercial** app delete `LICENSE` and set `package.json` `"license": "UNLICENSED"` (the repo is already `private`).
+- **Template seeds** — they stay: they are live components and gate fixtures. When you outgrow the demo modules, follow [`.cursor/brain/TEMPLATE_SEEDS.md`](.cursor/brain/TEMPLATE_SEEDS.md) to graduate or remove them.
+- **Repository layout** — keep the app at the git root: `scripts/check-hooks.mjs` refuses to run from a subfolder of the repository, because every gate script reads git paths relative to the repository root.
+- **Version holds** — keep `scripts/version-holds.json`: `verify` fails on a drift, and each hold is re-checked against your own Dependabot PRs, lifted when its condition is met.
 
 ## 🚀 Tech Stack
 

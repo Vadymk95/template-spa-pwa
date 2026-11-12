@@ -583,3 +583,13 @@ describe('fork-init, the script itself', () => {
         }
     });
 });
+
+describe('fork-init, the list of harness tests a push may leave out', () => {
+    // A fork deletes this file. A list that named it would stay green here and turn the guard over
+    // the list red in every fork on its first day, so the rule lives in the file that goes.
+    it('never names this test file', () => {
+        const listed = readJson(ROOT, 'scripts/gate-tiers.json').selfTests?.files ?? [];
+
+        expect(listed).not.toContain(TEST_PATH);
+    });
+});

@@ -98,20 +98,26 @@ const gitEnvironment = (environment) =>
         Object.entries(environment).filter(([key]) => !GIT_LOCATION_VARIABLES.includes(key))
     );
 
-/** `git(args)` returns stdout, or null when the command fails or git cannot be started. */
-const makeGit = (root, env) => (args) => {
-    try {
-        return execFileSync('git', args, {
-            cwd: root,
-            env: gitEnvironment(env),
-            encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'ignore'],
-            maxBuffer: MAX_GIT_OUTPUT_BYTES
-        });
-    } catch {
-        return null;
-    }
-};
+/**
+ * `git(args)` returns stdout, or null when the command fails or git cannot be started. `env`
+ * defaults to the process's: a caller that passes none must still get answers, because a null for
+ * every command reads as "cannot tell" and makes the push gate run everything without a failure.
+ */
+export const makeGit =
+    (root, env = process.env) =>
+    (args) => {
+        try {
+            return execFileSync('git', args, {
+                cwd: root,
+                env: gitEnvironment(env),
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore'],
+                maxBuffer: MAX_GIT_OUTPUT_BYTES
+            });
+        } catch {
+            return null;
+        }
+    };
 
 const splitNul = (text) => text.split('\0').filter(Boolean);
 const shortRef = (ref) => (/^[0-9a-f]{40,}$/.test(ref) ? ref.slice(0, SHORT_REF_LENGTH) : ref);
@@ -159,7 +165,9 @@ export const stagedChange = (git) => {
 };
 
 const BASE_CANDIDATES = ['origin/master', 'origin/main'];
-const isCi = (env) => env.CI === 'true' || env.GITHUB_ACTIONS === 'true';
+/** The base when no remote branch gives a merge base: a caller that needs the remote's can tell it by this. */
+export const FALLBACK_BASE = 'HEAD~1';
+export const isCi = (env) => env.CI === 'true' || env.GITHUB_ACTIONS === 'true';
 
 /**
  * The commit a range starts from, chosen like scripts/check-lock-age.mjs: `--base` when given;
@@ -197,6 +205,13 @@ export const selectBase = ({ git, env, baseRef, headRef }) => {
     }
     return { root: true };
 };
+
+/**
+ * `selectBase` for HEAD, the way the push gate asks: outside CI and with no `baseRef`,
+ * `ref === FALLBACK_BASE` means no remote branch gave one.
+ */
+export const resolveBase = ({ git, env, baseRef }) =>
+    selectBase({ git, env, baseRef, headRef: 'HEAD' });
 
 /** The files a range adds or changes, and the head tree as the set of files that exist. */
 export const rangeChange = ({ git, env, baseRef, headRef }) => {

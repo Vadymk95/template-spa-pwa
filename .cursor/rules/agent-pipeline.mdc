@@ -71,7 +71,7 @@ Green means nothing until you know the gate can go red.
 
 ## Step 5: Brain Auto-Sync
 
-Before marking the task complete, update whichever `.cursor/brain/` file the change invalidates: `MAP.md` (stores, routes, data flows, component wiring), `DECISIONS.md` (a new architectural pattern, deviation or trade-off: one entry of at most 30 lines with an index row; a superseded entry is deleted), `SKELETONS.md` (a risk found or mitigated), `PROJECT_CONTEXT.md`, `VERIFICATION.md`, `PWA.md`, `TEMPLATE_SEEDS.md`, `EXTENSIONS.md`.
+Before marking the task complete, update whichever `.cursor/brain/` file the change invalidates: `MAP.md` (a change of STRUCTURE: a new layer, entry point, data flow or state boundary; a new page, route or store inside the existing structure changes nothing here, the code is the registry), `DECISIONS.md` (a new architectural pattern, deviation or trade-off: one entry of at most 30 lines with an index row; a superseded entry is deleted), `SKELETONS.md` (a risk found or mitigated), `PROJECT_CONTEXT.md`, `VERIFICATION.md`, `PWA.md`, `TEMPLATE_SEEDS.md`, `EXTENSIONS.md`.
 
 If none needs updating, say so: `"Brain sync: none needed."` Completing a task without this declaration is FORBIDDEN.
 

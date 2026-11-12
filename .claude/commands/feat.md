@@ -46,9 +46,10 @@ toast semantics, or the Workbox cache policy. The PWA surface is the one place i
 wrong change ships to installed clients and cannot be rolled back by a redeploy; `.cursor/brain/PWA.md`
 carries the threat model. Trivial leaf edits proceed with a brief note.
 
-**Bigger than a one-sentence diff?** Then the scope lives in `.cursor/<feature-slug>/SPEC.md` and
+**Two or more slices, or a danger zone?** Then the scope lives in `.cursor/<feature-slug>/SPEC.md` and
 `PLAN.md` (templates in `.cursor/templates/`, law in `AGENTS.md` § Before code). Create or update them
-before §3; a plan is approved as a pull-request review, never as a chat reply.
+before §3; a plan is approved as a pull-request review, never as a chat reply. **One slice?** Write its
+acceptance criteria (Given / When / Then) at the top of the pull request description.
 
 ## 3. Build
 

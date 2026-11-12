@@ -14,8 +14,12 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+    FALLBACK_BASE,
     findMissingSiblings,
+    isCi,
     isSrcLogic,
+    makeGit,
+    resolveBase,
     siblingCandidates,
     stagedChange
 } from './check-test-siblings.mjs';
@@ -631,6 +635,76 @@ describe('range mode checks what a branch added, against the head tree', () => {
         const { code } = gate(repo, ['--range'], { GIT_DIR: path.join(elsewhere.root, '.git') });
 
         expect(code).toBe(1);
+    });
+});
+
+// The push gate imports these to learn what a push changes, so they are pinned on real repositories:
+// a `makeGit` that wanted an environment would answer null to every command, and every push would
+// then run everything without any test failing.
+describe('the git helpers the push gate imports', () => {
+    const withBranch = () => {
+        const repo = createRepo({ 'README.md': '# fixture\n' });
+        git(repo.root, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
+        repo.commit({ 'src/lib/value.ts': LOGIC });
+        return repo;
+    };
+
+    it('runs git in the folder it is given, from one argument', () => {
+        const repo = withBranch();
+
+        expect(makeGit(repo.root)(['rev-parse', '--show-prefix'])).toBe('\n');
+    });
+
+    it('answers null when git fails', () => {
+        const repo = withBranch();
+
+        expect(makeGit(repo.root)(['rev-parse', '--verify', '--quiet', 'no-such-ref'])).toBeNull();
+    });
+
+    it('is not fooled by the repository location a hook chain exports', () => {
+        const repo = withBranch();
+        const elsewhere = createRepo();
+        const previous = process.env.GIT_DIR;
+        process.env.GIT_DIR = path.join(elsewhere.root, '.git');
+        try {
+            expect(makeGit(repo.root)(['ls-files'])).toContain('src/lib/value.ts');
+        } finally {
+            if (previous === undefined) delete process.env.GIT_DIR;
+            else process.env.GIT_DIR = previous;
+        }
+    });
+
+    it('resolves the base to the merge base with the remote branch', () => {
+        const repo = withBranch();
+        const mergeBase = git(repo.root, 'rev-parse', 'origin/main');
+
+        expect(resolveBase({ git: makeGit(repo.root), env: {} })).toEqual({ ref: mergeBase });
+    });
+
+    it('resolves to FALLBACK_BASE when no remote branch gives a merge base', () => {
+        const repo = createRepo();
+        repo.commit({ 'src/lib/value.ts': LOGIC });
+
+        expect(resolveBase({ git: makeGit(repo.root), env: {} })).toEqual({ ref: FALLBACK_BASE });
+    });
+
+    it('resolves to the parent under CI and to the base asked for', () => {
+        const repo = withBranch();
+        const first = git(repo.root, 'rev-parse', 'HEAD~1');
+
+        expect(resolveBase({ git: makeGit(repo.root), env: { CI: 'true' } })).toEqual({
+            ref: 'HEAD~1'
+        });
+        expect(resolveBase({ git: makeGit(repo.root), env: {}, baseRef: first })).toEqual({
+            ref: first
+        });
+    });
+
+    it('knows CI from the two variables a runner sets', () => {
+        expect(isCi({ CI: 'true' })).toBe(true);
+        expect(isCi({ GITHUB_ACTIONS: 'true' })).toBe(true);
+        expect(isCi({ CI: '' })).toBe(false);
+        expect(isCi({})).toBe(false);
     });
 });
 

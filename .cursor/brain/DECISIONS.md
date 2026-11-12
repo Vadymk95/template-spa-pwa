@@ -7,6 +7,7 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| A push leaves out the harness tests that read only the harness                           | 2026-11 | in force |
 | Stryker runs the suite in the `forks` pool, as `vitest run` does                         | 2026-11 | in force |
 | Cross-browser runs in the Playwright image                                               | 2026-11 | in force |
 | Inter is self-hosted by default                                                          | 2026-11 | in force |
@@ -65,6 +66,36 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-11] A push leaves out the harness tests that read only the harness
+
+**Decision**: `selfTests.files` in `scripts/gate-tiers.json` names the test files that read nothing but `scripts/` and
+temp folders (each is 2 s or more alone, and a trace of its run showed no read of a repository file outside
+`scripts/`; the tools loaded from `node_modules` and a check that a system tool exists are not such reads). A push whose commits change no
+path of `scripts/gate-files.json`, none under `scripts/`, no `package.json` and no lockfile leaves exactly those out of
+the `test:coverage` stage, in either phase, and prints how many and why. Anything unknown runs them: no remote branch,
+no merge base, a git failure, a package below the repository root, an unreadable manifest, `CI`, or
+`GATE_SELF_TESTS=all git push`. Any other non-empty value of `GATE_SELF_TESTS` stops the push with a message, so a
+mistyped override never leaves the tests out in silence. `npm test`, `npm run verify` and CI leave nothing out.
+
+**Context**: the harness's own tests were about half of a 47 s unit run, and a fork that only writes app code paid for
+them at every push. Measured on master with the same worker cap: 105 files and 2,499 tests in 47 s, against 95 files and
+1,790 tests in 23 s without ten of the listed files. Only a change to the harness can change their result. The rule has
+to be narrow: the harness tests that read the real repository (app files, configs, `package.json`) are guards over
+the project and are never listed. The list never names `scripts/fork-init.test.mjs`, because `fork:init` deletes that
+file in every fork. A case in that test itself fails a list that names it; the guard over the list does not name it,
+because the guard stays in a fork and the test of `fork:init` requires that no file a fork keeps names the command.
+
+**Consequences**:
+
+- A file gets on the list by a pull request that adds it. The list is a gate file (`scripts/**`), and
+  `scripts/gate-tiers.self-tests.test.mjs` fails a name that is missing, duplicated or not a test file under `scripts/`.
+- A push of several commits is judged by the whole branch against the merge base, so one harness commit on the branch
+  makes every later push of it run everything. That errs toward running more.
+- Coverage counts `src/**` only, so no number moves.
+- A red master run from a left-out test that a push would have caught reverses this: the list goes back to empty.
+
+**Status**: in force. **Evidence**: `scripts/verify-push.self-tests.test.mjs`, `scripts/gate-tiers.self-tests.test.mjs`.
 
 ## [2026-11] Stryker runs the suite in the `forks` pool, as `vitest run` does
 

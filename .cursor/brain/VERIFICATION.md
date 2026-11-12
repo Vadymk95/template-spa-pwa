@@ -10,6 +10,12 @@ each gate script runs: `scripts/gate-tiers.json` (`checks.<name>.chain`), not re
 on every phase-0 push. `GATE_PHASE=full` overrides per run (how gate machinery itself is pushed). CI
 always runs the full chain — the phase gates only the LOCAL hook.
 
+A push that changes no harness file (no path of `scripts/gate-files.json`, none under `scripts/`, no `package.json`, no lockfile, between
+the merge base with `origin/master` or `origin/main` and HEAD) also leaves out the harness tests listed under
+`selfTests` in `gate-tiers.json`, in either phase: `scripts/verify-push.mjs` decides and prints which way it went
+on every push, `scripts/check-coverage.mjs` applies it. A push whose change cannot be told (a package below the repository root too), CI, `npm test`,
+`npm run verify` and `GATE_SELF_TESTS=all git push` run them all.
+
 | Check | Runs at phase 0 (scaffold) | Added when (the trigger) |
 | --- | --- | --- |
 | the phase-0 push gate (`verify:scaffold:push`) | yes — every push, seconds | day one |
@@ -130,7 +136,7 @@ lets the next run stop it, but only when the recorded start time and command pro
 Quality is enforced by **code, not advisory rules** — so a cheap model (Cursor Auto/Composer) can't skip it. Layers, earliest → latest:
 
 1. **Pre-commit** (`.husky/pre-commit`) — `lint-staged` (the tools it runs: `package.json`) on the **staged** set; then `scripts/check-test-siblings.mjs` (TDD-gate) **blocks** committing a `src` logic file with no co-located `*.test.*` that is tracked or staged (it reads the git index, not the disk, so an untracked or unstaged test does not count; the first commit of a repository, with no HEAD yet, is not judged); the gate repeats the check over everything the branch changed (`--range`, inside `verify` and `verify:scaffold`), so a `--no-verify` commit is caught at the push; then the **repo-wide** cheap checks (the list is `.husky/pre-commit`); all of them run even when one fails, so one attempt reports everything. Why the repo-wide pass exists: `DECISIONS.md` [2026-07] § Pre-commit is repo-scoped. Remedy on refusal: `npm run fix && git add -u`.
-2. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the phase-0 push gate before the first deploy, `verify:ci` from phase 1.
+2. **Pre-push** — **`npm run verify:push`**, phase-aware (see the phase table above): the phase-0 push gate before the first deploy, `verify:ci` from phase 1; in either phase the listed harness self-tests are left out of a push that changes no harness file (see § Phases).
 3. **CI** (`.github/workflows/ci.yml`) — a single `npm run verify:ci` step over the same script, plus the browser cache and artifact uploads, plus the `dev-smoke` job (content-variance fixture on a dev server) and the `cross-browser` job (Firefox + WebKit on the geometry specs). **`.github/workflows/security.yml`** runs gitleaks over full history, CodeQL `security-extended` and zizmor (workflow files, fails on medium and above; config in `.github/zizmor.yml`, local command `uvx zizmor@1.30.1 .github/workflows`) in parallel, all three required checks; its exclusions live in `.github/codeql/codeql-config.yml` with the reason written down.
 
 Rules added 2026-10-08: `@eslint-community/eslint-comments/require-description` + `no-unlimited-disable` (a suppression carries `-- reason` and names its rule); `no-restricted-imports` on `e2e/*.spec.ts` (import `test` from `./support/fixtures`, whose automatic fixture fails a test on a CSP violation (a console message or a `securitypolicyviolation` event)).
@@ -142,7 +148,7 @@ Rules added 2026-06-05: `@typescript-eslint/no-magic-numbers` (error; named cons
 ## Local gates: the offline gate and `ci:local`
 
 - **`npm run verify`** — the gate. Everything offline; the stages, in order: `scripts/gate-tiers.json`.
-- **`npm run verify:ci`** — the CI gate. CI always runs this; pre-push runs it in phase 1 (see § Phases above).
+- **`npm run verify:ci`** — the CI gate. CI always runs this; pre-push runs it in phase 1, less the listed harness self-tests on a push that changes no harness file (see § Phases above).
 - **`npm run ci:local`** — a local dry run of CI, Lighthouse included. Lighthouse is the only check outside the gate; CI runs it as the `lighthouse` job (one run, warn-only budgets except accessibility, not a required check).
 - **`npm run bench:verify`** — the same steps with per-step timings, to attribute a slow gate.
 - **`npm run fix`** — the one remedy: the autofix of every linter and the formatter (the `fix` script in `package.json`), repo-wide. Re-run the checks that flagged the file to see the residual autofix could not handle; that residual needs a decision, not another `--fix`.

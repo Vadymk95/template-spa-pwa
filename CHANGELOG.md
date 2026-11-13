@@ -1,5 +1,52 @@
 # Changelog
 
+## [3.4.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.7...v3.4.0) (2026-11-13)
+
+
+### Features
+
+* **fonts:** self-host Inter by default so every machine renders the same font ([#112](https://github.com/Vadymk95/template-spa-pwa/issues/112)) ([ce973d8](https://github.com/Vadymk95/template-spa-pwa/commit/ce973d87da1b36e0fdf6ed4548d786814ca02614))
+* **gate:** a push that changes no harness file leaves out the pure harness tests ([#121](https://github.com/Vadymk95/template-spa-pwa/issues/121)) ([02da4b7](https://github.com/Vadymk95/template-spa-pwa/commit/02da4b7f15cfb36a4900e319b443af5e177e5a76))
+* **gate:** iterate runs the commit hook's checks; phase 0 names every skipped stage ([#114](https://github.com/Vadymk95/template-spa-pwa/issues/114)) ([03ae8ee](https://github.com/Vadymk95/template-spa-pwa/commit/03ae8ee390c8036e25c12830cab87494a8ca6afd))
+* **lint:** fail on leaking effects, and format .mjs, .cjs, .css and .html files at commit ([#107](https://github.com/Vadymk95/template-spa-pwa/issues/107)) ([5f95b6b](https://github.com/Vadymk95/template-spa-pwa/commit/5f95b6b9d9b3ad2648c672d8e65c4a40becd237b))
+* **scripts:** add fork:init, the local part of fork day in one command ([#118](https://github.com/Vadymk95/template-spa-pwa/issues/118)) ([4b3fd9e](https://github.com/Vadymk95/template-spa-pwa/commit/4b3fd9ef8a42a688275d47eb0da0b30423787f1f))
+
+
+### Bug fixes
+
+* **fork-day:** the stress fixture owns its copy; gate docs name no seed ([#120](https://github.com/Vadymk95/template-spa-pwa/issues/120)) ([b50d7c5](https://github.com/Vadymk95/template-spa-pwa/commit/b50d7c59c2a92d2ff07731b6dc9c25fa98c65d33))
+* **hooks,ci:** pass commits of linter-ignored files; read gate labels when the job runs ([#110](https://github.com/Vadymk95/template-spa-pwa/issues/110)) ([2e2ecd1](https://github.com/Vadymk95/template-spa-pwa/commit/2e2ecd1fab01a4ee3003eb5878319961b54296f4))
+* **hooks:** the hooks check refuses when a hook file is missing or not executable ([#127](https://github.com/Vadymk95/template-spa-pwa/issues/127)) ([b5f76e0](https://github.com/Vadymk95/template-spa-pwa/commit/b5f76e002b9ca7c03b6fdbf5cc8ad31be006af3b))
+* **mutation:** run Stryker in the forks pool, the pool vitest run uses ([#113](https://github.com/Vadymk95/template-spa-pwa/issues/113)) ([87286aa](https://github.com/Vadymk95/template-spa-pwa/commit/87286aa2d78c2582ea5905f6fb92f2348ee0a14e))
+
+
+### Build and dependencies
+
+* **deps:** move @lhci/cli to 0.16.0 and drop the audit allowance it makes stale ([#125](https://github.com/Vadymk95/template-spa-pwa/issues/125)) ([7cd57e1](https://github.com/Vadymk95/template-spa-pwa/commit/7cd57e185ff9fc2109fd8ba07a6ae0bbca3a3194))
+* **deps:** move oxlint and eslint-plugin-oxlint together to 1.93.0 ([#123](https://github.com/Vadymk95/template-spa-pwa/issues/123)) ([e77ac4e](https://github.com/Vadymk95/template-spa-pwa/commit/e77ac4e453b25fa0160e4bb650dfc4c8fb6abe62))
+
+
+### Maintenance
+
+* **deps:** bump the minor-and-patch group across 1 directory with 13 updates ([#126](https://github.com/Vadymk95/template-spa-pwa/issues/126)) ([5a21862](https://github.com/Vadymk95/template-spa-pwa/commit/5a21862eb6d90661aedf9802dfed66ed3af2bb46))
+
+
+### Documentation
+
+* **agents:** spec and plan from two slices; one slice carries its criteria in the PR ([#117](https://github.com/Vadymk95/template-spa-pwa/issues/117)) ([1a6b409](https://github.com/Vadymk95/template-spa-pwa/commit/1a6b4094caf3be2592c20766400db057e33df018))
+
+
+### Tests
+
+* **scripts:** give the auto-merge script cases their own time budget ([#122](https://github.com/Vadymk95/template-spa-pwa/issues/122)) ([2cbc68b](https://github.com/Vadymk95/template-spa-pwa/commit/2cbc68bc590598901ae61cc3c889e40f3a25b1ae))
+* **scripts:** give the slow self-test groups their own time budget ([#119](https://github.com/Vadymk95/template-spa-pwa/issues/119)) ([8c5667c](https://github.com/Vadymk95/template-spa-pwa/commit/8c5667c039b330eb0d258d812bd954755ce33074))
+
+
+### CI
+
+* **cross-browser:** run in the official Playwright image, its tag read from the lock file ([#111](https://github.com/Vadymk95/template-spa-pwa/issues/111)) ([2fadf39](https://github.com/Vadymk95/template-spa-pwa/commit/2fadf3938881dfa74db7a3e37b12a1ae010ae8ee))
+* **deps:** auto-merge Dependabot patch and minor updates after the required checks ([#115](https://github.com/Vadymk95/template-spa-pwa/issues/115)) ([0c947db](https://github.com/Vadymk95/template-spa-pwa/commit/0c947dba4178569844e018a70e7206193a3a04ee))
+
 ## [3.3.7](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.6...v3.3.7) (2026-11-07)
 
 

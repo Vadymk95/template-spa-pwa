@@ -115,7 +115,7 @@ What it does not do, and you decide:
 - **vite-plugin-pwa 2.x** — `generateSW` mode (Workbox under the hood), `registerType: 'prompt'`
 - **PwaUpdateToast** — auto-mounted i18n-aware update toast driven by `useRegisterSW`
 - **`usePwaInstall` hook** — `beforeinstallprompt` capture + manual install flow (UI is consumer's choice)
-- **Manifest** — standard W3C fields + Chromium-only `display_override` / `handle_links: 'auto'` / `launch_handler`
+- **Manifest** — standard W3C fields + Chromium-only `display_override` / `launch_handler`, and `handle_links: 'auto'` (on hold in Chromium: not enabled by default, so it has no effect today)
 - **Build verification** — `scripts/check-pwa.mjs` inside `npm run verify` (asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify)
 
 ### Developer Experience

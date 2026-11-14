@@ -229,7 +229,7 @@ Full PWA reference: [`PWA.md`](./PWA.md) "Known TODO / future work". Items below
 - **Screenshots** — capture 1×wide (`form_factor: 'wide'`, e.g. 1920×1080) + 1×narrow (`form_factor: 'narrow'`, e.g. 540×720). Spec requires consistent dimensions per form factor — mismatch = manifest validation error.
 - **`shortcuts`** — manifest field for long-press / right-click menu items (e.g., "Compose", "Inbox").
 - **`share_target`** — register the PWA as a system share target (Android / Chromium).
-- **Push notifications** — iOS 18.4+ supports declarative web push for installed PWAs only; Android works since Chrome 42. Requires a backend push service (FCM / APNs proxy) — out-of-scope for this template.
+- **Push notifications** — iOS supports Web Push for installed (Home Screen) PWAs only, from 16.4, and declarative web push from 18.4; Android works since Chrome 42. Requires a backend push service (FCM / APNs proxy) — out-of-scope for this template.
 - **Background sync** — Chromium-only; offline write queue. Requires `injectManifest` mode (template ships `generateSW`).
 - **Periodic background sync** — Chromium-only, behind permission. Niche.
 

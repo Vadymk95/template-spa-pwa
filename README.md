@@ -115,7 +115,7 @@ What it does not do, and you decide:
 - **vite-plugin-pwa 2.x** — `generateSW` mode (Workbox under the hood), `registerType: 'prompt'`
 - **PwaUpdateToast** — auto-mounted i18n-aware update toast driven by `useRegisterSW`
 - **`usePwaInstall` hook** — `beforeinstallprompt` capture + manual install flow (UI is consumer's choice)
-- **Manifest** — standard W3C fields + Chromium-only `display_override` / `launch_handler`, and `handle_links: 'auto'` (on hold in Chromium: not enabled by default, so it has no effect today)
+- **Manifest** — standard W3C fields + Chromium-only `display_override` / `launch_handler`
 - **Build verification** — `scripts/check-pwa.mjs` inside `npm run verify` (asserts manifest fields, populated SW precache, iOS / theme-color meta tags survived minify)
 
 ### Developer Experience
@@ -134,7 +134,7 @@ The template ships as an installable PWA. Full architectural reference: [`.curso
 
 ### What's wired
 
-- **Manifest** — `vite.config.ts` → `VitePWA({ manifest: {...} })`; `name`, `short_name`, `description`, `lang`, `theme_color` and `background_color` come from `app.config.ts`. `id`, `scope`, `start_url`, `name`, `description`, `display: 'standalone'`, `display_override`, `theme_color`, `background_color`, `icons`, `handle_links: 'auto'`, `launch_handler`. Chromium-only fields are inert in Safari / Firefox.
+- **Manifest** — `vite.config.ts` → `VitePWA({ manifest: {...} })`; `name`, `short_name`, `description`, `lang`, `theme_color` and `background_color` come from `app.config.ts`. `id`, `scope`, `start_url`, `name`, `description`, `display: 'standalone'`, `display_override`, `theme_color`, `background_color`, `icons`, `launch_handler`. Chromium-only fields are inert in Safari / Firefox.
 - **Service Worker** — generated as `dist/sw.js` (Workbox precache for all build assets + `public/locales/*.json`). Update strategy: `prompt`. No `runtimeCaching` by default.
 - **Update flow** — `PwaUpdateToast` (auto-mounted in `App.tsx`) shows when a new SW is waiting. Refresh button calls `updateServiceWorker(true)`; dismiss persists to `sessionStorage` until tab close.
 - **Install flow** — `usePwaInstall()` exposes `{ isAvailable, install }`. `beforeinstallprompt` is captured at module load (`src/lib/pwa/installPromptCapture.ts` is side-effect imported from `main.tsx`). Consumer mounts the install button at their chosen moment-of-value.

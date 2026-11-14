@@ -95,10 +95,7 @@ export default defineConfig(({ command }) => ({
                     { src: '/icons/512x512.png', sizes: '512x512', type: 'image/png' },
                     { src: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
                 ],
-                // Chromium-only fields, ignored elsewhere — safe defaults.
-                // handle_links: 'auto' (not 'preferred') so forks that ship auth flows
-                // don't accidentally hijack deep links. See .cursor/brain/PWA.md.
-                handle_links: 'auto',
+                // Chromium-only, ignored elsewhere. Shared-device risk: .cursor/brain/PWA.md.
                 launch_handler: { client_mode: 'navigate-existing' }
             },
             workbox: {

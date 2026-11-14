@@ -67,7 +67,6 @@ All build-versioned assets including `public/locales/*.json` are precached with 
 | `theme_color`     | `#0a0a0a`                            | Standalone-mode browser tint (single-value field)      |
 | `background_color`| `#ffffff`                            | Splash screen base                                     |
 | `icons`           | 192 + 512 + 180 (apple-touch)        | Minimum viable for installability + iOS                |
-| `handle_links`    | `'auto'`                             | **NOT `'preferred'`** — auth-flow forks must not auto-hijack deep links; consumer opts in |
 | `launch_handler`  | `{ client_mode: 'navigate-existing' }` | Reuse existing PWA window vs spawning a new one      |
 
 ### Deliberate omissions
@@ -154,7 +153,7 @@ Production reality-check (deploy + new tab):
 
 - **SW scope `/`** — intercepts every fetch on the origin, including auth tokens. Consumers shipping multi-tenant or auth-sensitive flows must scope or harden requests; SW does not re-validate `Authorization` headers.
 - **CSP and the inline registration** — `injectRegister: 'inline'` puts one inline script in `index.html`; the shipped CSP allows it by a `sha256` of the built page (no `unsafe-inline`), so changing the registration changes the hash at build, not by hand. See `SKELETONS.md`.
-- **`handle_links: 'auto'`** — chosen over `'preferred'` to avoid auto-hijacking deep links into the installed PWA on Chromium (the member is on hold there and not enabled by default, so the value matters once it ships). Forks shipping auth flows MUST keep this; auth deep-link hijack into a stale PWA window is a real exploit class (state leak between users on shared devices).
+- **`handle_links` is not set** — the member is not in the WICG Manifest Incubations draft, has no entry in MDN's browser-compat-data and is [on hold in Chromium](https://chromestatus.com/feature/5740751225880576) (checked 2026-11-14), so a value does nothing. What reusing an open window can leak is the next bullet.
 - **`launch_handler.client_mode: 'navigate-existing'`** — reuses an existing PWA window. Combined with `localStorage` / `sessionStorage` user state, this can leak a previous user's view on shared devices. Consumers shipping user-scoped state must clear it on `visibilitychange` / `focus` if device-sharing is in their threat model.
 - **Supply chain** — `vite-plugin-pwa → workbox-build → @rollup/plugin-terser → serialize-javascript` had a CVE chain (high-severity RCE). Mitigation: `package.json` `overrides` pins `serialize-javascript >=7.0.5`. `scripts/audit-gate.mjs` (fail-closed on high/critical) runs in `verify:ci`. Re-check on every plugin upgrade.
 - **`devOptions.enabled: false`** — keeps the PWA SW out of `vite dev`. MSW's `mockServiceWorker.js` lives at `/` in dev only; flipping `devOptions.enabled: true` breaks MSW. See SKELETONS.md.
@@ -179,5 +178,6 @@ External pages drift; verify before quoting in a fork-time decision. Each link b
 - [Lighthouse v12 PWA category removal](https://github.com/GoogleChrome/lighthouse/issues/15535)
 - [Next.js #74524 — apple-mobile-web-app-capable splash regression](https://github.com/vercel/next.js/issues/74524)
 - [W3C App Manifest spec](https://www.w3.org/TR/appmanifest/)
-- [WICG manifest incubations (display_override / handle_links / launch_handler)](https://wicg.github.io/manifest-incubations/)
+- [WICG Manifest Incubations (display_override)](https://wicg.github.io/manifest-incubations/)
+- [WICG Web App Launch Handler API (launch_handler)](https://wicg.github.io/web-app-launch/)
 - [Firtman — iOS PWA compatibility](https://firt.dev/notes/pwa-ios/)

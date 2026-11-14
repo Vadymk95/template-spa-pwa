@@ -38,7 +38,7 @@ AI-generated UI has recognizable tells. For any UI work reject the default in fa
 - **Radius and spacing**: respect the scale — `--radius` drives `rounded-sm/md/lg`; vary radius by hierarchy rather than `rounded-2xl`/`rounded-full` everywhere. Use the Tailwind spacing scale; don't apply uniform oversized padding (`p-8`/`gap-12`) everywhere.
 - **Layout and copy**: content-first and priority-driven over a generic template hero with a uniform card grid; the LCP-priority element comes first (`performance.mdc`). Realistic content via `t()` keys, never lorem-ipsum — real strings reveal real wrapping and overflow.
 - **Dark mode**: every surface reads in both themes — never hardcode a light-only colour. Charts use `--chart-1`…`--chart-5`.
-- **Baseline only**: prefer Baseline "Widely available" Web APIs; a "Newly available" one (e.g. `scheduler.yield()`) needs a fallback.
+- **Baseline only**: prefer Baseline "Widely available" Web APIs; a "Newly available" one (e.g. view transitions, Widely from 2028-04-14) needs a fallback, and one missing in an engine (e.g. `scheduler.yield()`: no Safari) is progressive enhancement only.
 
 ## Interaction & base-layer states (binding)
 

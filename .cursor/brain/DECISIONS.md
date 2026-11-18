@@ -750,6 +750,9 @@ or critical advisory, expired or stale allowance, its own failure) and `scripts/
 
 - An audit allowance is the last resort: read the advisory's fixed range before trusting `fixAvailable`. Removing an
   allowance and adding the override that closes it are ONE commit, or the stale check fails the gate by design.
+- One allowance stands since 2026-11-18, to 2026-12-02: `GHSA-fc5q-39xc-vjpf` (picomatch, high). GitHub widened its
+  range to `<= 4.0.7` on 2026-11-17 with no patched release (4.0.7 is the newest), and every path to the one copy is
+  build, test or lint tooling, so a dated reason is the only door; the entry names the re-check.
 - Pre-commit is repo-scoped: `lint-staged` restores unstaged hunks after fixing, so drift survived the commit. The hook
   also runs the TDD sibling gate (against the index; `verify` repeats it over the branch with `--range`), then the repo-wide cheap checks (the list is `.husky/pre-commit`). A hook that commits for
   you is not adopted: it would sweep other dirty files into the commit.

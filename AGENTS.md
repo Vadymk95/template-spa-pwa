@@ -43,7 +43,7 @@ npm run e2e:one -- <spec> # one Playwright spec, FREE port, through the tracer (
 npm run test:one -- <file> # one unit test file, through the tracer (not around it)
 npx --no-install eslint <path> # lint one path from the repo root; npm exec --prefix keeps the caller's cwd
 npm run probe -- <route> [widths] [--signed-in] [--theme=dark] # LOOK: render with classic scrollbars drawn, screenshot per width, print measured quantities (an instrument, never a gate)
-npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage
+npm run trace:report  # findings from .gate-trace.log (forbidden moments, budgets, worktrees); `bench:verify` times the gate stage by stage (`-- --run <script>` runs a script's steps as the push does)
 npm run docs:check    # docs class: paths against the files git lists, line pointers, scripts, sentinels, versions, command table, dead docs, section pointers, the DECISIONS shape, test quarantines, agent-memory imports, the gate chain view, its strict flags and any retelling or composition of it (pre-commit when docs are staged and inside verify; weekly CI adds --weekly)
 npm run verify:push   # what pre-push runs: phase-aware (scripts/gate-tiers.json)
 npm run verify        # THE gate: every offline check; the push/CI chain, not a desk tool
@@ -95,7 +95,9 @@ variants, a production build or a browser suite by hand: the full chain belongs 
 result an agent cannot act on is not worth its minutes. A review round gets the diff plus `verify:iter`;
 acceptance does not re-run the gate, the push does. Parallel lanes never run heavy stages (one machine,
 shared caches): heavy work serialises at the push. Individual scripts (`typecheck`, `test`, `fix`)
-are drill-downs on a specific failure; none of them is a moment.
+are drill-downs on a specific failure; none of them is a moment. Every test command an agent runs names a worker cap (`--maxWorkers`, `--workers` or
+`--test-concurrency`), and a lane starts nothing heavy while the 1-minute load average is at or above the core
+count (`sysctl -n hw.ncpu` or `nproc`).
 
 **A red push costs one fix, not another round of the whole gate.** Where the repo has a browser suite, it
 stops after a capped number of failures on the gate run and in CI (`maxFailures`) instead of running every
@@ -124,7 +126,7 @@ hand-written second list has already drifted once.
 **Every gate run is traced** to `.gate-trace.log`; `trace:report` turns the log into findings (forbidden
 moments, blown budgets, gate runs from a worktree). After a push, gate output in the terminal is part of
 the contract: **silence is a failure, not a pass** - a push that printed no gate ran no gate, whatever the
-exit code says.
+exit code says. A line that starts with `ACT` asks a person to act; the push prints it on every run until that is done.
 
 **Ports.** A busy port means MOVE, never kill a server you did not start. A script that goes through the
 free-port wrapper takes the next free port; a script that pins its port (a strictPort flag, or a fixed

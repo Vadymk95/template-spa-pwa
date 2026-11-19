@@ -20,4 +20,10 @@ describe('vitest.config.ts', () => {
     it('resets every mock before each test', () => {
         expect(config()).toMatch(/^\s*mockReset:\s*true,/m);
     });
+
+    // The `text` reporter prints a row per file into every coverage log and nothing reads it; the summary
+    // prints the four totals, and a missed threshold is still named.
+    it('prints the four totals in the terminal, not a row per file', () => {
+        expect(config()).toMatch(/^\s*reporter:\s*\['text-summary',/m);
+    });
 });

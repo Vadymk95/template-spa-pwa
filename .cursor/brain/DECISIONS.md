@@ -7,6 +7,8 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| The push runs its steps through one runner that names the red one | 2026-11 | in force |
+| A log keeps four coverage totals and a command's first and last lines | 2026-11 | in force |
 | A script reads a child's whole output and a full phase says its caches | 2026-11 | in force |
 | A push leaves out the harness tests that read only the harness                           | 2026-11 | in force |
 | Stryker runs the suite in the `forks` pool, as `vitest run` does                         | 2026-11 | in force |
@@ -67,6 +69,35 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-11] The push runs its steps through one runner that names the red one
+
+**Decision**: `verify-push.mjs` expands its target into leaf steps (`expandSteps`) and runs them in order (`runSteps`),
+output inherited. `npm run` hops and the tracer wrapper are followed, every argument is kept, a segment npm hands to
+its shell (an env prefix, quotes) runs through `sh -c`, and a cycle, a missing script or a `pre`/`post` script throws,
+so no step is dropped. One line names each step before it starts; the run ends with `✖ <target>: step <label> failed
+(exit <code>) after <s> s; <k> later steps not run` or `✓ <target>: <n> steps passed in <s> s`. The exit code is the
+failed step's own, 1 for a signal. `npm_*` variables are not set (no gate script reads one); `node_modules/.bin` leads
+PATH. A push writes one trace row, `verify:push`: the rows of the wrapped scripts it used to nest are gone, and nothing
+read them (`trace:report` skipped a nested row, the budget reads `verify:push`). A line that needs a person starts with
+`ACT` (a budget drift, a stale audit allowance), so a push log names the action.
+
+**Context**: the push ran `npm run <target>`, an `&&` chain: it stops at the first red but never says which step that
+was. A step list of its own (`bench:verify` had one) loses arguments such as `--range` and drifts from the gate.
+
+**Status**: in force. **Evidence**: `scripts/bench-verify.mjs`, `scripts/bench-verify.test.mjs`, `scripts/verify-push.mjs`, `scripts/audit-gate.test.mjs`.
+
+## [2026-11] A log keeps four coverage totals and a command's first and last lines
+
+**Decision**: the terminal reporter is `text-summary`: the four totals, and a missed threshold is still named
+(`ERROR: Coverage for lines (<n>%) does not meet global threshold (<n>%)`, exit 1). The per-file table is one flag away (`--coverage.reporter=text`). A lane prints the exit code, the log's first line
+and its last 40 lines.
+
+**Context**: the `text` coverage reporter printed a row per file into every coverage log and nothing read it
+(`scripts/check-coverage.mjs` reads only the dropout lines). A lane that printed the tail of a log lost the line that
+says what the run selected, and a command piped into `tail` hid its exit code.
+
+**Status**: in force. **Evidence**: `vitest.config.ts`, `scripts/vitest-config.test.mjs`, `.cursor/templates/LANE.md`.
 
 ## [2026-11] A script reads a child's whole output and a full phase says its caches
 

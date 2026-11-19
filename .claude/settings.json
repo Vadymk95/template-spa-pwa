@@ -55,6 +55,7 @@
             "Edit(/scripts/run-on-free-port*.mjs)",
             "Edit(/scripts/vitest-config.test.mjs)",
             "Edit(/scripts/mutation-scope.test.mjs)",
+            "Edit(/scripts/bench-verify.mjs)",
             "Edit(/scripts/bench-verify.test.mjs)"
         ]
     }

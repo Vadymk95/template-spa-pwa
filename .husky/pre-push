@@ -12,7 +12,9 @@ fi
 # verify:push is PHASE-AWARE (scripts/verify-push.mjs reads scripts/gate-tiers.json):
 # phase 0 (scaffold, pre-deploy) runs verify:scaffold:push and loudly SKIPS the stages that need a
 # build — no prod boundary exists yet to guard; phase 1 (deployed)
-# runs the full verify:ci chain. GATE_PHASE=full forces the full chain for one run.
+# runs the full verify:ci chain. GATE_PHASE=full runs every stage for one push; Prettier still
+# reads .prettiercache, and the listed tests stay left out unless GATE_SELF_TESTS=all. The run
+# that skips nothing: rm -f .prettiercache && GATE_PHASE=full GATE_SELF_TESTS=all git push
 # In either phase a push that changes no harness file leaves out the harness tests listed under
 # selfTests in scripts/gate-tiers.json and prints that; CI runs them. GATE_SELF_TESTS=all runs them too.
 # Pushing implies network, so the network-bound checks run in both phases.

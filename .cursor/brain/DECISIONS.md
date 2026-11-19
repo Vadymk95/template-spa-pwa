@@ -7,6 +7,7 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 
 | Entry                                                                                    | Date    | Status   |
 | ---------------------------------------------------------------------------------------- | ------- | -------- |
+| The report lists the last pushes and a guard keeps the moments map whole | 2026-11 | in force |
 | A trace row names its commit and the red step | 2026-11 | in force |
 | The push runs its steps through one runner that names the red one | 2026-11 | in force |
 | A log keeps four coverage totals and a command's first and last lines | 2026-11 | in force |
@@ -70,6 +71,18 @@ A superseded or dead decision is deleted, not archived. Dependency holds live in
 | Vite 8 with Rolldown, plugin-react 6 and vendor chunks                                   | 2026-03 | in force |
 | No FSD architecture in this template                                                     | 2026-03 | in force |
 | Zustand for client state, TanStack Query for server state                                | 2026-03 | in force |
+
+## [2026-11] The report lists the last pushes and a guard keeps the moments map whole
+
+**Decision**: `trace:report` ends with the push ledger: the last 20 rows under the push moment's `expected` label,
+each with its time, verdict, failed step, duration and head; a row from before a column shows `-` there. `docs:check`
+fails when a label traced in `package.json` or a hook is on no moment's `expected` or `forbidden` list, and skips that
+check when `gate-tiers.json` has no `moments`.
+
+**Context**: the map from traced label to moment is kept by hand, and a label that no moment names is never judged,
+whatever it costs. A push row had to be found among the rows by eye.
+
+**Status**: in force. **Evidence**: `scripts/trace-report.mjs`, `scripts/docs-check.mjs` and their tests.
 
 ## [2026-11] A trace row names its commit and the red step
 

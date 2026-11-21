@@ -7,7 +7,7 @@ const THEMES = ['light', 'dark', 'system'] as const;
 type Theme = (typeof THEMES)[number];
 
 // The theme has no registry entry: `public/theme-boot.js` spells the same literal out, because a
-// script that runs before first paint cannot import it, and `scripts/probe.test.mjs` fails when the
+// script that runs before first paint cannot import it, and `scripts/probe.repo.test.mjs` fails when the
 // two differ.
 const STORAGE_KEY = 'theme';
 

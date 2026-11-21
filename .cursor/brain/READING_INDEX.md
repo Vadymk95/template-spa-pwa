@@ -65,6 +65,23 @@ sibling project two of five dispatched lanes returned "already done" after ~430k
 and both were answerable by five minutes of grep. **This entry is first in cost order even though it
 is last in the list.**
 
+## Rule routing
+
+The rules to read before planning or editing in a task area (`.cursor/rules/global.mdc` § 0.1 points here).
+`agent-pipeline.mdc` Step 1 turns the list read into the Rule Receipt.
+
+- **React / component / hook / page / HOC work** → `react-patterns.mdc`, `engineering-standards.mdc`, `performance.mdc`
+- **New behavioral component or changed behavior** → also `test-driven-development.mdc` before implementation
+- **Tests / specs / fixtures / mocks** → `test-driven-development.mdc`
+- **API client / TanStack Query / data-fetching / payload contracts** → `api.mdc`, `resilience.mdc`, `engineering-standards.mdc`
+- **Zustand stores / selectors / server-state** → `state-management.mdc`, `resilience.mdc`, `engineering-standards.mdc`
+- **Router / route organization / pages** → `routing.mdc`
+- **Async / error handling / debugging** → `resilience.mdc`
+- **Styling / render-perf / memo / list keys** → `performance.mdc` + `react-patterns.mdc`
+- **Constants / magic strings / config values** → `constants.mdc`, `engineering-standards.mdc`
+- **UI / Tailwind v4 / i18n resources / accessibility / base-layer states** → `project-config.mdc`
+- **PWA / service worker / `vite.config.ts` / manifest / `index.html` meta / MSW** → `project-config.mdc` §PWA + **mandatory** `.cursor/brain/PWA.md` + `.cursor/brain/SKELETONS.md` (load-bearing, destructive-to-change config)
+
 ## Keeping this honest
 
 Add a situation only after an agent was actually sent to the wrong file over it. When two files could

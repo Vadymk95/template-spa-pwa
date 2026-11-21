@@ -12,15 +12,12 @@ fi
 # verify:push is PHASE-AWARE (scripts/verify-push.mjs reads scripts/gate-tiers.json):
 # phase 0 (scaffold, pre-deploy) runs verify:scaffold:push and loudly SKIPS the stages that need a
 # build — no prod boundary exists yet to guard; phase 1 (deployed)
-# runs the full verify:ci chain. GATE_PHASE=full runs every stage for one push; Prettier still
-# reads .prettiercache, and the listed tests stay left out unless GATE_SELF_TESTS=all. The run
-# that skips nothing: rm -f .prettiercache && GATE_PHASE=full GATE_SELF_TESTS=all git push
-# In either phase a push that changes no harness file leaves out the harness tests listed under
-# selfTests in scripts/gate-tiers.json and prints that; CI runs them. GATE_SELF_TESTS=all runs them too.
+# runs the full verify:ci chain, which is the same script CI runs, so a green pre-push keeps predicting a
+# green pipeline. The harness tests live in gatelaw, so no push leaves a test out. GATE_PHASE=full runs
+# every stage for one push; Prettier still reads .prettiercache. The run that skips nothing:
+# rm -f .prettiercache && GATE_PHASE=full git push
 # Pushing implies network, so the network-bound checks run in both phases.
 # The stages of each chain are listed in scripts/gate-tiers.json (checks.<name>.chain).
-# At phase 1 this is the `verify:ci` chain CI runs, less those tests on such a push, so a green
-# pre-push keeps predicting a green pipeline, which is the property the gate exists to hold.
 echo "→ verify:push (phase-aware gate — see scripts/gate-tiers.json)"
 npm run verify:push || {
     echo "❌ verify:push failed. Fix before push."

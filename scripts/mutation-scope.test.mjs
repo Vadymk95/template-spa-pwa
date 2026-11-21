@@ -5,7 +5,7 @@
 // class — an edit lands in one file and the weekly mutation job silently
 // measures (or skips) the wrong code.
 //
-// Unlike audit-gate.test.mjs, these specs read the LIVE configs on purpose:
+// Unlike gatelaw's audit-gate.test.mjs, these specs read the LIVE configs on purpose:
 // the failure this guard exists for IS "one file edited without the other",
 // so inline fixtures would defeat it. The cost is deliberate — adding a
 // coverage exclude means adding its `!` twin to stryker.config.json in the

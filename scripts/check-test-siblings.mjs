@@ -6,9 +6,9 @@
 //
 // A sibling counts only once git holds it: in staged mode the INDEX decides, in range mode the
 // head TREE does. A test file that exists only untracked in the working tree is not part of
-// the commit, so it must not satisfy the gate (it did, when this read the disk). An intent-to-add
-// entry (`git add -N`) sits in the index with an empty blob but a commit leaves it out, so it
-// does not count either until it is really staged.
+// the commit, so it must not satisfy the gate. An intent-to-add entry (`git add -N`) sits in the
+// index with an empty blob but a commit leaves it out, so it does not count either until it is
+// really staged.
 //
 // The one exception is `--changed`, the iterate chain's mode: nothing is staged yet while the author
 // works, so a test on disk counts there, and the commit hook then asks for it in the index.
@@ -22,12 +22,18 @@
 //   node scripts/check-test-siblings.mjs --range         # base...HEAD vs the HEAD tree (CI, push)
 //       [--base <ref>] [--head <ref>]                    #   base: --base, else HEAD~1 under CI,
 //                                                        #   else the merge base with origin/master
+//   node scripts/check-test-siblings.mjs --range <base>[...<head>]   # the same, refs in one argument
 //   node scripts/check-test-siblings.mjs --changed       # working tree vs HEAD, tests on disk (iterate chain)
 //   node scripts/check-test-siblings.mjs <file> [file…]  # given files vs the working tree (tests)
 //
+// What is logic and what is exempt belongs to the repository's layout, so it is data:
+// `scripts/gate-tiers.json` → `"siblings": { "source": "<regex source>", "exempt": ["<regex source>", …] }`.
+// Both keys are optional; a missing key is the default below (a Vite `src/` layout). The file is read
+// from the repository root; one that is there but unreadable, or a key of the wrong kind, is exit 2.
+//
 // Exit 0 clean, 1 offenders, 2 the state could not be read (never a silent pass).
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { isEntryPoint } from './is-entry-point.mjs';
@@ -36,32 +42,93 @@ import { changedFiles } from './lint-changed.mjs';
 // Exempt: tests themselves, type decls, barrels, constants, app shell, generated UI,
 // MSW mocks, test utils. These have no unit-testable logic of their own.
 //
-// `src/router/routes.ts` is a declaration-only route map — an `as const` object of
-// literals and a derived type, exactly the class `constants.ts` is exempt for. A test
-// there would assert that a literal equals itself. Pinned in the spec, so this
-// widening is a recorded decision rather than a convenience.
-//
 // `index.ts` ONLY, never `index.tsx`. The exemption is for barrels, and in this
 // template a barrel is `index.ts` (a `lazy()` re-export) while `index.tsx` is the
 // component ITSELF. A pattern of `index.tsx?$` therefore exempted every component
-// in `src/components/**` from the gate. An exemption written for one file shape
-// must not be spelled loosely enough to cover another.
-//
-// `src/pages/DevPlayground/` and the `_example*` seeds are exempt because this repo
-// already excludes both from coverage in `vitest.config.ts` — dev tooling and
-// documented pattern seeds respectively. Keeping the two lists aligned matters: a
-// file the coverage config says is untested by design should not be a file the
-// commit gate demands a test for.
-const EXEMPT =
-    /(\.test\.[tj]sx?$|\.d\.ts$|\/index\.ts$|constants\.ts$|\/routes\.ts$|\/main\.tsx$|\/App\.tsx$|vite-env\.d\.ts$|\/env\.ts$|^src\/pages\/DevPlayground\/|\/_example[^/]*$|^src\/components\/ui\/|^src\/mocks\/|^src\/test\/)/;
-
-export const isSrcLogic = (file) => /^src\/.+\.(ts|tsx)$/.test(file) && !EXEMPT.test(file);
+// in `src/components/**` from the gate — measured: 11 of 11 `index.tsx` files,
+// six of them with no test anywhere. An exemption written for one file shape must
+// not be spelled loosely enough to cover another.
+const DEFAULT_SOURCE = '^src/.+\\.(ts|tsx)$';
+const DEFAULT_EXEMPT = [
+    /\.test\.[tj]sx?$/,
+    /\.d\.ts$/,
+    /\/index\.ts$/,
+    /constants\.ts$/,
+    /\/keys\.ts$/,
+    /\/routes\.ts$/,
+    /\/_example[^/]*$/,
+    /\/main\.tsx$/,
+    /\/App\.tsx$/,
+    /vite-env\.d\.ts$/,
+    /\/env\.ts$/,
+    /^src\/components\/ui\//,
+    /^src\/mocks\//,
+    /^src\/test\//
+].map((pattern) => pattern.source);
 
 /**
- * Pure decision half, so the EXEMPT list can be tested without a git index or a
- * real tree. `exists` is injected for the same reason: this is the piece most
- * likely to be edited later (usually to widen an exemption), so it is the piece
- * that needs a spec.
+ * The two patterns a repository's layout decides: `source` says which files are logic, `exempt` (a
+ * list of regex sources, alternatives of one pattern) which of those need no test. An empty list
+ * exempts nothing, not even a test file: it never reads as "every path".
+ */
+export const makePolicy = ({ source = DEFAULT_SOURCE, exempt = DEFAULT_EXEMPT } = {}) => ({
+    source: new RegExp(source),
+    exempt: exempt.length === 0 ? /(?!)/ : new RegExp(exempt.map((item) => `(?:${item})`).join('|'))
+});
+
+const DEFAULT_POLICY = makePolicy();
+
+const POLICY_KEYS = ['source', 'exempt'];
+
+/** The policy of the repository at `root`: { policy }, or { error } for a file or key it cannot use. */
+export const readPolicy = (root) => {
+    const file = path.join(root, 'scripts/gate-tiers.json');
+    if (!existsSync(file)) return { policy: DEFAULT_POLICY };
+    let siblings;
+    try {
+        siblings = JSON.parse(readFileSync(file, 'utf8'))?.siblings;
+    } catch (error) {
+        return { error: `scripts/gate-tiers.json cannot be read: ${error.message}` };
+    }
+    if (siblings === undefined) return { policy: DEFAULT_POLICY };
+
+    const bad = (reason) => ({ error: `scripts/gate-tiers.json: ${reason}` });
+    if (typeof siblings !== 'object' || siblings === null || Array.isArray(siblings)) {
+        return bad('siblings must be an object');
+    }
+    const unknown = Object.keys(siblings).find(
+        (key) => !POLICY_KEYS.includes(key) && !key.startsWith('_')
+    );
+    if (unknown)
+        return bad(`siblings has the unknown key "${unknown}" (known: ${POLICY_KEYS.join(', ')})`);
+    const { source, exempt } = siblings;
+    if (source !== undefined && typeof source !== 'string') {
+        return bad('siblings.source must be one regex source');
+    }
+    if (
+        exempt !== undefined &&
+        !(Array.isArray(exempt) && exempt.every((i) => typeof i === 'string'))
+    ) {
+        return bad('siblings.exempt must be a list of regex sources');
+    }
+    try {
+        return { policy: makePolicy({ source, exempt }) };
+    } catch (error) {
+        return bad(`siblings holds a pattern that is not a regex: ${error.message}`);
+    }
+};
+
+export const isSrcLogic = (file, policy = DEFAULT_POLICY) =>
+    policy.source.test(file) && !policy.exempt.test(file);
+
+/**
+ * Every path that would count as this file's test. Exported so the naming rules are
+ * testable on their own, and so the probe cannot silently widen: the candidates are
+ * DERIVED from the file, never a directory scan.
+ *
+ * `Dir/index.tsx` is this template's component form and its test is named after the
+ * DIRECTORY (`Header/index.tsx` → `Header/Header.test.tsx`), matching the convention
+ * every existing component already follows.
  */
 export const siblingCandidates = (file) => {
     const base = file.replace(/\.(ts|tsx)$/, '');
@@ -79,9 +146,15 @@ export const siblingCandidates = (file) => {
     return candidates;
 };
 
-export const findMissingSiblings = (files, exists) =>
+/**
+ * Pure decision half, so the exempt list can be tested without a git index or a
+ * real tree. `exists` is injected for the same reason: this is the piece most
+ * likely to be edited later (usually to widen an exemption), so it is the piece
+ * that needs a spec.
+ */
+export const findMissingSiblings = (files, exists, policy = DEFAULT_POLICY) =>
     files.filter(
-        (file) => isSrcLogic(file) && !siblingCandidates(file).some((path) => exists(path))
+        (file) => isSrcLogic(file, policy) && !siblingCandidates(file).some((path) => exists(path))
     );
 
 /* ------------------------------------------------------------------------ git */
@@ -170,19 +243,18 @@ export const FALLBACK_BASE = 'HEAD~1';
 export const isCi = (env) => env.CI === 'true' || env.GITHUB_ACTIONS === 'true';
 
 /**
- * The commit a range starts from, chosen like scripts/check-lock-age.mjs: `--base` when given;
+ * The commit a range starts from, chosen like scripts/check-lock-age.mjs: `baseRef` when given;
  * `<head>~1` under CI (the PR merge commit's first parent is the base tip, which needs
  * `fetch-depth: 2`); otherwise the merge base with origin/master or origin/main. Result: { ref },
- * { root: true } when there is no base commit at all, or { error }.
+ * { ref: null, root: true } when there is no base commit at all, or { error }.
  */
 export const selectBase = ({ git, env, baseRef, headRef }) => {
     const exists = (ref) => git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]) !== null;
 
     let ref = null;
     if (baseRef) {
-        if (!exists(baseRef)) {
+        if (!exists(baseRef))
             return { error: `--base ${baseRef} is not a commit in this repository` };
-        }
         ref = baseRef;
     } else if (isCi(env)) {
         ref = exists(`${headRef}~1`) ? `${headRef}~1` : null;
@@ -203,7 +275,7 @@ export const selectBase = ({ git, env, baseRef, headRef }) => {
             error: 'shallow clone with no parent commit to compare with: check out with `fetch-depth: 2` (actions/checkout) or run `git fetch --deepen=1`'
         };
     }
-    return { root: true };
+    return { ref: null, root: true };
 };
 
 /**
@@ -257,7 +329,7 @@ export const workingTreeChange = (root) => {
 /* ------------------------------------------------------------------------ arguments */
 
 const USAGE =
-    'usage: node scripts/check-test-siblings.mjs [--range [--base <ref>] [--head <ref>] | --changed | <file> [file…]]';
+    'usage: node scripts/check-test-siblings.mjs [--range [<base>[...<head>]] [--base <ref>] [--head <ref>] | --changed | <file> [file…]]';
 
 export const parseArguments = (argv) => {
     const options = {
@@ -267,19 +339,30 @@ export const parseArguments = (argv) => {
         headRef: undefined,
         files: []
     };
+    let spelled = false;
+    let spec = false;
     for (let index = 0; index < argv.length; index += 1) {
         const argument = argv[index];
+        const value = argv[index + 1];
         if (argument === '--range') {
             options.range = true;
+            // `--range <base>[...<head>]`: both refs in one argument.
+            if (value !== undefined && !value.startsWith('-')) {
+                const [from = '', to = ''] = value.split('...');
+                options.baseRef = from || undefined;
+                options.headRef = to || undefined;
+                spec = true;
+                index += 1;
+            }
         } else if (argument === '--changed') {
             options.changed = true;
         } else if (argument === '--base' || argument === '--head') {
-            const value = argv[index + 1];
             // A ref that starts with `-` would be read by git as an option.
             if (value === undefined || value.startsWith('-')) {
                 return { error: `${argument} needs a ref` };
             }
             options[argument === '--base' ? 'baseRef' : 'headRef'] = value;
+            spelled = true;
             index += 1;
         } else if (argument.startsWith('-')) {
             return { error: `unknown option ${argument}` };
@@ -287,14 +370,18 @@ export const parseArguments = (argv) => {
             options.files.push(argument);
         }
     }
-    if (options.changed && (options.range || options.files.length > 0)) {
-        return { error: '--changed cannot be combined with --range or with file names' };
+    const refs = options.baseRef !== undefined || options.headRef !== undefined;
+    if (options.changed && (options.range || refs || options.files.length > 0)) {
+        return {
+            error: '--changed cannot be combined with --range, --base, --head or file names'
+        };
     }
     if (options.range && options.files.length > 0) {
         return { error: '--range takes no file arguments' };
     }
-    if (!options.range && (options.baseRef !== undefined || options.headRef !== undefined)) {
-        return { error: '--base and --head need --range' };
+    if (!options.range && refs) return { error: '--base and --head need --range' };
+    if (spec && spelled) {
+        return { error: 'give the refs either as <base>...<head> or as --base and --head' };
     }
     return { options };
 };
@@ -305,38 +392,45 @@ const failure = (message) => ({ code: 2, lines: [`✖ TDD-gate: ${message}`, USA
 
 /**
  * The whole check without process exit. Returns { code, lines, ok } where `ok` lines go to stdout
- * and the rest to stderr in `main`; `git` is injectable.
+ * and the rest to stderr in `main`; `git` is injectable. The repository is the one that holds `root`
+ * (a run from a subdirectory answers for the whole of it); given files are read from `root` itself.
  */
-export const run = ({
-    argv = [],
-    env = process.env,
-    root = process.cwd(),
-    git = makeGit(root, env)
-} = {}) => {
+export const run = ({ argv = [], env = process.env, root = process.cwd(), git } = {}) => {
     const parsed = parseArguments(argv);
     if (parsed.error) return failure(parsed.error);
     const { options } = parsed;
 
+    const named = options.files.length > 0;
+    const found = (git ?? makeGit(root, env))(['rev-parse', '--show-toplevel'])?.trim();
+    // Given files are judged against the disk and need no repository, only a place to read the policy.
+    const top = found || (named ? root : null);
+    if (!top)
+        return failure('not inside a git repository: cannot read the git index or its history');
+    const loaded = readPolicy(top);
+    if (loaded.error) return failure(loaded.error);
+    const { policy } = loaded;
+    const ask = git ?? makeGit(top, env);
+
     let change;
-    if (options.files.length > 0) {
+    if (named) {
         change = { files: options.files, exists: existsSync, heading: null };
     } else if (options.changed) {
-        change = workingTreeChange(root);
+        change = workingTreeChange(top);
     } else if (options.range) {
         change = rangeChange({
-            git,
+            git: ask,
             env,
             baseRef: options.baseRef,
             headRef: options.headRef ?? 'HEAD'
         });
     } else {
-        change = stagedChange(git);
+        change = stagedChange(ask);
     }
     if (change.error) return failure(change.error);
 
     if (change.note) return { code: 0, lines: [`  ✔ ${change.note}`], ok: true };
 
-    const missing = findMissingSiblings(change.files, change.exists);
+    const missing = findMissingSiblings(change.files, change.exists, policy);
     if (missing.length === 0) {
         const lines = options.range
             ? [
@@ -357,7 +451,7 @@ export const run = ({
         ? '; the commit hook also wants the test `git add`ed'
         : ', and only a tracked file counts (`git add` the test)';
     lines.push(
-        `\nTests must exist alongside source${staging}. Add the test, or if genuinely exempt extend EXEMPT in scripts/check-test-siblings.mjs.\n`
+        `\nTests must exist alongside source${staging}. Add the test, or if genuinely exempt list it under "siblings.exempt" in scripts/gate-tiers.json.\n`
     );
     return { code: 1, lines };
 };

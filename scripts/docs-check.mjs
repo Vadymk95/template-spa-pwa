@@ -37,8 +37,17 @@
  *              (`skipIf(c)`, `test.skip(cond, ...)`, `{ skip: cond }`) needs none. The date is the
  *              first RED day (UTC, not a day later) and may be at most 30 days after today
  *              (QUARANTINE_MAX_DAYS): a quarantine is a short loan, so `until 2099-12-31` is red too
+ *   gatelaw    every file `.gatelaw.json` lists keeps the sha256 and mode gatelaw wrote, the AGENTS.md
+ *              shared block keeps its sha256, the manifest does not record a `dirty` gatelaw tree; no
+ *              manifest is a finding in a template, one printed line in a fork (`.template-origin.json`).
+ *              A `scripts/*.test.mjs` the manifest lists as moved still counts for the paths check
  *   versions   "Vitest 5" / "React 19.3" in a doc matches the installed version (package-lock.json)
  *   table      every non-internal package.json script is documented in AGENTS.md or README.md
+ *   roles      the command table in AGENTS.md tags a command line with the role it plays by opening
+ *              the line's comment with `[<role>]`; the roles are defined once, in the shared block.
+ *              Every tag names a defined role and every role not marked optional has a line. A table
+ *              with no tag is not judged and prints one note, unless gate-tiers.json
+ *              `docs.roleColumn` is "required" (set it once the table carries its roles)
  *   dead       every doc file has an inbound reference (platform-discovered files exempt)
  *   ciSteps    every `run:` step in a PR-triggered workflow is declared in gate-tiers.json §
  *              ci.allowedRunSteps (a check running only in CI, not in `verify`), with a reason
@@ -102,6 +111,7 @@
  *             that expires while nobody pushes still turns the scheduled run red
  */
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -279,7 +289,14 @@ const isRootFile = (root, name, listed) => {
     }
 };
 
-export const checkPathsAndScripts = ({ docs, root, scripts, topDirs, listed = null }) => {
+export const checkPathsAndScripts = ({
+    docs,
+    root,
+    scripts,
+    topDirs,
+    listed = null,
+    moved = movedTests(root)
+}) => {
     const findings = [];
     const families = scriptFamilies(scripts);
     for (const [file, text] of docs) {
@@ -297,7 +314,7 @@ export const checkPathsAndScripts = ({ docs, root, scripts, topDirs, listed = nu
                 );
             }
             if (kind === 'path') {
-                if (!pathExists(root, value, listed)) {
+                if (!pathExists(root, value, listed) && !moved.has(value)) {
                     findings.push(`${file}:${line}: \`${token}\` does not exist in the tree`);
                 }
             } else if (
@@ -392,6 +409,70 @@ export const checkMemoryImports = (root) => {
     return findings;
 };
 
+const GATELAW_MANIFEST = '.gatelaw.json';
+const GATELAW_REMEDY = 'edit it in gatelaw, then run `gatelaw sync --to <this repository>`';
+const SHARED_BLOCK = /<!-- shared-harness:begin -->\n([\s\S]*?)<!-- shared-harness:end -->/;
+const sha256Of = (data) => createHash('sha256').update(data).digest('hex');
+
+/** The manifest gatelaw sync wrote, or null when there is none or it cannot be read. */
+const readGatelawManifest = (root) => {
+    try {
+        return JSON.parse(readFileSync(path.join(root, GATELAW_MANIFEST), 'utf8'));
+    } catch {
+        return null;
+    }
+};
+
+/** The tests gatelaw took over; a doc may keep naming them. The paths check reads it from `root`. */
+const movedTests = (root) => new Set(readGatelawManifest(root)?.tests ?? []);
+
+/**
+ * The files gatelaw synced here must stay as it wrote them: a hand edit of a copy is lost at the next
+ * sync, so it is a finding now, where it is cheap. Returns { findings, notes }.
+ */
+export const checkGatelaw = (root) => {
+    const manifest = readGatelawManifest(root);
+    if (manifest === null) {
+        // A fork may detach on purpose; a template that lost the manifest has lost its gate.
+        return existsSync(path.join(root, '.template-origin.json'))
+            ? { findings: [], notes: ['gatelaw: detached (no .gatelaw.json)'] }
+            : {
+                  findings: [
+                      `${GATELAW_MANIFEST} is missing or unreadable: run \`gatelaw sync --to <this repository>\` from a clean gatelaw checkout`
+                  ],
+                  notes: []
+              };
+    }
+    const findings = [];
+    if (manifest.commit === 'dirty')
+        findings.push(
+            `${GATELAW_MANIFEST} records a dirty gatelaw tree: sync again from a clean gatelaw commit`
+        );
+    for (const [file, { sha256, mode }] of Object.entries(manifest.files ?? {})) {
+        const full = path.join(root, file);
+        const actual = existsSync(full) && (statSync(full).mode & 0o111 ? '100755' : '100644');
+        if (!actual)
+            findings.push(
+                `${file} is listed in ${GATELAW_MANIFEST} but missing: ${GATELAW_REMEDY}`
+            );
+        else if (sha256Of(readFileSync(full)) !== sha256)
+            findings.push(`${file} differs from its gatelaw copy: ${GATELAW_REMEDY}`);
+        else if (actual !== mode)
+            findings.push(
+                `${file} has mode ${actual}, gatelaw's copy has ${mode}: ${GATELAW_REMEDY}`
+            );
+    }
+    const agents = existsSync(path.join(root, 'AGENTS.md'))
+        ? readFileSync(path.join(root, 'AGENTS.md'), 'utf8')
+        : '';
+    const block = SHARED_BLOCK.exec(agents)?.[1];
+    if (block === undefined)
+        findings.push(`AGENTS.md has no shared-harness block: ${GATELAW_REMEDY}`);
+    else if (sha256Of(block) !== manifest.block?.sha256)
+        findings.push(`AGENTS.md shared block differs from the gatelaw copy: ${GATELAW_REMEDY}`);
+    return { findings, notes: [] };
+};
+
 export const compareVersion = (docMajor, docMinor, installed) => {
     const [major, minor] = installed.split('.');
     if (docMajor !== major) return false;
@@ -438,6 +519,91 @@ export const checkCommandTable = ({
         }
     }
     return findings;
+};
+
+/* Command roles. The shared block names what a command is for (the iterate command, the gate command),
+   never the command, and defines the role names once: a bullet `- **<role>** - ...` (`(optional)` after
+   the name when a repo may have none) in the list that follows its `**Command roles.**` paragraph. The
+   repo's command table, the fenced list in AGENTS.md outside the block, tags a command line with its role
+   by opening the line's comment with `[<role>]`: `npm run x  # [iterate command] ...`. Two-step: a table
+   with no tag at all is not judged and prints one note (a repo that has not written its column yet stays
+   green); `docs.roleColumn: "required"` in gate-tiers.json turns that note into a finding. Once one line
+   is tagged, every tag must name a defined role and every role that is not optional needs a line. */
+const ROLES_HEADING = '**Command roles.**';
+const ROLE_ITEM = /^- \*\*([A-Za-z][A-Za-z -]*[A-Za-z])\*\*( \(optional\))? - /;
+const ROLE_TAG = /^\[([^\]\n]+)\]/;
+const COMMENT_START = /\s#\s/;
+
+/** The roles a block defines, in its order: `{ name, optional }`; none when it has no roles list. */
+export const definedRoles = (blockText) => {
+    const roles = [];
+    let heading = false;
+    for (const line of blockText.split('\n')) {
+        if (line.startsWith(ROLES_HEADING)) heading = true;
+        const item = heading ? ROLE_ITEM.exec(line) : null;
+        if (item) roles.push({ name: item[1], optional: item[2] !== undefined });
+        else if (roles.length > 0 && line.trim() !== '') break;
+    }
+    return roles;
+};
+
+/** The `[<role>]` tags that open the comment of a fenced command line, with their 1-based lines. */
+export const taggedRoles = (text) => {
+    const tags = [];
+    let open = '';
+    text.split('\n').forEach((line, index) => {
+        const fence = FENCE.exec(line)?.[1] ?? '';
+        if (open) {
+            if (fence[0] === open[0] && fence.length >= open.length) open = '';
+        } else if (fence) {
+            open = fence;
+        } else {
+            return;
+        }
+        if (!open) return;
+        const cut = COMMENT_START.exec(line);
+        if (cut === null || line.startsWith('#')) return;
+        const tag = ROLE_TAG.exec(line.slice(cut.index + cut[0].length));
+        if (tag) tags.push({ role: tag[1].trim(), line: index + 1 });
+    });
+    return tags;
+};
+
+export const checkCommandRoles = ({ agentsText, required = false }) => {
+    const none = { findings: [], notes: [] };
+    const block = SHARED_BLOCK.exec(agentsText);
+    if (block === null) return none;
+    const roles = definedRoles(block[1]);
+    if (roles.length === 0) return none;
+    // The table is everything outside the block; the block's own lines go blank so line numbers hold.
+    const outside =
+        agentsText.slice(0, block.index) +
+        block[0].replace(/[^\n]+/g, '') +
+        agentsText.slice(block.index + block[0].length);
+    const tags = taggedRoles(outside);
+    if (tags.length === 0) {
+        const message =
+            'AGENTS.md: the command table has no role column (tag a command line with `# [<role>]`; the roles are in the shared block)';
+        return required ? { findings: [message], notes: [] } : { findings: [], notes: [message] };
+    }
+    const findings = [];
+    const known = new Set(roles.map(({ name }) => name));
+    for (const { role, line } of tags) {
+        if (!known.has(role)) {
+            findings.push(
+                `AGENTS.md:${line}: the role "${role}" is not one the shared block defines (${[...known].join(', ')})`
+            );
+        }
+    }
+    const used = new Set(tags.map(({ role }) => role));
+    for (const { name, optional } of roles) {
+        if (!optional && !used.has(name)) {
+            findings.push(
+                `AGENTS.md: the shared block defines the role "${name}" and no command line in the table carries it`
+            );
+        }
+    }
+    return { findings, notes: [] };
 };
 
 /** A Cursor rule with globs or alwaysApply is attached by the editor, so no doc has to point at it. */
@@ -2493,7 +2659,11 @@ export const run = ({ root, today }) => {
         workflows,
         allowlist: ciConfig.rulesetContextAllowlist ?? []
     });
-    const notes = [...rulesetCheck.notes];
+    const roles = checkCommandRoles({
+        agentsText: docs.find(([file]) => file === 'AGENTS.md')?.[1] ?? '',
+        required: docsConfig.roleColumn === 'required'
+    });
+    const notes = [...rulesetCheck.notes, ...roles.notes];
     /* Without a file list topDirs is empty, so no token is read as a path and the path and
        line-pointer checks judge nothing, bar a pointer into a file at the root, which the disk
        alone still answers. Say so, and keep the summary from claiming the check; the run does not
@@ -2519,6 +2689,7 @@ export const run = ({ root, today }) => {
             scripts,
             internalScripts: [...DEFAULT_INTERNAL_SCRIPTS, ...(docsConfig.internalScripts ?? [])]
         }),
+        ...roles.findings,
         ...checkDeadDocs({ docs, extraText: workflowText }),
         ...checkSectionPointers({
             docs: listMarkdownFiles(root, listed).map((file) => [
@@ -2633,6 +2804,9 @@ const main = () => {
     const weekly = argv.includes('--weekly');
     const today = new Date().toISOString().slice(0, 10);
     const { findings, budget, notes, skipped } = run({ root, today });
+    const gatelaw = checkGatelaw(root);
+    findings.push(...gatelaw.findings);
+    notes.push(...gatelaw.notes);
 
     console.log(`docs:check${weekly ? ' (weekly)' : ''}`);
     // A line that asks a person to act starts at the margin, so a scan for `ACT` finds it.

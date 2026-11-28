@@ -51,7 +51,9 @@ export const readRunner = (cwd) => {
     try {
         tiers = JSON.parse(readFileSync(`${cwd}/${TIERS_FILE}`, 'utf8'));
     } catch (error) {
-        if (error?.code !== 'ENOENT') throw new Error(`${TIERS_FILE} cannot be read as JSON`);
+        if (error?.code !== 'ENOENT') {
+            throw new Error(`${TIERS_FILE} cannot be read as JSON`, { cause: error });
+        }
     }
     const runner = tiers?.coverage?.runner;
     if (runner === undefined) return 'vitest';
@@ -59,6 +61,22 @@ export const readRunner = (cwd) => {
     throw new Error(
         `${TIERS_FILE} names the coverage runner ${JSON.stringify(runner)}; the choices are ${Object.keys(RUNNERS).join(' and ')}`
     );
+};
+
+/**
+ * The arguments after `npx` for a runner. Vitest reads `VITEST_MAX_WORKERS` itself; jest reads no cap from
+ * its environment, so a jest run gets `--maxWorkers=<n>` from `JEST_MAX_WORKERS` (unset or empty: jest's own
+ * default). A value that is not a positive whole number throws, so a misspelled cap never reads as no cap.
+ */
+export const runnerArguments = (runner, env = process.env) => {
+    const cap = env.JEST_MAX_WORKERS;
+    if (runner !== 'jest' || cap === undefined || cap === '') return RUNNERS[runner].args;
+    if (!/^[1-9]\d*$/.test(cap)) {
+        throw new Error(
+            `JEST_MAX_WORKERS=${JSON.stringify(cap)} is not a positive whole number; unset it for jest's own default or give the number of workers`
+        );
+    }
+    return [...RUNNERS[runner].args, `--maxWorkers=${cap}`];
 };
 
 /**
@@ -110,7 +128,15 @@ const main = () => {
         process.exitCode = 1;
         return;
     }
-    const result = spawnSync('npx', RUNNERS[runner].args, {
+    let args;
+    try {
+        args = runnerArguments(runner);
+    } catch (error) {
+        console.error(`check-coverage: ${error.message}`);
+        process.exitCode = 1;
+        return;
+    }
+    const result = spawnSync('npx', args, {
         encoding: 'utf8',
         shell: false,
         maxBuffer: OUTPUT_LIMIT_BYTES

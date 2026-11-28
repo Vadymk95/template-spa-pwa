@@ -1,5 +1,63 @@
 # Changelog
 
+## [3.4.0](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.7...v3.4.0) (2026-11-28)
+
+
+### Features
+
+* **fonts:** self-host Inter by default so every machine renders the same font ([#112](https://github.com/Vadymk95/template-spa-pwa/issues/112)) ([ce973d8](https://github.com/Vadymk95/template-spa-pwa/commit/ce973d87da1b36e0fdf6ed4548d786814ca02614))
+* **gate:** a push that changes no harness file leaves out the pure harness tests ([#121](https://github.com/Vadymk95/template-spa-pwa/issues/121)) ([02da4b7](https://github.com/Vadymk95/template-spa-pwa/commit/02da4b7f15cfb36a4900e319b443af5e177e5a76))
+* **gate:** iterate runs the commit hook's checks; phase 0 names every skipped stage ([#114](https://github.com/Vadymk95/template-spa-pwa/issues/114)) ([03ae8ee](https://github.com/Vadymk95/template-spa-pwa/commit/03ae8ee390c8036e25c12830cab87494a8ca6afd))
+* **gate:** list the last pushes in trace:report, guard the moments map ([#138](https://github.com/Vadymk95/template-spa-pwa/issues/138)) ([0b4c34a](https://github.com/Vadymk95/template-spa-pwa/commit/0b4c34ae3dcc98396f241165ef7eaabad618254c))
+* **gate:** log the commit and the red step in every gate trace row ([#137](https://github.com/Vadymk95/template-spa-pwa/issues/137)) ([d6f42ac](https://github.com/Vadymk95/template-spa-pwa/commit/d6f42acfb505b6041559a9283a9b0f16b22dc60e))
+* **gate:** run the push through a step runner, ACT lines, text-summary coverage ([#136](https://github.com/Vadymk95/template-spa-pwa/issues/136)) ([7825edc](https://github.com/Vadymk95/template-spa-pwa/commit/7825edcdb5e2c72b9cc2c462f1aa458b35fed920))
+* **gate:** take the harness from gatelaw and keep the repository halves of split tests ([#139](https://github.com/Vadymk95/template-spa-pwa/issues/139)) ([89cc107](https://github.com/Vadymk95/template-spa-pwa/commit/89cc107897dc9f32189ed5ce04abe86d50fef879))
+* **gate:** take the vendor-neutral law and the test-one and lint-cache guards from gatelaw ([#141](https://github.com/Vadymk95/template-spa-pwa/issues/141)) ([09def2c](https://github.com/Vadymk95/template-spa-pwa/commit/09def2c132b5a7b102bb61f03ddd282f17ec1ec9))
+* **lint:** fail on leaking effects, and format .mjs, .cjs, .css and .html files at commit ([#107](https://github.com/Vadymk95/template-spa-pwa/issues/107)) ([5f95b6b](https://github.com/Vadymk95/template-spa-pwa/commit/5f95b6b9d9b3ad2648c672d8e65c4a40becd237b))
+* **scripts:** add fork:init, the local part of fork day in one command ([#118](https://github.com/Vadymk95/template-spa-pwa/issues/118)) ([4b3fd9e](https://github.com/Vadymk95/template-spa-pwa/commit/4b3fd9ef8a42a688275d47eb0da0b30423787f1f))
+
+
+### Bug fixes
+
+* **deps:** allow the unfixable picomatch advisory until 2026-12-02 ([#132](https://github.com/Vadymk95/template-spa-pwa/issues/132)) ([6c4c137](https://github.com/Vadymk95/template-spa-pwa/commit/6c4c137e886aa2dce7a80fe1a2a9b58b1cf2f042))
+* **deps:** drop the picomatch allowance, GitHub withdrew the advisory ([#134](https://github.com/Vadymk95/template-spa-pwa/issues/134)) ([d4dce89](https://github.com/Vadymk95/template-spa-pwa/commit/d4dce897dd85c9da699b78b9d45853e5996657a8))
+* **fork-day:** the stress fixture owns its copy; gate docs name no seed ([#120](https://github.com/Vadymk95/template-spa-pwa/issues/120)) ([b50d7c5](https://github.com/Vadymk95/template-spa-pwa/commit/b50d7c59c2a92d2ff07731b6dc9c25fa98c65d33))
+* **gate:** read a child's whole output and run the push lint without its cache ([#135](https://github.com/Vadymk95/template-spa-pwa/issues/135)) ([a010878](https://github.com/Vadymk95/template-spa-pwa/commit/a010878db76c469445ee70dcdd32f6f800ee8bbe))
+* **hooks,ci:** pass commits of linter-ignored files; read gate labels when the job runs ([#110](https://github.com/Vadymk95/template-spa-pwa/issues/110)) ([2e2ecd1](https://github.com/Vadymk95/template-spa-pwa/commit/2e2ecd1fab01a4ee3003eb5878319961b54296f4))
+* **hooks:** the hooks check refuses when a hook file is missing or not executable ([#127](https://github.com/Vadymk95/template-spa-pwa/issues/127)) ([b5f76e0](https://github.com/Vadymk95/template-spa-pwa/commit/b5f76e002b9ca7c03b6fdbf5cc8ad31be006af3b))
+* **mutation:** run Stryker in the forks pool, the pool vitest run uses ([#113](https://github.com/Vadymk95/template-spa-pwa/issues/113)) ([87286aa](https://github.com/Vadymk95/template-spa-pwa/commit/87286aa2d78c2582ea5905f6fb92f2348ee0a14e))
+
+
+### Build and dependencies
+
+* **deps:** move @lhci/cli to 0.16.0 and drop the audit allowance it makes stale ([#125](https://github.com/Vadymk95/template-spa-pwa/issues/125)) ([7cd57e1](https://github.com/Vadymk95/template-spa-pwa/commit/7cd57e185ff9fc2109fd8ba07a6ae0bbca3a3194))
+* **deps:** move oxlint and eslint-plugin-oxlint together to 1.93.0 ([#123](https://github.com/Vadymk95/template-spa-pwa/issues/123)) ([e77ac4e](https://github.com/Vadymk95/template-spa-pwa/commit/e77ac4e453b25fa0160e4bb650dfc4c8fb6abe62))
+
+
+### Maintenance
+
+* **deps:** bump the minor-and-patch group across 1 directory with 13 updates ([#126](https://github.com/Vadymk95/template-spa-pwa/issues/126)) ([5a21862](https://github.com/Vadymk95/template-spa-pwa/commit/5a21862eb6d90661aedf9802dfed66ed3af2bb46))
+* **pwa:** drop the handle_links manifest member, which no engine or current spec reads ([#129](https://github.com/Vadymk95/template-spa-pwa/issues/129)) ([3f63434](https://github.com/Vadymk95/template-spa-pwa/commit/3f63434174d52dd005a29f7e8a63b695452a933e))
+* **review:** run /review in a fresh subagent context ([#133](https://github.com/Vadymk95/template-spa-pwa/issues/133)) ([eb869f8](https://github.com/Vadymk95/template-spa-pwa/commit/eb869f89ea822d51e20c4d2de5afafcfeecb8b00))
+
+
+### Documentation
+
+* **agents:** spec and plan from two slices; one slice carries its criteria in the PR ([#117](https://github.com/Vadymk95/template-spa-pwa/issues/117)) ([1a6b409](https://github.com/Vadymk95/template-spa-pwa/commit/1a6b4094caf3be2592c20766400db057e33df018))
+* **rules:** correct the Baseline tier example and the scrollbar-gutter Safari version ([#128](https://github.com/Vadymk95/template-spa-pwa/issues/128)) ([810cafa](https://github.com/Vadymk95/template-spa-pwa/commit/810cafa4e42273ee4e865ad72920638b57f55a21))
+
+
+### Tests
+
+* **scripts:** give the auto-merge script cases their own time budget ([#122](https://github.com/Vadymk95/template-spa-pwa/issues/122)) ([2cbc68b](https://github.com/Vadymk95/template-spa-pwa/commit/2cbc68bc590598901ae61cc3c889e40f3a25b1ae))
+* **scripts:** give the slow self-test groups their own time budget ([#119](https://github.com/Vadymk95/template-spa-pwa/issues/119)) ([8c5667c](https://github.com/Vadymk95/template-spa-pwa/commit/8c5667c039b330eb0d258d812bd954755ce33074))
+
+
+### CI
+
+* **cross-browser:** run in the official Playwright image, its tag read from the lock file ([#111](https://github.com/Vadymk95/template-spa-pwa/issues/111)) ([2fadf39](https://github.com/Vadymk95/template-spa-pwa/commit/2fadf3938881dfa74db7a3e37b12a1ae010ae8ee))
+* **deps:** auto-merge Dependabot patch and minor updates after the required checks ([#115](https://github.com/Vadymk95/template-spa-pwa/issues/115)) ([0c947db](https://github.com/Vadymk95/template-spa-pwa/commit/0c947dba4178569844e018a70e7206193a3a04ee))
+
 ## [3.3.7](https://github.com/Vadymk95/template-spa-pwa/compare/v3.3.6...v3.3.7) (2026-11-07)
 
 
